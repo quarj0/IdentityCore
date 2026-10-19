@@ -520,6 +520,70 @@ def heartbeat_processing_job(job: ProcessingJob) -> None:
     job.lease_expires_at = lease_expires_at
 
 
+def document_processing_stop_status(job: ProcessingJob) -> str | None:
+    """Recognize a terminal case or an exactly bound document route decision."""
+    if job.job_type != ProcessingJobType.IDENTITY_DOCUMENT:
+        return None
+    from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
+    from apps.providers.models import ProviderCheckType
+
+    document = (
+        IdentityDocument.objects.select_related("verification")
+        .filter(
+            public_id=job.resource_public_id,
+            tenant_id=job.tenant_id,
+            verification_id=job.verification_id,
+        )
+        .first()
+    )
+    if document is None:
+        return None
+    case = document.verification
+    if case.status in TERMINAL_STATUSES:
+        return IdentityDocumentStatus.FAILED
+    if case.status != VerificationStatus.MANUAL_REVIEW_REQUIRED:
+        return None
+    decision = VerificationDecision.objects.filter(
+        verification_id=case.pk,
+        tenant_id=job.tenant_id,
+        reason_code="provider_route_exhausted",
+        decision=case.status,
+        decision_type=VerificationDecisionType.SYSTEM,
+    ).first()
+    if decision is None:
+        return None
+    summary = decision.evidence_summary_json
+    if not isinstance(summary, dict) or (
+        summary.get("identity_document_id") != document.public_id
+        or summary.get("capability")
+        not in {
+            ProviderCheckType.DOCUMENT_QUALITY,
+            ProviderCheckType.DOCUMENT_CLASSIFICATION,
+            ProviderCheckType.DOCUMENT_OCR,
+        }
+    ):
+        return None
+    return IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
+
+
+def _repair_stopped_document(job: ProcessingJob) -> None:
+    status = document_processing_stop_status(job)
+    if status is None:
+        return
+    from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
+
+    # Do not replace already committed terminal document evidence.
+    IdentityDocument.objects.filter(
+        public_id=job.resource_public_id,
+        tenant_id=job.tenant_id,
+        verification_id=job.verification_id,
+        status__in=[
+            IdentityDocumentStatus.SUBMITTED,
+            IdentityDocumentStatus.PROCESSING,
+        ],
+    ).update(status=status, updated_at=timezone.now())
+
+
 def _repair_biometric_route_exhaustion(job: ProcessingJob, *, now) -> None:
     """Finish biometric resource state committed around provider-route exhaustion."""
     if job.job_type != ProcessingJobType.BIOMETRICS:
@@ -606,6 +670,7 @@ def complete_processing_job(job: ProcessingJob) -> None:
         )
     _assert_processing_job_owner(locked, job)
     _repair_biometric_route_exhaustion(locked, now=now)
+    _repair_stopped_document(locked)
     locked.status = ProcessingJobStatus.COMPLETED
     locked.heartbeat_at = now
     locked.lease_expires_at = now
@@ -820,7 +885,10 @@ def _resource_processing_finished(job: ProcessingJob) -> bool:
             )
             .first()
         )
-        return document is not None and document_processing_committed(document)
+        return document is not None and (
+            document_processing_committed(document)
+            or document_processing_stop_status(job) is not None
+        )
     if job.job_type == ProcessingJobType.BIOMETRICS:
         from apps.biometrics.models import LivenessCheck, LivenessCheckStatus
 

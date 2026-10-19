@@ -45,6 +45,7 @@ from apps.verifications.processing_jobs import (
     heartbeat_processing_job,
     lock_processing_job_for_finalization,
     document_processing_committed,
+    document_processing_stop_status,
 )
 from apps.verifications.transitions import (
     TERMINAL_STATUSES,
@@ -173,8 +174,12 @@ def process_identity_document_task(identity_document_id: str) -> str:
     )
     if processing_job is None:
         return identity_document.status
-    if document_processing_committed(identity_document):
+    if (
+        document_processing_committed(identity_document)
+        or document_processing_stop_status(processing_job) is not None
+    ):
         complete_processing_job(processing_job)
+        identity_document.refresh_from_db(fields=["status"])
         return identity_document.status
     captures = list(identity_document.captures.order_by("created_at"))
     if not captures:
@@ -726,7 +731,15 @@ def process_identity_document_task(identity_document_id: str) -> str:
             internal_reason = getattr(exc, "reason", str(exc))
             identity_document.status = IdentityDocumentStatus.FAILED
             identity_document.save(update_fields=["status", "updated_at"])
-            transition_verification(verification, VerificationStatus.AWAITING_DOCUMENT)
+            try:
+                transition_verification(
+                    verification, VerificationStatus.AWAITING_DOCUMENT
+                )
+            except VerificationTransitionError:
+                verification.refresh_from_db(fields=["status"])
+                if verification.status not in TERMINAL_STATUSES:
+                    raise
+                # A cancellation/expiry must not roll back the owned failure row.
             for provider_check in (
                 quality_provider_check,
                 classification_provider_check,

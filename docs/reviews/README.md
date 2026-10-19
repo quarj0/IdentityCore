@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 448 verified, 120 actionable and 55 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 483 verified, 120 actionable and 20 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -292,3 +292,27 @@ Production dashboard build and six Chromium/WebKit regressions cover both approv
 states and failed-create secret preservation. Types, changed-source lint, all 69
 OpenAPI operations and SDK model drift checks pass. An initial GraphQL incompatibility
 was corrected before these successful checks; no security or access gate was weakened.
+
+Fifteen more original platform/API comments are verified against immutable-main
+source, with nine direct API-client and 68 analytics/organization/webhook checks
+passing. This includes existing retry/cancellation safeguards, replay provisioning,
+aggregate consistency and per-draft branding keys. Actual storage signature enforcement
+and browser accessibility are not inferred from those source checks.
+
+Prepared document recovery recognizes exact resource-bound route exhaustion before
+redispatch, reconciles unfinished documents at the attempt limit and rejects stale
+owners. Already-terminal cases stop new provider work; cancellation during an admitted
+failure preserves the owned failure and terminal case outcome. An existing success-race
+test now triggers cancellation during its provider callback, preserving its original
+processed-document assertions; separate tests cover cancellation before processing.
+
+Document recovery validation passes 21 focused document/job checks, nine actual
+PostgreSQL recovery/consent checks and the full backend: 1,290 run, 1,237 passed,
+53 skipped. Prepared recovery findings remain actionable until protected merge.
+
+Twenty provider/evidence originals were individually verified against immutable main,
+including compatible manifest activation locks, risk runtime, policy clone controls,
+backup reference selection, telemetry, MRZ/date boundaries and bounded evaluation.
+Baseline: 70 backend checks (68 passed, two PostgreSQL-only skipped), 12 MRZ parser
+and ten locked-evaluation checks passed. This does not certify external providers,
+real model accuracy or a deployed restore drill.

@@ -9457,7 +9457,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Repair document route exhaustion after ownership handoff**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115813",
-      "disposition_note": "Document completion recovery does not recognize route-exhaustion decisions, unlike biometric recovery; provider work may be repeated after handoff. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared exact-document/capability-bound route-exhaustion completion repair and no-provider redispatch at attempt limit or ownership handoff; unrelated routes do not qualify. Remains actionable until protected merge."
     },
     {
       "pr_number": 304,
@@ -9470,7 +9470,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve document failure state after terminal transitions**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115814",
-      "disposition_note": "Generic document failure still attempts AWAITING_DOCUMENT after a terminal transition and can roll back the FAILED resource write. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared already-terminal admission guard plus owned failure persistence after cancellation/expiry, preserving terminal case outcome and committed document evidence. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -10445,10 +10445,13 @@
       "thread_id": "PRRT_kwDOTN0BU86h3q8Q",
       "comment_id": 3999206944,
       "path": "backend/django/apps/access_control/migrations/0003_manage_webhooks_permission.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/access_control/migrations/0003_manage_webhooks_permission.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provision the replay permission before enforcing it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3999206944"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3999206944",
+      "disposition_note": "Migration grants replay permission to designated tenant-system administrator roles; onboarding also provisions it. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 312,
@@ -10469,10 +10472,13 @@
       "thread_id": "PRRT_kwDOTN0BU86h8HQ4",
       "comment_id": 4000929910,
       "path": "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts:activateWithKeyboard"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Wait for controls before treating them as activated**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000929910"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000929910",
+      "disposition_note": "Optimistic hidden/disabled success predicate is absent; missing control waits/fails instead of returning as activated. Separate sequential-keyboard coverage gap stays actionable. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 312,
@@ -10524,10 +10530,13 @@
       "thread_id": "PRRT_kwDOTN0BU86iCdML",
       "comment_id": 4003436753,
       "path": "docs/operations/incident-response.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:/webhook-endpoints/events/{event_id}/replay"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Replay before reactivating the failed endpoint**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4003436753"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4003436753",
+      "disposition_note": "Runbook and contract both require replay while endpoint remains failed, with atomic reactivation and no ordering guarantee. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 318,
@@ -10551,50 +10560,65 @@
       "thread_id": "PRRT_kwDOTN0BU86mYb7e",
       "comment_id": 4114531419,
       "path": "docs/operations/incident-response.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/operations/incident-response.md:Exercises and acceptance evidence"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the twice-yearly provider exercise cadence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/321#discussion_r4114531419"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/321#discussion_r4114531419",
+      "disposition_note": "Central runbook preserves before-pilot and at-least-twice-yearly credential/provider exercise cadence. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 322,
       "thread_id": "PRRT_kwDOTN0BU86mYi8w",
       "comment_id": 4114578227,
       "path": "frontend/packages/api-client/package.json",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/packages/api-client/src/index.ts:IdentityCoreApiError"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Run the TypeScript tests through a transforming loader**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578227"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578227",
+      "disposition_note": "Constructor declares explicit fields and assignments, avoiding unsupported parameter-property syntax in the TypeScript source executed by native Node tests. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 322,
       "thread_id": "PRRT_kwDOTN0BU86mYi81",
       "comment_id": 4114578234,
       "path": "frontend/packages/api-client/src/index.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/packages/api-client/src/index.ts:fetchWithRetry"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require a usable idempotency key before retrying**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578234"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578234",
+      "disposition_note": "Unsafe-method retry eligibility requires a trimmed nonempty idempotency key. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 322,
       "thread_id": "PRRT_kwDOTN0BU86mYi84",
       "comment_id": 4114578238,
       "path": "frontend/packages/api-client/src/index.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/packages/api-client/src/index.ts:fetchWithTimeout/fetchWithRetry"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop retrying requests canceled by their caller**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578238"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578238",
+      "disposition_note": "Already-aborted signal immediately aborts the controller and caller abort terminates transport retries. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 322,
       "thread_id": "PRRT_kwDOTN0BU86mYi89",
       "comment_id": 4114578242,
       "path": "frontend/packages/api-client/src/index.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/packages/api-client/src/index.ts:fetchWithRetry"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use the fallback backoff when Retry-After is absent**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578242"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578242",
+      "disposition_note": "Missing Retry-After is distinguished before numeric conversion and uses fallback backoff. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 323,
@@ -10615,20 +10639,26 @@
       "thread_id": "PRRT_kwDOTN0BU86mYuod",
       "comment_id": 4114652518,
       "path": "docs/operations/pilot-readiness-checklist.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/operations/pilot-readiness-checklist.md"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add a checklist version to the record template**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/324#discussion_r4114652518"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/324#discussion_r4114652518",
+      "disposition_note": "Template identifies checklist version 1.0 and record fields include the applied version. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 325,
       "thread_id": "PRRT_kwDOTN0BU86mYvdE",
       "comment_id": 4114657776,
       "path": "frontend/verification-portal/e2e/mobile-handoff.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/mobile-handoff.spec.ts"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Scope the visibility assertion to the QR code**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/325#discussion_r4114657776"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/325#discussion_r4114657776",
+      "disposition_note": "QR assertion is scoped under its named Mobile handoff QR code image, avoiding unrelated SVG strict-mode ambiguity. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 326,
@@ -10692,20 +10722,26 @@
       "thread_id": "PRRT_kwDOTN0BU86mZAUu",
       "comment_id": 4114763385,
       "path": "backend/django/apps/analytics/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/analytics/views.py:ProductMetricsView.get"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Calculate aggregates from one database snapshot**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763385"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763385",
+      "disposition_note": "Cohort and core aggregates share one aggregate query, keeping rate numerators and denominator in one SQL snapshot. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 327,
       "thread_id": "PRRT_kwDOTN0BU86mZAU3",
       "comment_id": 4114763394,
       "path": "backend/django/apps/analytics/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/analytics/views.py:ProductMetricsView.patch"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record opt-out changes in the tenant audit trail**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763394"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763394",
+      "disposition_note": "Opt-out mutation records actor/request and new preference in tenant audit. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 327,
@@ -10727,140 +10763,182 @@
       "thread_id": "PRRT_kwDOTN0BU86mZIoD",
       "comment_id": 4114815890,
       "path": "backend/django/apps/organizations/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/organizations/services.py:build_public_branding_asset_key"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Generate a distinct object key for every logo draft**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815890"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815890",
+      "disposition_note": "Every draft uses an opaque random key, preserving the object referenced by published branding. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 328,
       "thread_id": "PRRT_kwDOTN0BU86mZIoF",
       "comment_id": 4114815892,
       "path": "backend/django/apps/organizations/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/organizations/serializers.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate the same legacy palette that publication persists**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815892"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815892",
+      "disposition_note": "Publication contrast validation seeds the candidate from the same legacy top-level palette fallback as the service. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 328,
       "thread_id": "PRRT_kwDOTN0BU86mZIoH",
       "comment_id": 4114815895,
       "path": "backend/django/apps/organizations/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/organizations/services.py:build_organization_branding_upload"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce the size limit on the uploaded object**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815895"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815895",
+      "disposition_note": "Declared validated size is included as signed ContentLength in storage PUT grant; deployment storage behavior is not certified by repository checks. Original body individually read and corresponding immutable-main source inspected. Nine direct API-client tests and 68 analytics/organization/webhook baseline checks pass. Browser coverage and live storage enforcement are not inferred from source inspection."
     },
     {
       "pr_number": 328,
       "thread_id": "PRRT_kwDOTN0BU86mZIoK",
       "comment_id": 4114815899,
       "path": "frontend/verification-portal/src/components/verification/verification-frame.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/app/globals.css:.verification-page"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Apply the tenant background variable to the page**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815899"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815899",
+      "disposition_note": "Page background consumes --tenant-background with the existing fallback. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 328,
       "thread_id": "PRRT_kwDOTN0BU86mZIoL",
       "comment_id": 4114815900,
       "path": "backend/django/apps/organizations/tests.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/organizations/tests.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Assert the absent published key without indexing it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815900"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815900",
+      "disposition_note": "Draft-only assertion uses get(\"published\") and does not index a missing key. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 333,
       "thread_id": "PRRT_kwDOTN0BU86ouou6",
       "comment_id": 4176056633,
       "path": "backend/django/common/observability.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/observability.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid returning an all-zero trace ID when telemetry is disabled**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/333#discussion_r4176056633"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/333#discussion_r4176056633",
+      "disposition_note": "Trace header is emitted only for a valid span context; no-op zero trace is omitted. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 334,
       "thread_id": "PRRT_kwDOTN0BU86ou1zZ",
       "comment_id": 4176141727,
       "path": "scripts/run_restore_drill.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "scripts/run_restore_drill.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Pass database credentials into the exec process**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/334#discussion_r4176141727"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/334#discussion_r4176141727",
+      "disposition_note": "Docker exec prefix passes --env PGPASSWORD into the container process; repository checks do not certify a live restore drill. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 334,
       "thread_id": "PRRT_kwDOTN0BU86ou1za",
       "comment_id": 4176141729,
       "path": "backend/django/common/backup.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/backup.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Select only live supporting-document references**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/334#discussion_r4176141729"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/334#discussion_r4176141729",
+      "disposition_note": "Supporting-document reference inventory includes live uploaded/submitted rows and excludes soft-deleted rows. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 336,
       "thread_id": "PRRT_kwDOTN0BU86oxgsi",
       "comment_id": 4177217958,
       "path": "backend/django/apps/providers/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/manifests.py:validate_compatibility"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce environment support for global assignments**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217958"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217958",
+      "disposition_note": "Global assignments require both sandbox and production coverage when manifest environments are declared. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 336,
       "thread_id": "PRRT_kwDOTN0BU86oxgsj",
       "comment_id": 4177217959,
       "path": "backend/django/apps/providers/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/models.py:Provider.save"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Serialize manifest edits with route and assignment activation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217959"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217959",
+      "disposition_note": "Manifest edits, assignments and route publication use shared tenant/provider locking and revalidate fresh locked providers. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 336,
       "thread_id": "PRRT_kwDOTN0BU86oxgsk",
       "comment_id": 4177217961,
       "path": "backend/django/apps/providers/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/platform-admin/src/features/ai-providers/live-data.ts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Report configuration state accurately to platform admin**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217961"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217961",
+      "disposition_note": "Both provider views render configured/not-configured boolean metadata without counting redacted configuration keys. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 337,
       "thread_id": "PRRT_kwDOTN0BU86ox95c",
       "comment_id": 4177413692,
       "path": "frontend/dashboard/src/app/providers/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/external.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Hide capabilities that have no runtime execution path**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/337#discussion_r4177413692"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/337#discussion_r4177413692",
+      "disposition_note": "External risk has an actual invoke_selected_provider_operation path; dashboard hides unsupported identity-database capability. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 337,
       "thread_id": "PRRT_kwDOTN0BU86ox95f",
       "comment_id": 4177413698,
       "path": "backend/django/apps/providers/configuration.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/configuration.py:activate_configuration"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recheck the sandbox source before production activation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/337#discussion_r4177413698"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/337#discussion_r4177413698",
+      "disposition_note": "Production activation locks and revalidates the same provider active sandbox source; retired source is rejected. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 338,
       "thread_id": "PRRT_kwDOTN0BU86oyIou",
       "comment_id": 4177487937,
       "path": "backend/django/apps/verification_policies/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_policies/views.py:VerificationPolicyCloneView"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve external-risk controls in policy clones**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/338#discussion_r4177487937"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/338#discussion_r4177487937",
+      "disposition_note": "Clone copies external risk enabled, failure action and review threshold explicitly. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 338,
@@ -10897,90 +10975,117 @@
       "thread_id": "PRRT_kwDOTN0BU86oyj8a",
       "comment_id": 4177678451,
       "path": "tools/evaluation/evaluate.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "tools/evaluation/evaluate.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate every gate before short-circuiting**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/340#discussion_r4177678451"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/340#discussion_r4177678451",
+      "disposition_note": "Every gate is passed through finite validation before calculating all gate outcomes. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 340,
       "thread_id": "PRRT_kwDOTN0BU86oyj8d",
       "comment_id": 4177678457,
       "path": "tools/evaluation/evaluate.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "tools/evaluation/evaluate.py:ocr_metrics"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bound aggregate OCR edit-distance work**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/340#discussion_r4177678457"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/340#discussion_r4177678457",
+      "disposition_note": "Aggregate character/word edit-distance cell work is bounded at 20 million before comparisons execute. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 341,
       "thread_id": "PRRT_kwDOTN0BU86oyu2k",
       "comment_id": 4177754138,
       "path": "backend/django/common/throttling.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/throttling.py:DashboardUserRateThrottle"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exempt API clients from the dashboard throttle**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/341#discussion_r4177754138"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/341#discussion_r4177754138",
+      "disposition_note": "API-client principals are excluded from dashboard and unrelated public principal buckets. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 342,
       "thread_id": "PRRT_kwDOTN0BU86o0Y_f",
       "comment_id": 4178442090,
       "path": "scripts/check_processing_inventory.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "scripts/check_processing_inventory.py:model_fields"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Attribute inherited fields to each concrete model**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/342#discussion_r4178442090"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/342#discussion_r4178442090",
+      "disposition_note": "Abstract inheritance is propagated recursively to concrete model fields with owner activities rather than only cataloguing declarations. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 343,
       "thread_id": "PRRT_kwDOTN0BU86o0wDr",
       "comment_id": 4178590701,
       "path": "backend/django/apps/access_control/migrations/0005_manage_team_permission.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/access_control/migrations/0005_manage_team_permission.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Grant team management to organization administrators**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/343#discussion_r4178590701"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/343#discussion_r4178590701",
+      "disposition_note": "Both tenant-system administrator role names receive manage_team; local seeder also provisions the permission. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 344,
       "thread_id": "PRRT_kwDOTN0BU86o1ATe",
       "comment_id": 4178694651,
       "path": "backend/django/apps/accounts/sessions.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/accounts/sessions.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Invalidate legacy access tokens when replay revokes a family**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/344#discussion_r4178694651"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/344#discussion_r4178694651",
+      "disposition_note": "Refresh replay revokes the family and advances user auth_valid_after to reject legacy access tokens. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 345,
       "thread_id": "PRRT_kwDOTN0BU86o1IZ9",
       "comment_id": 4178746871,
       "path": "backend/ai-service/app/document_classification/mrz_parser.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/app/document_classification/mrz_parser.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject empty mandatory fields before marking an MRZ valid**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/345#discussion_r4178746871"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/345#discussion_r4178746871",
+      "disposition_note": "Mandatory number/name/country/nationality structure and nonempty content are checked before MRZ validity. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 346,
       "thread_id": "PRRT_kwDOTN0BU86o1Tj4",
       "comment_id": 4178818633,
       "path": "backend/django/apps/identity_documents/consistency.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/consistency.py:_mrz_date"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep self-reported dates from resolving the MRZ century**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/346#discussion_r4178818633"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/346#discussion_r4178818633",
+      "disposition_note": "Only visible document evidence can disambiguate the MRZ century; subject-claimed date cannot establish it. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 346,
       "thread_id": "PRRT_kwDOTN0BU86o1Tj6",
       "comment_id": 4178818635,
       "path": "backend/django/apps/identity_documents/consistency.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/consistency.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exclude claimed-only dates from document future signals**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/346#discussion_r4178818635"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/346#discussion_r4178818635",
+      "disposition_note": "Document future-birth signal derives only from MRZ or visible document date, excluding claimed-only subject date. Original body individually read and immutable-main implementation inspected. Baseline checks: 70 backend run (68 passed, two PostgreSQL-only skipped), 12 MRZ parser and ten locked-evaluation tests passed. No live provider/model, storage or production certification is inferred."
     },
     {
       "pr_number": 347,
@@ -13373,5 +13478,5 @@
     }
   ],
   "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 448 verified, 120 actionable and 55 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 483 verified, 120 actionable and 20 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

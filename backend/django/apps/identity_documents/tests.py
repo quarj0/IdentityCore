@@ -304,22 +304,27 @@ class IdentityDocumentTaskTests(TestCase):
     def test_terminal_transition_race_preserves_processed_document(
         self, mock_quality, mock_ocr, mock_classification
     ):
-        self.verification.status = VerificationStatus.CANCELLED
-        self.verification.cancelled_at = timezone.now()
-        self.verification.completed_at = self.verification.cancelled_at
-        self.verification.save(
-            update_fields=[
-                "status",
-                "cancelled_at",
-                "completed_at",
-                "updated_at",
-            ]
-        )
         mock_quality.return_value = {
             "status": "completed",
             "quality_score": 0.88,
             "issues": [],
         }
+
+        def cancel_during_quality(**kwargs):
+            self.verification.status = VerificationStatus.CANCELLED
+            self.verification.cancelled_at = timezone.now()
+            self.verification.completed_at = self.verification.cancelled_at
+            self.verification.save(
+                update_fields=[
+                    "status",
+                    "cancelled_at",
+                    "completed_at",
+                    "updated_at",
+                ]
+            )
+            return mock_quality.return_value
+
+        mock_quality.side_effect = cancel_during_quality
         mock_classification.return_value = {
             "status": "completed",
             "classification_status": "recognized",
