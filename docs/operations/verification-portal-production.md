@@ -61,3 +61,8 @@ severity, role assignment, evidence custody, containment, notification
 decisions, recovery, exercises, and post-incident review. Its scenario playbooks
 cover credential exposure, biometric/provider incidents, tenant isolation,
 availability/data integrity, and consent mismatch.
+
+Follow [accessibility validation](accessibility-validation.md) for automated mounted-state,
+keyboard/touch and nonce-compatible axe coverage. Keep those repository checks with
+manual screen-reader and physical-device evidence; an automated scan does not close
+independent accessibility assurance.

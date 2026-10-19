@@ -1,8 +1,10 @@
 import { csvCell } from "../../platform-admin/src/lib/export-csv";
-import { createRequire } from "node:module";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-const require = createRequire(import.meta.url);
+import {
+  expectNoCriticalA11yViolations as assertNoSeriousViolations,
+  focusByTab,
+} from "./a11y-helpers";
 const organizationId = "org_a11y_review";
 
 const reviewItem = {
@@ -35,41 +37,16 @@ const reviewItem = {
   officialWebsite: "https://example.test",
   reviewPriority: "high",
   reviewSummary: "Manual review required for submitted organization evidence.",
-  supportingDocuments: [],
+  supportingDocuments: [
+    {
+      id: "odc_synthetic",
+      filename: "Synthetic supporting evidence.pdf",
+      status: "submitted",
+      file_size_bytes: 128,
+      download_url: "http://127.0.0.1:3004/synthetic-evidence.pdf",
+    },
+  ],
 };
-
-async function assertNoSeriousViolations(page: Page) {
-  await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
-  const violations = await page.evaluate(async () => {
-    const axe = (
-      window as unknown as {
-        axe: {
-          run: (
-            context?: unknown,
-            options?: unknown,
-          ) => Promise<{
-            violations: Array<{
-              id: string;
-              impact: string | null;
-              nodes: unknown[];
-            }>;
-          }>;
-        };
-      }
-    ).axe;
-    const result = await axe.run(document, {
-      runOnly: {
-        type: "tag",
-        values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"],
-      },
-    });
-    return result.violations.filter(
-      (violation) =>
-        violation.impact === "serious" || violation.impact === "critical",
-    );
-  });
-  expect(violations).toEqual([]);
-}
 
 async function mockAdminBackend(page: Page) {
   let currentReviewItem = { ...reviewItem };
@@ -182,7 +159,7 @@ test("review queue and decision flow are WCAG-clean and keyboard operable", asyn
   const reviewLink = page
     .getByRole("link", { name: /accessible organization/i })
     .first();
-  await reviewLink.focus();
+  await focusByTab(page, reviewLink);
   await expect(reviewLink).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/review/${organizationId}$`));
@@ -192,13 +169,30 @@ test("review queue and decision flow are WCAG-clean and keyboard operable", asyn
   ).toBeVisible();
   await assertNoSeriousViolations(page);
 
+  await page
+    .context()
+    .route("**/synthetic-evidence.pdf", (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: "<html><title>Synthetic evidence</title><body>Synthetic supporting evidence</body></html>",
+      }),
+    );
+  const evidence = page.getByRole("link", { name: "Open file", exact: true });
+  await focusByTab(page, evidence);
+  const popupPromise = page.waitForEvent("popup");
+  await page.keyboard.press("Enter");
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL(/synthetic-evidence\.pdf$/);
+  await popup.close();
+  await page.bringToFront();
+
   const note = page.getByRole("textbox", { name: "Review note" });
-  await note.focus();
+  await focusByTab(page, note);
   await expect(note).toBeFocused();
   await page.keyboard.type("Evidence checked with keyboard-only navigation.");
 
   const approve = page.getByRole("button", { name: "Approve" });
-  await approve.focus();
+  await focusByTab(page, approve);
   await expect(approve).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByText(/approved/i).first()).toBeVisible();

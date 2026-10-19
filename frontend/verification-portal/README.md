@@ -173,3 +173,14 @@ that same policy to the browser. Production header tests check the initial frame
 script nonces and a hydrated theme toggle, rather than checking response headers
 alone. The portal's same-origin evidence transfer contract is documented in the
 [session guide](../../docs/operations/portal-sessions.md).
+
+The [accessibility validation procedure](../../docs/operations/accessibility-validation.md)
+describes the consolidated English/Arabic keyboard/touch journeys, mounted capture
+and recording scans, QR handoff, terminal outcomes and reviewer supporting-evidence
+scenario. Axe uses the production response nonce; the checks keep CSP enforced.
+Automated browser profiles do not replace physical-device or assistive-technology
+assessment.
+
+The Dockerfile-specific ignore file excludes local dependencies, build/test outputs
+and environment files from the build context. The image installs dependencies from
+the frozen lockfile; local browser-test artifacts must not replace container output.

@@ -47,3 +47,9 @@ Read [production operations](../../docs/operations/verification-portal-productio
 [release evidence](../../docs/operations/release-evidence-gate.md) for exact boundaries.
 Synthetic browser fixtures do not certify physical cameras, provider accuracy or a
 particular deployment.
+
+The prepared historical accessibility remediation consolidates duplicate applicant
+coverage, scans captured and live-camera states, exercises QR/terminal paths and
+uses sequential keyboard navigation. See the [validation procedure](../../docs/operations/accessibility-validation.md).
+Its implementation and automated evidence remain subject to protected review/merge;
+independent WCAG and assistive-technology validation remain release gates.

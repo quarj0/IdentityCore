@@ -50,7 +50,8 @@ def _default_transport(
         with urlopen(request, timeout=timeout) as response:
             return response.status, response.read()
     except HTTPError as exc:
-        return exc.code, exc.read()
+        with exc:
+            return exc.code, exc.read()
 
 
 def _query(params: dict[str, Any]) -> str:

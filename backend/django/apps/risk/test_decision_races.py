@@ -1,3 +1,4 @@
+from apps.access_control.test_helpers import grant_review_permission
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from threading import Event
@@ -32,6 +33,7 @@ class DecisionRaceTests(TransactionTestCase):
             tenant=self.tenant,
             status="active",
         )
+        grant_review_permission(self.reviewer)
         subject = VerificationSubject.objects.create(tenant=self.tenant)
         self.verification = Verification.objects.create(
             tenant=self.tenant,

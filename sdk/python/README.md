@@ -1,6 +1,6 @@
 # IdentityCore Python SDK
 
-Typed, server-side Python client for IdentityCore. Requires Python 3.9+ and has no runtime dependencies.
+Typed, server-side Python client for IdentityCore. Requires Python 3.12+ and has no runtime dependencies.
 
 > Never place an API client secret in browser, desktop, or mobile application code.
 
@@ -109,3 +109,8 @@ for verification in client.verifications.iter(
 ):
     pass  # handle verification
 ```
+
+Python 3.12 is the minimum supported version. Compatibility CI targets Python 3.12
+and 3.14; Python 3.9–3.11 are no longer supported. The SDK has no runtime
+dependencies. Backend/AI runtime versions are maintained separately and currently
+require Python 3.12 or newer.

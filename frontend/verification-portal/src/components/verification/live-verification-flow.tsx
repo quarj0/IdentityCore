@@ -1060,7 +1060,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
                 </Button>
                 {activeLivenessFile ? (
                   <div className="space-y-3">
-                    <p className="text-sm font-medium text-success">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-300">
                       {t("Live recording ready to submit.")}
                     </p>
                     <div className="flex flex-wrap justify-center gap-3">
@@ -1316,7 +1316,7 @@ function MobileHandoff({
                   aria-label={localizeText(locale, "Mobile handoff QR code")}
                   className="rounded-2xl"
                 >
-                  <QRCodeSVG value={handoffUrl} size={220} level="M" />
+                  <QRCodeSVG value={handoffUrl} size={220} level="M" aria-hidden="true" focusable="false" />
                 </div>
               </div>
               <div>

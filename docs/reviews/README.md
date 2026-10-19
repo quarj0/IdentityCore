@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 483 verified, 120 actionable and 20 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 503 verified, 120 actionable and 0 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -316,3 +316,57 @@ backup reference selection, telemetry, MRZ/date boundaries and bounded evaluatio
 Baseline: 70 backend checks (68 passed, two PostgreSQL-only skipped), 12 MRZ parser
 and ten locked-evaluation checks passed. This does not certify external providers,
 real model accuracy or a deployed restore drill.
+
+The last twenty original comments were individually verified against immutable main:
+87 backend checks (81 passed, six PostgreSQL-only skipped) and seven deployed-security
+script checks passed. These cover handoff/provenance, fingerprint erasure/draining,
+security checks, rollout guards, refresh credentials and tenant-key/storage invariants.
+Every original now has an individual disposition. The audit issue remains open:
+actionable fixes still require implementation where noted, independent review and
+protected merge. Real deployment, restore and device/model validation is separate.
+
+Prepared accessibility remediation consolidates the duplicate applicant journey into
+English/Arabic keyboard and touch scenarios across four browser profiles. It scans
+captured images, mounted camera/recording/review states, QR waiting/copy and separate
+verified/failed panels, and exercises reviewer supporting evidence. Shared axe includes
+WCAG 2.1 A and uses the response nonce with CSP enforced. Scans exposed and corrected
+preview/ready-caption contrast and a nested QR image lacking alternate text.
+
+Production applicant checks passed 18 cases with two intentional mobile initiating-QR
+skips. The broad admin run passed 30 cases; its two WebKit timeout cases passed on a
+quiet rerun, preserving all assertions. The focused reviewer scenario also passed both
+browsers. Types/lint and production builds pass. These eleven findings stay actionable
+until protected merge; physical-device and assistive-technology assurance is separate.
+See [accessibility validation](../operations/accessibility-validation.md).
+
+Python SDK support now starts at 3.12, matching the backend minimum. Compatibility CI
+targets 3.12 and 3.14 instead of the unsupported Ubuntu 26.04/Python 3.9 combination.
+The changed CI definition still requires governed review/approval. A PostgreSQL-only
+review-race fixture now receives the explicit reviewer permission; authorization and
+all conflict assertions remain enforced. Its five PostgreSQL checks pass.
+
+Both Python 3.12 and 3.14 pass the SDK unit and actual local HTTP compatibility
+checks against an isolated Django fixture (28 run, one unrelated skip per runtime).
+The newer runtime exposed an unclosed HTTP error response; the transport now closes
+error responses after reading them, preserving the API error behavior.
+
+Prepared tenant-isolation coverage now checks object mutations/actions across the
+tenant dashboard, including invitations, policies, reviews, provider configuration,
+consent, KMS and billing. Foreign and unknown identifiers must return identical
+complete error envelopes except for request IDs, while foreign fields and resource
+counts remain unchanged. Legitimate permissions and required idempotency headers are
+provided; applicant-token and platform-only authorization remain separate suites.
+The complete PostgreSQL CI selection now passes all 235 checks after correcting the
+reviewer fixture. Historical dispositions remain actionable until protected merge.
+
+Final combined backend validation ran 1,291 tests: 1,238 passed and 53 skipped.
+The PostgreSQL CI selection separately passed all 235 checks; the final focused
+tenant-isolation matrix also passed with persisted-field and resource-count checks.
+
+The immediate work is consolidated for review in existing PR
+[#433](https://github.com/quarj0/IdentityCore/pull/433), preserving the commits and
+original conversations from #406–#432. Superseded drafts are not separate merge
+candidates. Closing them does not resolve findings or mark prepared work as merged.
+Final-head independent review, CI/Security, dedicated App evidence and protected
+workflow approval remain required. The current integration cannot read native
+branch protection (HTTP 403); no trusted merge has been performed.

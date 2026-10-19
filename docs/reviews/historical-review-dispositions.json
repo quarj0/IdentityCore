@@ -4367,11 +4367,11 @@
       "path": "backend/django/config/test_tenant_isolation.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/config/test_tenant_isolation.py:test_cross_tenant_write_matrix_cannot_mutate_resources"
+        "backend/django/config/test_tenant_isolation.py:test_cross_tenant_action_matrix_preserves_foreign_rows"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include every tenant-owned write surface in the matrix**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973560",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The generic write matrix remains limited to four PATCH resources. Extend action/resource coverage for invitations, policies, verifications and other tenant-owned mutations, and repair any reproduced non-disclosing lookup failures."
+      "disposition_note": "PREPARED: extended the authorized tenant actor matrix beyond the four PATCH operations to project/workflow/client/webhook actions, replay, policies, subject privacy, verification cancellation/resend/simulation and manual decisions, invitations, personal sessions, review queues/quality, provider configuration, organization evidence, consent withdrawal, KMS activation/disable and billing checkout/payment verification. Complete foreign persisted rows and resource counts must remain unchanged. Five focused matrix tests pass; applicant-token and platform-only operations have separate authorization suites. Remains actionable until independent review and protected merge."
     },
     {
       "pr_number": 196,
@@ -4384,7 +4384,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Compare the complete non-disclosing error payload**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973563",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The helper compares status and code only. It still ignores potentially disclosing differences in message/details; compare full normalized error objects."
+      "disposition_note": "PREPARED: the shared helper compares the complete response envelope, including message and details, excluding only the per-request correlation ID; foreign and unknown identifiers must both return resource_not_found/404. Five focused matrix tests pass with explicit legitimate permissions and idempotency keys where required. Remains actionable until independent review and protected merge."
     },
     {
       "pr_number": 197,
@@ -9505,11 +9505,12 @@
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/critical-accessibility.spec.ts"
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep axe coverage enabled for mobile projects**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944575",
-      "disposition_note": "Older critical test skips all mobile scans. A newer mobile journey exists, but gates must be consolidated with full mounted-state coverage. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared consolidation into English/Arabic journeys on all four desktop/mobile profiles; mobile scans are retained. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -9518,11 +9519,12 @@
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/critical-accessibility.spec.ts:pressFocused"
+        "frontend/verification-portal/e2e/a11y-helpers.ts:focusByTab",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reach controls through keyboard navigation instead of focus()**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944583",
-      "disposition_note": "Programmatic focus/ WebKit click bypasses sequential keyboard reachability; reviewer test repeats this pattern. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared real sequential Tab traversal and keyboard activation for applicant and reviewer controls, without desktop click/focus fallback. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -9531,11 +9533,12 @@
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/a11y-helpers.ts"
+        "frontend/verification-portal/e2e/a11y-helpers.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include WCAG 2.1 Level A rules in the axe gate**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944589",
-      "disposition_note": "All inspected axe tag sets omit wcag21a, including the supporting shared helper. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared shared WCAG 2 A/AA, 2.1 A/AA and 2.2 AA tags; serious and critical violations remain blocking. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -9544,11 +9547,12 @@
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/critical-accessibility.spec.ts"
+        "frontend/verification-portal/e2e/critical-terminal-handoff-accessibility.spec.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exercise the actual mobile-handoff branch**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944595",
-      "disposition_note": "Handoff coverage selects local continuation without exercising QR creation, copyable link or waiting state. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared actual QR creation, exact copied link and scanned waiting state; nested QR SVG is hidden behind its named image wrapper. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -9570,11 +9574,12 @@
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/critical-accessibility.spec.ts"
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Scan the live-camera UI after mounting it**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944607",
-      "disposition_note": "Live camera controls are mounted and operated after the last liveness-state scan; mounted/recording/review states need scans. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared waits for each mounted camera/recording/review state before scanning; scans do not wait out recording progress. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -9596,11 +9601,12 @@
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:reviewItem"
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include supporting evidence in the reviewer fixture**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944612",
-      "disposition_note": "Supporting documents are empty, so submitted evidence actions are not exercised. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared supporting-document fixture and actual keyboard-opened evidence link before note/approval. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -9609,11 +9615,12 @@
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/playwright.platform-admin.config.ts"
+        "frontend/verification-portal/e2e/a11y-helpers.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bypass CSP before injecting axe**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116018",
-      "disposition_note": "Production nonce CSP and axe inline injection are incompatible without nonce-aware injection; test bypassCSP is also unset. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared response-nonce-authorized axe injection; production CSP stays enforced without browser bypass. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -9622,11 +9629,12 @@
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts"
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scan captured evidence before submitting it**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116019",
-      "disposition_note": "Document and selfie EvidenceReview DOMs are not scanned after capture. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared document front/back and selfie review scans after native file selection; corrected dim preview caption and live-ready text contrast found by scans. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 306,
@@ -9648,11 +9656,12 @@
       "path": "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts:activateWithKeyboard"
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Drive controls through the real tab order**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3836982507",
-      "disposition_note": "Newer subject journey still uses locator.focus and click on WebKit; existing focusByTab helper is unused. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
+      "disposition_note": "Prepared actual Tab traversal/native file chooser on desktop and touch activation on mobile; no programmatic focus bypass. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 307,
@@ -9677,11 +9686,12 @@
       "path": "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts"
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Wait for the handoff UI before scanning it**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157190",
-      "disposition_note": "Desktop handoff scan runs before waiting for the mounted handoff chooser; synchronize on actual UI before scanning. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
+      "disposition_note": "Prepared explicit handoff-control visibility wait before scanning the mounted chooser. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 307,
@@ -9690,11 +9700,12 @@
       "path": "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts"
+        "frontend/verification-portal/e2e/critical-terminal-handoff-accessibility.spec.ts",
+        "docs/operations/accessibility-validation.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Cover the remaining decision terminal states**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157193",
-      "disposition_note": "Fixture only renders manual-review completion; verified and failed terminal panels need rendered/keyboard/axe scenarios. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
+      "disposition_note": "Prepared verified and failed panels with axe and keyboard/touch finish controls across all four projects. Production browser validation: 18 applicant cases passed, two mobile initiating-QR branches intentionally skipped; reviewer scenario passed Chromium/WebKit, and the two broader-suite WebKit timeout cases passed on quiet rerun. Automated checks do not certify physical devices or assistive technologies. Remains actionable until protected merge."
     },
     {
       "pr_number": 308,
@@ -11092,50 +11103,65 @@
       "thread_id": "PRRT_kwDOTN0BU86o27AC",
       "comment_id": 4179487539,
       "path": "backend/django/apps/verification_sessions/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/throttling.py:MobileHandoffRateThrottle"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Avoid sharing one throttle bucket across all portal users**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/347#discussion_r4179487539"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/347#discussion_r4179487539",
+      "disposition_note": "Only validated high-entropy unredeemed handoff grants obtain per-grant buckets; invalid guesses remain peer-throttled without trusting forwarded headers. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 348,
       "thread_id": "PRRT_kwDOTN0BU86o3Ayd",
       "comment_id": 4179526673,
       "path": "backend/django/apps/uploads/provenance.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/provenance.py:validate_receipt"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject downgrades to legacy provenance**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/348#discussion_r4179526673"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/348#discussion_r4179526673",
+      "disposition_note": "Legacy version zero still requires a valid signed matching binding; clearing/downgrading fields cannot bypass signature verification. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 348,
       "thread_id": "PRRT_kwDOTN0BU86o3Ayf",
       "comment_id": 4179526677,
       "path": "backend/django/apps/uploads/provenance.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/models.py:Upload.Meta.indexes"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add an index for tenant checksum replay lookups**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/348#discussion_r4179526677"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/348#discussion_r4179526677",
+      "disposition_note": "Tenant/checksum/status/deleted_at composite index supports cross-case replay lookups. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 349,
       "thread_id": "PRRT_kwDOTN0BU86o3Ok2",
       "comment_id": 4179621377,
       "path": "backend/django/apps/risk/reuse.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/reuse.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Synchronize fingerprint writes with subject erasure**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/349#discussion_r4179621377"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/349#discussion_r4179621377",
+      "disposition_note": "Collector shares subject fingerprint lock with deletion and rereads persisted deleted_at before any writes. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 349,
       "thread_id": "PRRT_kwDOTN0BU86o3Ok4",
       "comment_id": 4179621379,
       "path": "backend/django/config/settings/base.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/tasks.py:cleanup_reuse_fingerprints_task"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Drain expired fingerprints faster than they are created**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/349#discussion_r4179621379"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/349#discussion_r4179621379",
+      "disposition_note": "Configurable bounded batches enqueue continuation when a full expired batch was removed, draining beyond hourly initial invocation. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 350,
@@ -11156,150 +11182,195 @@
       "thread_id": "PRRT_kwDOTN0BU86o3fWa",
       "comment_id": 4179729102,
       "path": "scripts/check_deployed_security.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "scripts/check_deployed_security.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate the effective script element CSP directive**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729102"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729102",
+      "disposition_note": "Script element/attribute directives are validated in addition to script-src; first duplicate-directive semantics match browsers. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 351,
       "thread_id": "PRRT_kwDOTN0BU86o3fWc",
       "comment_id": 4179729104,
       "path": "scripts/check_deployed_security.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "scripts/check_deployed_security.py:backend_cookie"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Revoke the cookie actually issued by the login response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729104"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729104",
+      "disposition_note": "All actually issued cookies are retained for finally logout before expected-name validation; failed policy match still cleans up the created session. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 351,
       "thread_id": "PRRT_kwDOTN0BU86o3fWg",
       "comment_id": 4179729108,
       "path": "backend/django/common/configuration.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/configuration.py:LOCAL_HOSTS"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject the normalized IPv6 loopback hostname**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729108"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729108",
+      "disposition_note": "Normalized IPv6 ::1 is included in rejected production local origins. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 352,
       "thread_id": "PRRT_kwDOTN0BU86o3l5a",
       "comment_id": 4179770985,
       "path": "backend/django/common/rollout_migrations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/rollout_migrations.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject fields that create implicit blocking indexes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770985"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770985",
+      "disposition_note": "AddField safety rejects implicit indexes including indexed foreign keys; separate index work is not called safe expansion. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 352,
       "thread_id": "PRRT_kwDOTN0BU86o3l5b",
       "comment_id": 4179770986,
       "path": "backend/django/config/settings/base.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/settings/base.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Avoid enabling late acknowledgements for every task**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770986"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770986",
+      "disposition_note": "Global late acknowledgements/requeue-on-loss settings are absent; durable processing tasks opt in individually. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 352,
       "thread_id": "PRRT_kwDOTN0BU86o3l5d",
       "comment_id": 4179770989,
       "path": "backend/django/common/rollout_migrations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/rollout_migrations.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject NULL database defaults for non-null fields**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770989"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770989",
+      "disposition_note": "Nonnull field expansion accepts only supported non-null database defaults; None is unsafe. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 352,
       "thread_id": "PRRT_kwDOTN0BU86o3l5f",
       "comment_id": 4179770991,
       "path": "backend/django/apps/verifications/management/commands/deployment_drain.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/management/commands/deployment_drain.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require a stable worker snapshot before declaring drain complete**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770991"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770991",
+      "disposition_note": "Drain requires two consecutive empty active/reserved/scheduled snapshots after cancelling consumers; no single mixed snapshot succeeds. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 353,
       "thread_id": "PRRT_kwDOTN0BU86o6nP2",
       "comment_id": 4181017598,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return the refresh credential from GraphQL login**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/353#discussion_r4181017598"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/353#discussion_r4181017598",
+      "disposition_note": "GraphQL non-MFA login returns access and refresh credential in token payload. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 356,
       "thread_id": "PRRT_kwDOTN0BU86o7bZN",
       "comment_id": 4181339870,
       "path": "backend/django/apps/verifications/review_queues.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/review_queues.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Track assignment recency across environment queues**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/356#discussion_r4181339870"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/356#discussion_r4181339870",
+      "disposition_note": "Assignment recency is aggregated and synchronized across the reviewer memberships within the same tenant/environment. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 358,
       "thread_id": "PRRT_kwDOTN0BU86o8tWM",
       "comment_id": 4181848615,
       "path": "backend/django/common/fields.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/fields.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind provider credentials to tenant environment keys**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/358#discussion_r4181848615"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/358#discussion_r4181848615",
+      "disposition_note": "Provider configuration tenant/environment derives through provider ownership; tenant rotation explicitly discovers indirect provider fields. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 358,
       "thread_id": "PRRT_kwDOTN0BU86o8tWP",
       "comment_id": 4181848618,
       "path": "backend/django/common/backup.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/backup.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preload projects while inventorying encrypted metadata**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/358#discussion_r4181848618"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/358#discussion_r4181848618",
+      "disposition_note": "Encrypted verification inventory preloads tenant/project and project environment, avoiding per-row deferred project lookups. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 359,
       "thread_id": "PRRT_kwDOTN0BU86pFwfG",
       "comment_id": 4185486065,
       "path": "backend/django/common/tenant_crypto.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/tenant_crypto.py:unwrap_key"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Cache the unwrapped customer DEK during batch operations**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/359#discussion_r4185486065"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/359#discussion_r4185486065",
+      "disposition_note": "Bounded operation-scoped plaintext DEK cache avoids per-field customer KMS decrypt; binding is checked on hits, TTL/size bound and context cleanup apply. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 360,
       "thread_id": "PRRT_kwDOTN0BU86pG2Zh",
       "comment_id": 4185932395,
       "path": "scripts/run_restore_drill.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "scripts/run_restore_drill.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Verify routed objects at the remapped destination**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/360#discussion_r4185932395"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/360#discussion_r4185932395",
+      "disposition_note": "Post-restore object checks resolve actual stored full keys and remapped bucket instead of hard-coded unrouted source paths. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 360,
       "thread_id": "PRRT_kwDOTN0BU86pG2Zo",
       "comment_id": 4185932407,
       "path": "backend/django/apps/tenants/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/tenants/models.py:RetainedStorageRouteQuerySet.delete"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Block bulk deletion of retained routes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/360#discussion_r4185932407"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/360#discussion_r4185932407",
+      "disposition_note": "Custom retained-route queryset rejects bulk deletion, covering operations that skip instance delete. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 362,
       "thread_id": "PRRT_kwDOTN0BU86pHkWA",
       "comment_id": 4186225694,
       "path": "backend/django/apps/tenants/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/tenants/models.py:RetainedStorageRouteQuerySet.bulk_create"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Guard upserts through bulk_create**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/362#discussion_r4186225694"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/362#discussion_r4186225694",
+      "disposition_note": "Conflict updates reject immutable route fields, closing bulk upsert bypass without blocking valid new-route inserts. Original body individually read and immutable-main implementation inspected. Baseline: 87 backend checks (81 passed, six PostgreSQL-only skipped), plus seven deployed-security script checks with loopback network access passed. No production drill or real provider/device certification is inferred."
     },
     {
       "pr_number": 363,
@@ -13478,5 +13549,5 @@
     }
   ],
   "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 483 verified, 120 actionable and 20 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 503 verified, 120 actionable and 0 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
