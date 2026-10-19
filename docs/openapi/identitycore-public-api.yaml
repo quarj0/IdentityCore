@@ -1394,6 +1394,7 @@ components:
         slug:
           type: string
         environment:
+          description: Set at project creation; immutable afterward. Use a separate project for a different environment.
           type: string
           enum: [sandbox, production]
         allowed_origins:
@@ -1411,6 +1412,7 @@ components:
         slug:
           type: string
         environment:
+          description: Set at project creation; immutable afterward. Use a separate project for a different environment.
           type: string
           enum: [sandbox, production]
         allowed_origins:

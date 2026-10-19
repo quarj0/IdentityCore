@@ -4658,12 +4658,13 @@
       "path": "backend/django/apps/verifications/views.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/projects/serializers.py:ProjectSerializer.validate",
-        "backend/django/apps/verifications/views.py:_scope_to_client_environment"
+        "backend/django/apps/projects/serializers.py:ProjectSerializer immutable environment",
+        "backend/django/apps/projects/tests.py:test_environment_is_immutable_before_activity_and_after_key_issuance",
+        "docs/decisions/ADR-056-immutable-project-environment.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent project edits from promoting existing credentials**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977662",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Project environment changes are blocked only after verification activity, not after credential issuance. Attached sandbox credentials can still acquire production scope through a project edit with no verification rows. Make issued environment immutable at the appropriate boundary."
+      "disposition_note": "Remediation makes the public project environment immutable after creation, including empty projects and issued keys, rather than checking a racy absence of verification rows. Current-value resubmission and ordinary partial edits remain valid. No stored environment/credential migration. Nineteen project/API-client regressions, dashboard types/lint and contract/model checks pass. Await protected review/merge."
     },
     {
       "pr_number": 198,
@@ -7263,10 +7264,14 @@
       "thread_id": "PRRT_kwDOTN0BU86YmXVk",
       "comment_id": 3767205617,
       "path": "backend/django/apps/projects/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/projects/views.py:ProjectStatusView raises ValidationError",
+        "backend/django/apps/projects/tests.py:test_create_and_suspend_project standard unsupported-action envelope"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Return an error envelope for unsupported actions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/283#discussion_r3767205617"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/283#discussion_r3767205617",
+      "disposition_note": "Original review individually read; immutable main returns success_response with status 400 for an unsupported project action. Remediation raises the standard validation error so success=false, code=validation_error and Unsupported action message are preserved for SDK callers. Await protected review/merge."
     },
     {
       "pr_number": 284,

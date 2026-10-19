@@ -35,13 +35,12 @@ class ProjectSerializer(serializers.Serializer):
             self.instance is not None
             and "environment" in attrs
             and attrs["environment"] != self.instance.environment
-            and self.instance.verifications.exists()
         ):
             raise serializers.ValidationError(
                 {
                     "environment": (
-                        "A project environment cannot change after verification "
-                        "activity exists; create a separate project instead."
+                        "A project environment cannot change after creation; "
+                        "create a separate project instead."
                     )
                 }
             )
@@ -62,7 +61,9 @@ class ProjectSerializer(serializers.Serializer):
                     "environment": "Pending workspaces are limited to one sandbox project."
                 }
             )
-        slug = attrs.get("slug") or slugify(attrs["name"])
+        slug = attrs.get("slug") or (
+            slugify(attrs["name"]) if "name" in attrs else self.instance.slug
+        )
         if (
             Project.objects.filter(tenant=tenant, slug=slug)
             .exclude(pk=getattr(self.instance, "pk", None))
@@ -85,7 +86,7 @@ class ProjectSerializer(serializers.Serializer):
         )
 
     def update(self, instance, data):
-        for field in ("name", "slug", "environment"):
+        for field in ("name", "slug"):
             if field in data:
                 setattr(instance, field, data[field])
         if "allowed_origins" in data:

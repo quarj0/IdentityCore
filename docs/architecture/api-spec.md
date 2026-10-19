@@ -577,6 +577,14 @@ Implementation note:
 
 ---
 
+## Project environment boundary
+
+Project environment is fixed at project creation. API-client credentials derive
+scope from that bound environment; changing an existing project to another
+environment returns HTTP 400 even before the first verification. Create a separate
+project and credentials for production. Names, slugs and allowed origins remain
+editable. See [ADR 056](../decisions/ADR-056-immutable-project-environment.md).
+
 ## GET /verifications/{verification_id}/result
 
 Returns the stable public verification-result contract. The response is scoped to

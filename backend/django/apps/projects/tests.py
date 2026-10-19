@@ -2,6 +2,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.api_clients.models import APIClient
 from apps.organizations.models import Organization
 from apps.projects.models import Project
 from apps.tenants.models import Tenant
@@ -76,6 +77,9 @@ class ProjectAPITests(APITestCase):
             f"/api/v1/projects/{project_id}/disable", {}, format="json"
         )
         self.assertEqual(unsupported.status_code, 400)
+        self.assertFalse(unsupported.data["success"])
+        self.assertEqual(unsupported.data["error"]["code"], "validation_error")
+        self.assertEqual(unsupported.data["error"]["message"], "Unsupported action.")
 
     def test_environment_cannot_change_after_verification_activity(self):
         project = Project.objects.create(
@@ -104,3 +108,61 @@ class ProjectAPITests(APITestCase):
         self.assertEqual(response.status_code, 400)
         project.refresh_from_db()
         self.assertEqual(project.environment, "sandbox")
+
+    def test_environment_is_immutable_before_activity_and_after_key_issuance(self):
+        for with_key in (False, True):
+            with self.subTest(with_key=with_key):
+                project = Project.objects.create(
+                    tenant=self.tenant,
+                    name=f"Credential boundary {with_key}",
+                    slug=f"credential-boundary-{with_key}",
+                    environment="sandbox",
+                    created_by=self.user,
+                )
+                if with_key:
+                    credential = APIClient(
+                        tenant=self.tenant,
+                        project=project,
+                        created_by=self.user,
+                        name="Sandbox key",
+                        scopes_json=["verifications:read"],
+                    )
+                    credential.set_client_secret(
+                        APIClient.generate_client_secret(), generated=True
+                    )
+                    credential.save()
+                self.assertFalse(project.verifications.exists())
+                response = self.client.patch(
+                    f"/api/v1/projects/{project.public_id}",
+                    {"environment": "production"},
+                    format="json",
+                )
+                self.assertEqual(response.status_code, 400)
+                project.refresh_from_db()
+                self.assertEqual(project.environment, "sandbox")
+                if with_key:
+                    credential.refresh_from_db()
+                    self.assertEqual(credential.project.environment, "sandbox")
+
+    def test_partial_updates_keep_environment_slug_and_omitted_settings(self):
+        project = Project.objects.create(
+            tenant=self.tenant,
+            name="Stable project",
+            slug="stable-slug",
+            environment="sandbox",
+            allowed_origins_json=["https://app.example.test"],
+            created_by=self.user,
+        )
+        for payload in (
+            {"environment": "sandbox"},
+            {"allowed_origins": ["https://new.example.test"]},
+        ):
+            response = self.client.patch(
+                f"/api/v1/projects/{project.public_id}", payload, format="json"
+            )
+            self.assertEqual(response.status_code, 200)
+            project.refresh_from_db()
+            self.assertEqual(project.environment, "sandbox")
+            self.assertEqual(project.name, "Stable project")
+            self.assertEqual(project.slug, "stable-slug")
+        self.assertEqual(project.allowed_origins_json, ["https://new.example.test"])

@@ -194,6 +194,7 @@ Read the status in each ADR; acceptance records an architectural decision, not d
 | [ADR-053](ADR-053-verification-reviewer-permission.md) | ADR 053: Explicit verification reviewer permission |
 | [ADR-054](ADR-054-ordered-active-liveness.md) | ADR 054: Ordered and bound active-liveness evidence |
 | [ADR-055](ADR-055-scoped-bff-session-credentials.md) | ADR 055: Per-session BFF credentials and retryable exchange |
+| [ADR-056](ADR-056-immutable-project-environment.md) | ADR 056: Immutable project environment |
 
 ---
 
