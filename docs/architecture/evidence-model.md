@@ -363,3 +363,15 @@ current observation; it is never presented as a new AI result.
 This is a maintenance/data migration. Follow the
 [legacy detection maintenance guide](../operations/legacy-selfie-detection.md);
 rolling-deployment gates must not be bypassed for it.
+
+
+## Raw report retirement
+
+Current JSON/PDF reports contain profile/contact/OCR data and share the snapshotted
+raw-media deadline. Legal holds defer deletion. Opaque pointers survive subject
+anonymization and failed deletion; retired/expired reports have no ordinary download
+or regeneration path. Indexed deadlines and cleanup attempt/completion state prevent
+finished or failed cases from blocking later work. See
+[report retirement](../operations/evidence-report-retention.md) for rollout, key-outage
+repair and storage crash/reconciliation limits. Retained outcomes/audit metadata have
+separate schedules. This internal lifecycle adds no generalized public evidence API.

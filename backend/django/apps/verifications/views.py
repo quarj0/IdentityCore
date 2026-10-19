@@ -67,6 +67,7 @@ from apps.verifications.review_access import manual_review_queryset_for_user
 from common.authentication import APIClientAuthentication
 from common.permissions import HasAPIClientScopes, IsManualReviewUser, IsTenantUser
 from common.responses import success_response
+from apps.verifications.report_retention import require_report_access
 from common.environment_access import EnvironmentDenialAuditMixin
 
 
@@ -109,7 +110,9 @@ class VerificationAccessMixin(EnvironmentDenialAuditMixin):
         environment_filter = Q(project__environment=environment)
         if environment == "sandbox":
             environment_filter |= Q(project__isnull=True)
-        return self._remember_environment_lookup(request, queryset, queryset.filter(environment_filter))
+        return self._remember_environment_lookup(
+            request, queryset, queryset.filter(environment_filter)
+        )
 
     def get_permissions(self):
         if self._is_api_client_request(self.request):
@@ -476,6 +479,7 @@ class VerificationEvidenceReportView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        require_report_access(verification)
         ensure_verification_evidence_report(verification)
         verification.refresh_from_db()
         return success_response(
@@ -514,6 +518,7 @@ class VerificationEvidenceReportDownloadView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        require_report_access(verification)
         ensure_verification_evidence_report(verification)
         content, content_type, filename = download_verification_evidence_object(
             verification,
@@ -538,6 +543,7 @@ class VerificationEvidenceReportPDFDownloadView(VerificationAccessMixin, APIView
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        require_report_access(verification)
         ensure_verification_evidence_report(verification)
         content, content_type, filename = download_verification_evidence_object(
             verification,

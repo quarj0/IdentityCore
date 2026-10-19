@@ -6718,11 +6718,16 @@
       "path": "backend/django/apps/verification_subjects/services.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/verification_subjects/services.py:request_subject_deletion"
+        "backend/django/apps/verifications/report_retention.py",
+        "backend/django/apps/verifications/evidence.py:pretracked generation and retirement guard",
+        "backend/django/apps/verifications/tasks.py:cleanup_retained_media_task",
+        "backend/django/apps/verifications/migrations/0026_media_cleanup_progress.py",
+        "backend/django/apps/verifications/test_report_retention.py",
+        "docs/operations/evidence-report-retention.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Delete retained evidence reports when retention expires**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668087",
-      "disposition_note": "Confirmed report keys are discarded without deleting retained JSON/PDF objects or scheduling their retention cleanup. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared scoped JSON/PDF object retirement at the raw-media deadline, retaining failed pointers and old-route references. Indexed deadline/attempt/completion state prevents queue starvation; missing storage cannot claim deletion. Expired/retired reports cannot be regenerated/downloaded. Model saves preserve revocation during policy-key outages; bounded repair recovers deadlines without guessing malformed legacy policy. Partial generation stays tracked, storage I/O is outside SQL, and uncertain/crashed external writes require controlled inventory reconciliation. Full backend 1,276 run (1,223 passed, 53 skipped), 42 consent/retention checks and 14 PostgreSQL checks including populated encrypted-policy migration pass. Remains actionable until protected merge."
     },
     {
       "pr_number": 253,

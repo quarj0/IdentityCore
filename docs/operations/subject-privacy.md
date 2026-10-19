@@ -30,9 +30,10 @@ Audit facts, stable identifiers, retained outcomes and media subject to legal
 retention remain; this is pseudonymization, not guaranteed erasure of every copy.
 
 Opaque JSON/PDF report pointers remain tracked instead of being discarded during
-metadata anonymization. Report-object retention deletion remains separate outstanding remediation work
-until its protected changes merge. Do not claim complete data-subject erasure or deploy this
-partial stack as privacy certification. Backups, exports already downloaded, logs,
+metadata anonymization. Report-object retirement follows the raw-evidence deadline with legal-hold checks,
+validated references and durable retry/progress state. See
+[evidence report retention](evidence-report-retention.md). Do not claim complete
+data-subject erasure or treat the implementation as privacy certification. Backups, exports already downloaded, logs,
 external processors and applicable legal schedules require controlled procedures.
 
 The service permits actor-free calls only for trusted internal maintenance; HTTP

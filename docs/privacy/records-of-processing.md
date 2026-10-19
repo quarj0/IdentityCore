@@ -82,6 +82,8 @@ statutory periods, contacts, regions, and vendor agreements to its controlled RO
 Subject privacy requests require an explicit privileged tenant grant. Deletion
 revokes processing, scrubs provider-result copies and invalidates stored subject
 exports while retaining required audit/outcome facts and tracked report pointers.
-Report-object retention remediation remains open; subject notification cleanup and
-legacy mapping limitations are described in the
+Raw report objects follow their media deadline, with retryable pointers, indexed
+cleanup progress and legal-hold checks; retained metadata/outcomes follow separate
+schedules. Storage crash/uncertain-I/O reconciliation and subject notification
+legacy mapping limits are described in the
 [privacy procedure](../operations/subject-privacy.md) before claiming erasure coverage.

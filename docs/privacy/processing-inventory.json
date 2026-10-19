@@ -59,7 +59,8 @@
         "session token hash",
         "workflow responses",
         "decision and risk signals",
-        "session-specific HttpOnly BFF bearer cookie; transient link fragment retained until successful exchange"
+        "session-specific HttpOnly BFF bearer cookie; transient link fragment retained until successful exchange",
+        "Indexed raw-media/report cleanup deadline, last attempt and completion timestamps; retirement markers and retryable owned JSON/PDF report references in verification metadata"
       ],
       "purpose": "Create and execute tenant-requested identity verification workflows.",
       "locations": [
@@ -67,9 +68,10 @@
         "backend/django/apps/verification_sessions/models.py",
         "backend/django/apps/verifications/models.py",
         "backend/django/apps/risk/models.py",
-        "frontend/verification-portal/src/lib/session-credentials.ts"
+        "frontend/verification-portal/src/lib/session-credentials.ts",
+        "backend/django/apps/verifications/report_retention.py"
       ],
-      "retention": "Tenant policy controls the verification record; session credentials are short-lived; minimization and deletion jobs apply after the case retention window.",
+      "retention": "Snapshotted tenant policy controls the verification record. Raw captures and JSON/PDF reports containing profile/contact/OCR data follow media_retention_days from completion, subject to legal holds; outcomes/audit/metadata follow their separate schedules. Indexed cleanup/deadline-repair attempts retain failed object references until confirmed deletion. Missing/unreadable/invalid legacy policies and completion times are not guessed; bounded deadline repair retries after key recovery, with controlled reconciliation for unresolved records or storage orphans. Subject deletion revokes processing and scrubs profile/metadata/provider/export/known notification copies while preserving tracked raw-report references and required pseudonymous facts. Session credentials are short-lived; capability expiry is distinct from row erasure.",
       "processors": [
         "IdentityCore Django",
         "PostgreSQL",
@@ -5424,6 +5426,21 @@
     {
       "source": "backend/django/apps/verifications/models.py",
       "field": "Verification.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.media_cleanup_attempted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.media_cleanup_completed_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.media_cleanup_due_at",
       "activity": "verification-subject-and-session"
     },
     {

@@ -19,5 +19,5 @@ commit. Verification references, provider result copies and generated subject ex
 are scrubbed; late workers cannot restore results. Opaque report pointers remain
 tracked for retention cleanup. Raw evidence remains governed by retention. See the
 [privacy procedure](../operations/subject-privacy.md) for retained categories and
-remaining notification/report-object cleanup work. The API
+notification legacy-mapping and report retirement limits. The API
 returns a completion report listing anonymized and retained categories.

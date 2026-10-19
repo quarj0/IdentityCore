@@ -137,6 +137,25 @@ class RetentionLegalHold(PublicIdModel, BaseModel):
 class Verification(PublicIdModel, BaseModel):
     public_id_prefix = "ver"
     decision_revision = models.PositiveIntegerField(default=0, db_default=0)
+    media_cleanup_due_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    media_cleanup_completed_at = models.DateTimeField(
+        null=True, blank=True, db_index=True
+    )
+    media_cleanup_attempted_at = models.DateTimeField(
+        null=True, blank=True, db_index=True
+    )
+
+    def save(self, *args, **kwargs):
+        from apps.verifications.report_retention import report_due_at
+
+        due = report_due_at(self)
+        if due != self.media_cleanup_due_at:
+            self.media_cleanup_due_at = due
+            if kwargs.get("update_fields") is not None:
+                kwargs["update_fields"] = set(kwargs["update_fields"]) | {
+                    "media_cleanup_due_at"
+                }
+        return super().save(*args, **kwargs)
 
     tenant = models.ForeignKey(
         "tenants.Tenant",

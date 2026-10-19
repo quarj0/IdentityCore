@@ -2167,7 +2167,11 @@ class VerificationOperationsTaskTests(TestCase):
         self.assertEqual(due_session.status, VerificationSessionStatus.EXPIRED)
         self.assertEqual(future_session.status, VerificationSessionStatus.ACTIVE)
 
-    def test_cleanup_retained_media_task_deletes_raw_media_and_preserves_metadata(self):
+    @override_settings(OBJECT_STORAGE_MEDIA_BUCKET="audit-media")
+    @patch("apps.verifications.tasks.delete_object")
+    def test_cleanup_retained_media_task_deletes_raw_media_and_preserves_metadata(
+        self, storage_delete
+    ):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
@@ -2239,9 +2243,15 @@ class VerificationOperationsTaskTests(TestCase):
             ).exists()
         )
 
+        self.assertEqual(storage_delete.call_count, 2)
         self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        self.assertEqual(storage_delete.call_count, 2)
 
-    def test_cleanup_retained_media_task_respects_active_legal_hold(self):
+    @override_settings(OBJECT_STORAGE_MEDIA_BUCKET="audit-media")
+    @patch("apps.verifications.tasks.delete_object")
+    def test_cleanup_retained_media_task_respects_active_legal_hold(
+        self, storage_delete
+    ):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,

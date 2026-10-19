@@ -128,7 +128,14 @@ def request_subject_deletion(
                 key: value
                 for key, value in metadata.items()
                 if key
-                in {"evidence_report_storage_key", "evidence_report_pdf_storage_key"}
+                in {
+                    "evidence_report_storage_key",
+                    "evidence_report_pdf_storage_key",
+                    "evidence_report_encrypted",
+                    "evidence_report_pdf_encrypted",
+                    "evidence_reports_retired_at",
+                    "evidence_report_pending_cleanup_keys",
+                }
             }
             case.external_reference = ""
             case.save(
@@ -175,6 +182,7 @@ def request_subject_deletion(
             )
 
         from apps.notifications.privacy import scrub_subject_notifications
+
         notifications_anonymized = scrub_subject_notifications(subject)
 
         subject.full_name = "Deleted subject"

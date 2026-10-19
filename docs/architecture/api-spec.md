@@ -1761,3 +1761,12 @@ Version 1.0 excludes:
 The API should make identity verification simple for organizations while keeping privacy, security, auditability, and tenant isolation strict by default.
 
 External clients should not need to understand IdentityCore's internal architecture to create verifications, receive results, or integrate securely.
+
+
+### Raw evidence report retention
+
+The per-verification evidence-report URL, JSON download and PDF download operations
+return 404 after the raw-report deadline/retirement. Reports contain profile/contact/
+OCR data and follow the snapshotted media retention window with legal holds. Ordinary
+requests cannot regenerate retired objects. Verification outcomes and audit/metadata
+retention remain separate. See [retirement operations](../operations/evidence-report-retention.md).

@@ -197,7 +197,8 @@ baseline tests pass alongside the prior 99 upload/video/session checks. Fifteen 
 gaps remain actionable: six privacy deletion findings, audit verification, hold
 ownership, three seed issues, three security-report/gate findings and backlog parsing.
 Operator verification, hold/seed invariants and strict parsing are prepared in the
-operational follow-up. Privacy and protected scan-workflow remediation remain work.
+operational follow-up. Their prepared remediations follow below; the remaining audit and protected
+review/merge remain open.
 
 
 The operational follow-up passes 25 focused checks, 41 document/retention recovery
@@ -218,8 +219,9 @@ revokes sessions/jobs, cancels unfinished cases and scrubs copied verification
 references, provider results and prior subject exports. Report pointers stay tracked.
 The current-actor and cached-export safeguards, migration grant boundaries and two
 PostgreSQL finalization races are covered alongside existing fingerprint races.
-Four findings are prepared, not closed; notification cleanup and report-object
-retention remain open in the [privacy procedure](../operations/subject-privacy.md).
+Four findings are prepared, not closed; notification/report remediations follow in
+subsequent batches. All remain open until protected merge; see the
+[privacy procedure](../operations/subject-privacy.md).
 
 
 Notification privacy remediation binds new applicant messages to their subject,
@@ -228,3 +230,14 @@ from restoring personal data. Sent facts remain pseudonymous; unrelated recipien
 and other bound subjects are preserved. Short transactions surround provider I/O;
 already-admitted external sends cannot be recalled. Unknown historical ownership
 requires controlled reconciliation. The finding remains actionable until merge.
+
+
+Report retirement now preserves scoped JSON/PDF references through anonymization,
+partial writes, route changes and failed deletion. Indexed deadline/attempt/completion
+state prevents finished/failed cases from blocking later cleanup. Expired or retired
+reports cannot be recreated by ordinary API access. Key outages leave deadlines
+unset without blocking revocation; bounded repair retries after recovery. Full backend:
+1,276 run, 1,223 passed, 53 skipped; 42 focused consent/retention and 14 PostgreSQL
+checks pass, including populated migration and storage-outside-SQL checks. The finding
+remains actionable until protected merge. Legacy references and uncertain/crashed
+external writes require [controlled reconciliation](../operations/evidence-report-retention.md).

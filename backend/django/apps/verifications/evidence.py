@@ -6,6 +6,12 @@ from django.conf import settings
 from django.urls import reverse
 
 from apps.verifications.models import Verification
+from apps.verifications.report_retention import (
+    report_allowed,
+    require_report_access,
+    remember_report_keys,
+    retire_report_objects,
+)
 from common.storage import (
     build_signed_download_url,
     get_object_bytes,
@@ -46,6 +52,8 @@ def build_verification_evidence_pdf_storage_key(verification: Verification) -> s
 def build_verification_evidence_download_url(
     verification: Verification, request=None
 ) -> str | None:
+    if not report_allowed(verification):
+        return None
     storage_key = (verification.metadata_json or {}).get(
         "evidence_report_storage_key", ""
     )
@@ -72,6 +80,8 @@ def build_verification_evidence_download_url(
 def build_verification_evidence_pdf_download_url(
     verification: Verification, request=None
 ) -> str | None:
+    if not report_allowed(verification):
+        return None
     storage_key = (verification.metadata_json or {}).get(
         "evidence_report_pdf_storage_key", ""
     )
@@ -515,6 +525,7 @@ def should_encrypt_evidence_objects() -> bool:
 def download_verification_evidence_object(
     verification: Verification, *, pdf: bool = False
 ) -> tuple[bytes, str, str]:
+    require_report_access(verification)
     bucket_name = get_object_storage_evidence_bucket_name()
     storage_key = (
         (verification.metadata_json or {}).get("evidence_report_pdf_storage_key", "")
@@ -547,7 +558,9 @@ def download_verification_evidence_object(
 
 
 def ensure_verification_evidence_report(verification: Verification) -> str | None:
-    if verification.status not in TERMINAL_EVIDENCE_STATUSES:
+    if verification.status not in TERMINAL_EVIDENCE_STATUSES or not report_allowed(
+        verification
+    ):
         return None
     bucket_name = get_object_storage_evidence_bucket_name()
     if not bucket_name:
@@ -555,7 +568,27 @@ def ensure_verification_evidence_report(verification: Verification) -> str | Non
 
     storage_key = build_verification_evidence_storage_key(verification)
     pdf_storage_key = build_verification_evidence_pdf_storage_key(verification)
-    payload = serialize_verification_evidence_report(verification)
+    from django.db import transaction
+    from apps.audit.services import lock_audit_chain
+
+    # Track both intended objects before I/O, so a partial write stays retryable.
+    with transaction.atomic():
+        lock_audit_chain(verification.tenant_id)
+        current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
+            pk=verification.pk
+        )
+        if not report_allowed(current):
+            return None
+        metadata = dict(current.metadata_json or {})
+        remember_report_keys(metadata, {"json": storage_key, "pdf": pdf_storage_key})
+        metadata["evidence_report_encrypted"] = should_encrypt_evidence_objects()
+        metadata["evidence_report_pdf_encrypted"] = should_encrypt_evidence_objects()
+        current.metadata_json = metadata
+        current.media_cleanup_completed_at = None
+        current.save(
+            update_fields=["metadata_json", "media_cleanup_completed_at", "updated_at"]
+        )
+        payload = serialize_verification_evidence_report(current)
     put_object_bytes(
         bucket_name=bucket_name,
         key=storage_key,
@@ -580,11 +613,28 @@ def ensure_verification_evidence_report(verification: Verification) -> str | Non
             verification.project.environment if verification.project_id else "sandbox"
         ),
     )
-    metadata_json = dict(verification.metadata_json or {})
-    metadata_json["evidence_report_storage_key"] = storage_key
-    metadata_json["evidence_report_pdf_storage_key"] = pdf_storage_key
-    metadata_json["evidence_report_encrypted"] = should_encrypt_evidence_objects()
-    metadata_json["evidence_report_pdf_encrypted"] = should_encrypt_evidence_objects()
-    verification.metadata_json = metadata_json
-    verification.save(update_fields=["metadata_json", "updated_at"])
+    with transaction.atomic():
+        lock_audit_chain(verification.tenant_id)
+        current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
+            pk=verification.pk
+        )
+        available = report_allowed(current)
+        if not available:
+            metadata = dict(current.metadata_json or {})
+            remember_report_keys(
+                metadata, {"json": storage_key, "pdf": pdf_storage_key}
+            )
+            current.metadata_json = metadata
+            current.media_cleanup_completed_at = None
+            current.save(
+                update_fields=[
+                    "metadata_json",
+                    "media_cleanup_completed_at",
+                    "updated_at",
+                ]
+            )
+    if not available:
+        retire_report_objects(current)
+        return None
+    verification.metadata_json = current.metadata_json
     return storage_key
