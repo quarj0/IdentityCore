@@ -54,3 +54,8 @@ Test at least one full verification manually:
 - Use `mock` for UI and integration wiring.
 - Use `hybrid` for early shared-environment validation.
 - Use `real` only after readiness passes and local model assets are confirmed.
+
+Local seeded fixtures use the dashboard at `http://localhost:3000`; the public site
+uses `3001`. Synthetic case/decision creation precedes their fixed terminal times.
+Rerunning `seed_local` restores assignment timestamps together with reviewer state.
+The command remains restricted to DEBUG development environments.

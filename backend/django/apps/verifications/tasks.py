@@ -77,7 +77,9 @@ RETENTION_COMPLETED_VERIFICATION_STATUSES = {
 
 @transaction.atomic
 def _expire_pending_verification(verification_id: int, now) -> bool:
-    tenant_id = Verification.objects.values_list("tenant_id", flat=True).get(pk=verification_id)
+    tenant_id = Verification.objects.values_list("tenant_id", flat=True).get(
+        pk=verification_id
+    )
     lock_audit_chain(tenant_id)
     verification = (
         Verification.objects.select_for_update()
@@ -174,10 +176,9 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
         Verification.objects.select_related("tenant")
         .annotate(
             held=Exists(
-                active_retention_holds(now)
-                .filter(tenant_id=OuterRef("tenant_id"))
-                .filter(
-                    Q(verification_id__isnull=True) | Q(verification_id=OuterRef("id"))
+                active_retention_holds(now).filter(
+                    Q(tenant_id=OuterRef("tenant_id"), verification_id__isnull=True)
+                    | Q(verification_id=OuterRef("id"))
                 )
             )
         )
@@ -216,8 +217,10 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
 
         if (
             active_retention_holds(timezone.now())
-            .filter(tenant=verification.tenant)
-            .filter(Q(verification__isnull=True) | Q(verification=verification))
+            .filter(
+                Q(tenant=verification.tenant, verification__isnull=True)
+                | Q(verification=verification)
+            )
             .exists()
         ):
             record_audit_event(

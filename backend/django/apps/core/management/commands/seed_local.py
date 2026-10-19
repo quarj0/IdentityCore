@@ -1,4 +1,4 @@
-from datetime import datetime, timezone as datetime_timezone
+from datetime import datetime, timedelta, timezone as datetime_timezone
 from decimal import Decimal
 
 from django.conf import settings
@@ -58,7 +58,7 @@ class Command(BaseCommand):
             self._seed_verification_cases(**primary)
 
         self.stdout.write(self.style.SUCCESS("Local IdentityCore data is ready."))
-        self.stdout.write("Dashboard: http://localhost:3001")
+        self.stdout.write("Dashboard: http://localhost:3000")
         self.stdout.write("Owner: owner@local.identitycore.test")
         self.stdout.write("Reviewer: reviewer@local.identitycore.test")
         self.stdout.write(f"Development-only password: {SEED_PASSWORD}")
@@ -151,7 +151,7 @@ class Command(BaseCommand):
                 "name": "Sandbox",
                 "environment": ProjectEnvironment.SANDBOX,
                 "status": ProjectStatus.ACTIVE,
-                "allowed_origins_json": ["http://localhost:3001"],
+                "allowed_origins_json": ["http://localhost:3000"],
                 "is_default": True,
                 "created_by": owner,
             },
@@ -270,6 +270,11 @@ class Command(BaseCommand):
                     if status == VerificationStatus.MANUAL_REVIEW_REQUIRED
                     else None
                 ),
+                "assigned_at": (
+                    PAST_EXPIRY
+                    if status == VerificationStatus.MANUAL_REVIEW_REQUIRED
+                    else None
+                ),
                 "created_by": owner,
             }
             verification, _ = Verification.objects.update_or_create(
@@ -277,8 +282,11 @@ class Command(BaseCommand):
                 external_reference=f"local-case-{index:02d}-{status}",
                 defaults=defaults,
             )
+            Verification.objects.filter(pk=verification.pk).update(
+                created_at=PAST_EXPIRY - timedelta(days=1)
+            )
             if status in decision_statuses:
-                VerificationDecision.objects.update_or_create(
+                decision, _ = VerificationDecision.objects.update_or_create(
                     verification=verification,
                     defaults={
                         "tenant": tenant,
@@ -291,5 +299,6 @@ class Command(BaseCommand):
                         "decided_at": PAST_EXPIRY,
                     },
                 )
+                VerificationDecision.objects.filter(pk=decision.pk).update(created_at=PAST_EXPIRY - timedelta(hours=1))
             else:
                 VerificationDecision.objects.filter(verification=verification).delete()

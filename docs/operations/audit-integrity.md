@@ -15,3 +15,23 @@ Authentication detects modifications to retained events. Detection of database r
 Tenantless administrator authentication and MFA events use the separate platform chain (`tenant_id=None`). Only an existing tenantless platform administrator may be its actor; tenant and system actors cannot append to this chain. PostgreSQL appends hold a dedicated transaction advisory lock. The same immutable, authenticated audit format verifies platform events, and tenant audit APIs cannot list or retrieve them.
 
 Production must replace the AI service sample token. The current `.env.example` value is an explicit placeholder; Django production startup and independent AI service startup reject the fingerprint of the previously published credential. The AI service rejects it in mock, hybrid, and real modes, with credential values hidden from validation errors. Rotate that credential wherever older deployments copied it.
+
+## Operator verification
+
+Run the supported verifier with the deployment's retained application keyring:
+
+```bash
+python backend/django/manage.py verify_audit_integrity --tenant "$TENANT_PUBLIC_ID"
+python backend/django/manage.py verify_audit_integrity --platform
+python backend/django/manage.py verify_audit_integrity --all
+```
+
+Exactly one selector is required. It checks retained events without altering or
+exporting their contents, prints opaque scope/event identifiers, and exits nonzero
+if any selected chain fails. Run it before audit export and from the deployment's
+scheduled monitoring process; alert on nonzero exit and retain the result outside
+the database. Scheduling is an operator responsibility, not an installed background
+job. Empty chains pass; that does not establish completeness or detect deletion of
+an entire chain. Keep independent authenticated checkpoints for that purpose.
+Investigate failures with authorized incident responders; never rewrite events,
+clear hashes or discard unavailable historical keys to make verification pass.

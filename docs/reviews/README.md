@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 394 verified, 84 actionable and 145 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 409 verified, 99 actionable and 115 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -188,3 +188,20 @@ rejected actions after mutation rollback. Three transaction-level regressions co
 policy and eight verification routes, full error equivalence, chain integrity and
 absence of false events for foreign/unknown/success/list requests; 60 focused tests
 pass. IC-011/#95 and the historical finding stay open until protected merge.
+
+
+Thirty additional originals were individually read: fifteen existing decision-contract,
+maker/checker, upload, UI approval, authorization, throttle and Node compatibility
+implementations are verified against immutable main; 202 contract/review/auth/session
+baseline tests pass alongside the prior 99 upload/video/session checks. Fifteen actual
+gaps remain actionable: six privacy deletion findings, audit verification, hold
+ownership, three seed issues, three security-report/gate findings and backlog parsing.
+Operator verification, hold/seed invariants and strict parsing are prepared in the
+operational follow-up. Privacy and protected scan-workflow remediation remain work.
+
+
+The operational follow-up passes 25 focused checks, 41 document/retention recovery
+checks, strict valid/malformed backlog parsing and the full backend suite: 1,252 run,
+1,203 passed and 49 skipped. The two-capture timing scenario now has its own test,
+preserving single-capture recovery fixtures and all invocation chronology assertions.
+No pending disposition or unmerged remediation is represented as completed.

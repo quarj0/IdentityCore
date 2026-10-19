@@ -57,9 +57,8 @@ def cleanup_expired_uploads_task(limit: int = 200) -> int:
         .annotate(
             held=Exists(
                 active_retention_holds(now)
-                .filter(tenant_id=OuterRef("tenant_id"))
                 .filter(
-                    Q(verification_id__isnull=True)
+                    Q(tenant_id=OuterRef("tenant_id"), verification_id__isnull=True)
                     | Q(verification_id=OuterRef("verification_id"))
                 )
             )

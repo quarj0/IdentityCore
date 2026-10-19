@@ -114,6 +114,19 @@ class RetentionLegalHold(PublicIdModel, BaseModel):
     class Meta:
         ordering = ["-created_at"]
 
+    def clean(self):
+        super().clean()
+        if self.verification_id and self.verification.tenant_id != self.tenant_id:
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError(
+                {"verification": "The verification must belong to the hold tenant."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
+
     @property
     def is_active(self) -> bool:
         return self.released_at is None and (

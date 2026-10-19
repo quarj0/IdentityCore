@@ -68,7 +68,7 @@ or create a focused reconciliation issue rather than adding a second status list
 | IC-017 | P1  | security | Add session/device management for dashboard users.                                                          | Users can inspect and revoke sessions; sensitive account changes revoke other sessions; IP/user-agent display is privacy-safe. | IC-012         |
 | IC-018 | P1  | bug      | Prevent user and organization enumeration in login, password reset, invitations, and public session lookup. | Equivalent responses and rate limits are verified by tests; logs retain actionable internal reasons without exposing them.     | IC-012         |
 
-IC-011 remains open for protected review/merge of retrieval-denial auditing. The
+The IC-011 item remains open for protected review/merge of retrieval-denial auditing. The
 prepared implementation records same-tenant wrong-environment policy/verification
 lookups, including detail/result/evidence and rejected actions, after failed mutation
 transactions unwind. Responses retain the same complete error payload as unknown
@@ -205,3 +205,9 @@ events. This does not claim deployment acceptance or close issue #95.
 - Security-sensitive changes include abuse cases and deny/failure-path tests.
 - The pull request links the stable backlog ID and records the commands used to verify
   the change.
+
+Backlog validation rejects every malformed candidate `IC-` row, unsupported priority
+or type, missing column delimiter and duplicate ID. A malformed row cannot silently
+disappear from issue synchronization. Run `python scripts/test_backlog_parser.py`
+when editing the table/parser; a valid table alone does not authorize publishing
+issues or comments.
