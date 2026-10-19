@@ -61,3 +61,6 @@ future platform work and external release evidence.
 Do not claim universal country/document coverage, arbitrary plug-and-play providers,
 certified managed models, a provider marketplace, reusable verified claims or legal
 compliance based only on repository tests or deployment configuration.
+
+The repository owner selected proprietary, all-rights-reserved licensing on
+2026-10-19. See [LICENSE](../../LICENSE); this does not alter third-party licenses.

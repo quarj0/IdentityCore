@@ -1,6 +1,6 @@
 # IdentityCore Platform Roadmap
 
-Last reviewed: 2026-10-18
+Last reviewed: 2026-10-19
 
 IdentityCore is vendor-neutral identity infrastructure. Identity verification is its
 first workload. This roadmap separates repository foundations, immediate engineering
@@ -36,7 +36,8 @@ that every historical finding is resolved or that any deployment/provider is cer
    [audit #281](https://github.com/quarj0/IdentityCore/issues/281). Reproduce confirmed
    defects, add meaningful regressions and preserve protected merge evidence.
 4. Keep architecture, public claims, SDK/API documentation and operating instructions
-   synchronized. Finalize the repository owner's licensing decision before formal release.
+   synchronized. The owner selected proprietary, all-rights-reserved licensing;
+   [LICENSE](../../LICENSE) records that decision.
 
 Use the [disposition register](../reviews/historical-review-dispositions.json) for audit
 counts and evidence. Pending review is not a confirmed defect, and a resolved thread

@@ -4,7 +4,11 @@ Thank you for your interest in contributing to IdentityCore.
 
 IdentityCore is a security-first vendor-neutral identity infrastructure platform. Every contribution should prioritize security, privacy, maintainability, and reliability over speed or convenience.
 
-Please read this guide before contributing.
+Please read this guide before contributing. IdentityCore is proprietary; see
+[LICENSE](LICENSE). Contribution and coding instructions do not grant a right to
+use or redistribute the software. Contributors must have permission to submit
+their changes and arrange any required contribution terms with the repository
+owner before submission. Third-party notices and license terms must be preserved.
 
 ---
 

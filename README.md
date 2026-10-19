@@ -349,7 +349,10 @@ commands and review expectations.
 
 ## License
 
-License information will be added before the first formal public release.
+IdentityCore is proprietary. All rights reserved. See [LICENSE](LICENSE).
+Repository access does not grant a license; use or distribution requires separate
+written authorization from the applicable copyright holder. Third-party components
+retain their own licenses.
 
 ## Project statement
 
