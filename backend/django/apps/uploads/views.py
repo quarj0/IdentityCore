@@ -15,6 +15,7 @@ from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.consent.services import lock_session_consent
 from apps.uploads.scanning import inspect_upload_content
 from apps.uploads.provenance import issue_receipt
+from apps.uploads.original_cleanup import cleanup_original_upload
 from common.authentication import (
     VerificationSessionAuthentication,
     require_verification_session_action,
@@ -193,6 +194,8 @@ def _finalize_upload(
         with transaction.atomic():
             locked, _ = _locked_upload(request, upload_id)
             if not _validate_state(locked, checksum_sha256):
+                if cleanup_original:
+                    locked.original_storage_key = original_storage_key
                 locked.storage_key = finalized_storage_key
                 locked.status = UploadStatus.UPLOADED
                 locked.checksum_sha256 = checksum_sha256
@@ -202,6 +205,7 @@ def _finalize_upload(
                 locked.save(
                     update_fields=[
                         "storage_key",
+                        "original_storage_key",
                         "status",
                         "checksum_sha256",
                         "quarantine_reason",
@@ -228,10 +232,8 @@ def _finalize_upload(
         _delete_temporary_object(
             bucket_name, finalized_storage_key, upload, operation_id
         )
-    if cleanup_original and original_storage_key != locked.storage_key:
-        _delete_temporary_object(
-            bucket_name, original_storage_key, upload, operation_id
-        )
+    if cleanup_original and locked.storage_key == finalized_storage_key:
+        cleanup_original_upload(locked, immediate=True)
     return locked
 
 
@@ -287,6 +289,7 @@ class UploadTransferView(APIView):
                 content=content,
                 content_type=uploaded_file.content_type,
                 operation_id=operation_id,
+                cleanup_original=True,
             )
         except ValidationError as exc:
             details = getattr(exc, "detail", {})

@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 409 verified, 99 actionable and 115 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 427 verified, 106 actionable and 90 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -241,3 +241,20 @@ unset without blocking revocation; bounded repair retries after recovery. Full b
 checks pass, including populated migration and storage-outside-SQL checks. The finding
 remains actionable until protected merge. Legacy references and uncertain/crashed
 external writes require [controlled reconciliation](../operations/evidence-report-retention.md).
+
+Twenty-five more original comments were read and compared with immutable main:
+eighteen existing behaviors are verified and seven gaps remain actionable. Baseline
+validation includes 154 backend checks (153 passed, one skipped), six direct Node
+API-origin/request-template checks and 16 unchanged CLI checks (15 passed, one skipped).
+The prepared upload changes admit legacy completion through the narrow BFF and
+journal original-object deletion, preserving references through outstanding grant
+expiry, retries and holds. A populated migration and actual PostgreSQL transaction
+checks cover the cleanup path. This does not close the finding before protected merge;
+see the [upload procedure](../operations/upload-transfers.md).
+
+Upload cleanup validation: full backend 1,281 run, 1,228 passed, 53 skipped;
+five focused cleanup tests and nine actual PostgreSQL cleanup/transfer checks pass.
+The production portal build (webpack) and standalone BFF's 19 HTTP plus 20
+Chromium/WebKit browser checks pass. Turbopack hit the execution sandbox's port-binding
+restriction; the successful webpack build is the production artifact tested here.
+The processing inventory covers all 1,174 persisted fields and its seven checks pass.

@@ -8,7 +8,7 @@ export function verificationProxyPath(path: string[]): string | null {
   let allowed = false;
   if (path[0] === "uploads") {
     allowed =
-      path.length === 1 || (path.length === 3 && path[2] === "transfer");
+      path.length === 1 || (path.length === 3 && ["transfer", "complete"].includes(path[2]));
   } else if (path[0] === "sessions" && path[1] && path.length <= 4) {
     if (path.length === 2) allowed = true;
     else if (path[2] === "consent" && path.length === 4)

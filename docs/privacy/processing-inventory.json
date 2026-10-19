@@ -4555,6 +4555,16 @@
     },
     {
       "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.original_storage_key",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.original_cleanup_attempted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
       "field": "Upload.capture_method",
       "activity": "document-and-biometric-evidence"
     },

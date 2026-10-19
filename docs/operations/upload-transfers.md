@@ -31,3 +31,16 @@ storage/retention and real failure-drill checks remain deployment work.
 See [ADR 057](../decisions/ADR-057-upload-transfer-transactions.md),
 [capture provenance](capture-provenance.md) and
 [purpose-bound consent](purpose-consent.md).
+
+Legacy direct objects now have a separate cleanup journal (`original_storage_key`
+and `original_cleanup_attempted_at`). Apply `uploads.0007` before deploying and drain
+old web/worker processes. The migration recovers recognized generated original
+references from validated keys, including already-deleted uploads; unknown legacy
+references require storage inventory reconciliation. The upload retention worker
+retries the owned original object outside SQL transactions, checks active holds,
+and retains failed references. Immediate cleanup preserves the journal through
+upload expiry plus five minutes, then sweeps again before clearing it. This covers
+still-valid old PUT grants; configure request timeouts and reconcile storage after
+old writes quiesce because a paused write or crash may outlive that grace period.
+Object versions and backups need their own retention controls. Never delete all
+`.validated` keys: accepted evidence uses them.

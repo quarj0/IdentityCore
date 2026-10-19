@@ -34,3 +34,28 @@ read outside SQL and uses the same validation/receipt gate. Newly created upload
 expose the consent-aware API transfer, without a competing writable direct PUT.
 PostgreSQL barrier tests cover withdrawal during PUT and two identical concurrent
 transfers; transaction-level API tests cover multipart, scanner, storage and cleanup.
+
+## Legacy direct PUT cleanup
+
+Finalization journals the owned original temporary key in the same transaction as
+its immutable receipt, for both `/transfer` fallback and legacy `/complete`.
+Only the winning candidate starts best-effort source deletion. Storage I/O runs
+outside SQL transactions; a storage failure preserves the accepted receipt and
+cleanup reference. The existing upload retention worker retries these references,
+including promoted and already-deleted rows, without counting them as newly
+expired uploads. Attempts rotate so an unavailable oldest object does not starve
+later references; active tenant/case holds defer deletion.
+
+An immediate successful deletion retains its reference until upload expiry plus a
+five-minute write grace period. An already-issued legacy PUT can recreate the old
+object during its validity window. Migration `uploads.0007` recovers only generated
+original keys from recognized validated-key suffixes; arbitrary historical keys
+are not inferred. Runtime deletion still verifies case, tenant, environment and
+retained route. The portal BFF accepts the narrow legacy `/complete` operation.
+
+Apply the additive migration before deploying and drain old web/worker processes.
+Stop issuing old direct grants; configure storage request timeouts and reconcile
+legacy inventory after outstanding writes have quiesced. A paused external write,
+ambiguous commit or crash can outlive the grace period: this is retryable owned
+cleanup, not a distributed transaction or a zero-orphan guarantee. Unknown legacy
+references, object versions and backups require deployment storage reconciliation.

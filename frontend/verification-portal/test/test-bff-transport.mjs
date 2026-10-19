@@ -36,6 +36,7 @@ const routes = new Set([
   `/api/v1/sessions/${secondSessionId}/status`,
   "/api/v1/uploads/",
   "/api/v1/uploads/upl_Test/transfer",
+  "/api/v1/uploads/upl_Test/complete",
 ]);
 let server,
   browserServer,
@@ -253,6 +254,7 @@ try {
     [`sessions/${sessionId}/consent`, "POST", '{"accepted":true}'],
     ["uploads/", "POST", '{"kind":"document"}'],
     ["uploads/upl_Test/transfer", "POST", new Uint8Array([0, 255, 1, 254])],
+    ["uploads/upl_Test/complete", "POST", "{}"],
     [`sessions/${sessionId}/status?checkpoint=3`, "GET", undefined],
     [`sessions/${sessionId}/consent/withdraw`, "POST", "{}"],
     [`sessions/${sessionId}/liveness/challenge`, "POST", "{}"],

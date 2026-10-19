@@ -1,11 +1,12 @@
 from datetime import timedelta
 
 from celery import shared_task
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Exists, OuterRef, Q, F
 from django.utils import timezone
 
 from apps.audit.services import record_audit_event
 from apps.uploads.models import Upload, UploadStatus
+from apps.uploads.original_cleanup import cleanup_original_upload, ORIGINAL_WRITE_GRACE
 from apps.verifications.retention import (
     active_retention_holds,
     has_active_retention_hold,
@@ -52,12 +53,28 @@ def _defer_failed_deletion(upload: Upload, *, now, reason: str) -> None:
 def cleanup_expired_uploads_task(limit: int = 200) -> int:
     require_service_access(UPLOAD_RETENTION_WORKER, action="upload.cleanup")
     now = timezone.now()
+    originals = (
+        Upload.objects.annotate(
+            held=Exists(
+                active_retention_holds(now).filter(
+                    Q(tenant_id=OuterRef("tenant_id"), verification_id__isnull=True)
+                    | Q(verification_id=OuterRef("verification_id"))
+                )
+            )
+        )
+        .filter(held=False, expires_at__lte=now - ORIGINAL_WRITE_GRACE)
+        .exclude(original_storage_key="")
+        .order_by(F("original_cleanup_attempted_at").asc(nulls_first=True), "pk")[
+            :limit
+        ]
+    )
+    for original in originals:
+        cleanup_original_upload(original)
     eligible = (
         Upload.objects.select_related("tenant")
         .annotate(
             held=Exists(
-                active_retention_holds(now)
-                .filter(
+                active_retention_holds(now).filter(
                     Q(tenant_id=OuterRef("tenant_id"), verification_id__isnull=True)
                     | Q(verification_id=OuterRef("verification_id"))
                 )

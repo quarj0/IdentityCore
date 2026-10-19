@@ -3,7 +3,7 @@ from datetime import timedelta
 from unittest.mock import ANY, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -1107,6 +1107,7 @@ class UploadVideoInspectionTests(TestCase):
         )
 
 
+@override_settings(OBJECT_STORAGE_TEMP_BUCKET="temporary")
 class UploadCreateTests(APITestCase):
     def setUp(self):
         self.organization = Organization.objects.create(
@@ -1590,7 +1591,7 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(upload.quarantine_reason, "video_container_unrecognized")
         put_object_bytes.assert_not_called()
 
-    @patch("apps.uploads.views.delete_object")
+    @patch("apps.uploads.original_cleanup.delete_object")
     @patch("apps.uploads.views.put_object_bytes")
     @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
     @patch(
@@ -2071,6 +2072,7 @@ class UploadRetentionTaskTests(TestCase):
         self.assertIsNone(upload.deleted_at)
 
 
+@override_settings(OBJECT_STORAGE_TEMP_BUCKET="temporary")
 class UploadTransferTransactionTests(APITransactionTestCase):
     setUp = UploadCreateTests.setUp
     auth_headers = UploadCreateTests.auth_headers
@@ -2139,7 +2141,7 @@ class UploadTransferTransactionTests(APITransactionTestCase):
             "apps.uploads.views.put_object_bytes",
             side_effect=self._outside_transaction(None),
         ), patch(
-            "apps.uploads.views.delete_object",
+            "apps.uploads.original_cleanup.delete_object",
             side_effect=self._outside_transaction(None),
         ) as cleanup:
             response = self.client.post(
@@ -2219,7 +2221,9 @@ class UploadTransferTransactionTests(APITransactionTestCase):
             "apps.uploads.views.put_object_bytes", side_effect=write
         ) as put, patch(
             "apps.uploads.views.delete_object"
-        ) as cleanup:
+        ) as cleanup, patch(
+            "apps.uploads.original_cleanup.delete_object"
+        ) as original_cleanup:
             with ThreadPoolExecutor(max_workers=2) as pool:
                 futures = [pool.submit(transfer) for _ in range(2)]
                 responses = [future.result(timeout=15) for future in futures]
@@ -2229,5 +2233,9 @@ class UploadTransferTransactionTests(APITransactionTestCase):
         keys = {call.kwargs["key"] for call in put.call_args_list}
         self.assertEqual(len(keys), 2)
         self.assertIn(upload.storage_key, keys)
+        original_cleanup.assert_called_once_with(
+            bucket_name="temporary", key=upload.original_storage_key
+        )
+        self.assertTrue(upload.original_storage_key)
         cleanup.assert_called_once()
         self.assertEqual({cleanup.call_args.kwargs["key"]}, keys - {upload.storage_key})

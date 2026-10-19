@@ -6914,10 +6914,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Xk-mv",
       "comment_id": 3743058319,
       "path": "frontend/README.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/dashboard/README.md"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the dashboard's production redirect origin**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/274#discussion_r3743058319"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/274#discussion_r3743058319",
+      "disposition_note": "Production dashboard self-origin is used by login redirects but is absent from required configuration documentation."
     },
     {
       "pr_number": 275,
@@ -7112,10 +7115,13 @@
       "thread_id": "PRRT_kwDOTN0BU86XlUc-",
       "comment_id": 3743170372,
       "path": "backend/django/apps/providers/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/models.py:ProviderRoute.save"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent published routes from returning to draft**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170372"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170372",
+      "disposition_note": "Published route immutability includes status/deleted_at; an active route cannot return to draft to bypass immutable configuration. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 277,
@@ -7376,10 +7382,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Xlno5",
       "comment_id": 3743269309,
       "path": "frontend/platform-admin/src/features/ai-providers/live-data.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/platform-admin/src/features/ai-providers/live-data.ts:visibleStatuses"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include route state in the scoped status summary**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269309"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269309",
+      "disposition_note": "Health summary combines scoped route statuses with scoped execution metrics. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 279,
@@ -7563,20 +7572,26 @@
       "thread_id": "PRRT_kwDOTN0BU86Ym9xF",
       "comment_id": 3767443396,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:ManualReviewDecisionView"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Dispatch failed outcomes from direct reviews**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443396"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443396",
+      "disposition_note": "Direct manual failed outcome is omitted from the dispatch set used for lifecycle webhook and notification."
     },
     {
       "pr_number": 284,
       "thread_id": "PRRT_kwDOTN0BU86Ym9xO",
       "comment_id": 3767443409,
       "path": "frontend/dashboard/src/features/verifications/components/live-verification-detail.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/dashboard/src/features/verifications/components/live-verification-detail.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide approval actions from the original maker**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443409"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443409",
+      "disposition_note": "Pending maker proposal still displays checker controls to its maker; server rejects self-approval but UI needs waiting state."
     },
     {
       "pr_number": 284,
@@ -7679,30 +7694,39 @@
       "thread_id": "PRRT_kwDOTN0BU86YoFY9",
       "comment_id": 3767872640,
       "path": "frontend/verification-portal/src/lib/session-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/src/lib/bff-proxy.ts"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow upload completion through the portal BFF**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/287#discussion_r3767872640"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/287#discussion_r3767872640",
+      "disposition_note": "Prepared narrow legacy complete allowlist and actual standalone BFF HTTP regression; retained as actionable until protected merge."
     },
     {
       "pr_number": 287,
       "thread_id": "PRRT_kwDOTN0BU86YoFZD",
       "comment_id": 3767872648,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/uploads/original_cleanup.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Delete direct objects when multipart fallback finalizes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/287#discussion_r3767872648"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/287#discussion_r3767872648",
+      "disposition_note": "Prepared atomic owned-original journal, grant-expiry resweep, bounded worker retry including deleted rows, holds and conservative legacy backfill; retained as actionable until protected merge."
     },
     {
       "pr_number": 288,
       "thread_id": "PRRT_kwDOTN0BU86YoYV9",
       "comment_id": 3767984324,
       "path": "backend/django/apps/verifications/transitions.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/transitions.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Repair missing cancellation timestamps on idempotent retries**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/288#discussion_r3767984324"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/288#discussion_r3767984324",
+      "disposition_note": "Repeated cancelled state returns before repairing missing legacy cancellation/completion timestamps."
     },
     {
       "pr_number": 288,
@@ -8062,10 +8086,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Yq35Y",
       "comment_id": 3768940391,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/README.md"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the live index with the documented output order**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940391"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940391",
+      "disposition_note": "Documented PAD order is print/live/replay with live class index 1; no real-model accuracy certification is inferred. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 293,
@@ -8139,10 +8166,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Y8dAB",
       "comment_id": 3775686768,
       "path": "frontend/developer-portal/src/lib/api-origin.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/developer-portal/src/proxy.ts"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep API variables eligible for build-time inlining**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/296#discussion_r3775686768"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/296#discussion_r3775686768",
+      "disposition_note": "Direct process.env.NEXT_PUBLIC_* references reach the API-origin helper for build-time substitution. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
@@ -8185,10 +8215,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Y9ObT",
       "comment_id": 3775981161,
       "path": "backend/django/config/api_views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/Dockerfile"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Package the OpenAPI file before loading it in the overview**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981161"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981161",
+      "disposition_note": "Runtime image includes the checked-in OpenAPI document. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
@@ -8231,20 +8264,26 @@
       "thread_id": "PRRT_kwDOTN0BU86Y9dvu",
       "comment_id": 3776071332,
       "path": "backend/django/config/urls.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/urls.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restrict the health route to the declared GET method**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071332"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071332",
+      "disposition_note": "Health handler is GET-only. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y9dvw",
       "comment_id": 3776071336,
       "path": "backend/django/config/api_views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py:public_resources"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve anonymous auth metadata in generated resources**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071336"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071336",
+      "disposition_note": "Anonymous metadata preserves root and operation security and request-body information. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
@@ -8269,20 +8308,26 @@
       "thread_id": "PRRT_kwDOTN0BU86Y94jN",
       "comment_id": 3776232086,
       "path": "frontend/developer-portal/src/app/api-reference/[slug]/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/developer-portal/src/app/api-reference/[slug]/page.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove literal diff markers from generated curl commands**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232086"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232086",
+      "disposition_note": "Curl rendering joins actual newline continuations without literal plus prefixes. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y94jb",
       "comment_id": 3776232100,
       "path": "frontend/developer-portal/src/app/api-reference/[slug]/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/developer-portal/src/app/api-reference/[slug]/page.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Render headers for the operation's actual security scheme**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232100"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232100",
+      "disposition_note": "Request template derives API client, session bearer/id, platform JWT, cookie-refresh or anonymous headers from contract security. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
@@ -8510,20 +8555,26 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-79A",
       "comment_id": 3776632827,
       "path": "backend/django/apps/verification_policies/urls.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Mark policy creation as a public operation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632827"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632827",
+      "disposition_note": "Public policy resource retains GET and POST operations. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-79E",
       "comment_id": 3776632834,
       "path": "frontend/developer-portal/src/app/api-reference/[slug]/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/developer-portal/src/app/api-reference/[slug]/page.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include request bodies in generated curl templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632834"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632834",
+      "disposition_note": "Request template includes JSON, multipart or text body according to content type. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
@@ -8653,10 +8704,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Y_5_V",
       "comment_id": 3776998461,
       "path": "backend/django/apps/accounts/urls.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Publish the MFA challenge operation needed to finish login**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998461"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998461",
+      "disposition_note": "MFA challenge POST is included in public authentication resources. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 298,
@@ -8756,30 +8810,39 @@
       "thread_id": "PRRT_kwDOTN0BU86bYP2i",
       "comment_id": 3835847420,
       "path": "backend/django/apps/api_clients/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/lib/idempotent-submission.ts"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Supply keys from first-party mutation callers**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/300#discussion_r3835847420"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/300#discussion_r3835847420",
+      "disposition_note": "Dashboard mutation forms retain submission keys; CLI api-client/webhook creates send caller key or generated UUID. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 300,
       "thread_id": "PRRT_kwDOTN0BU86bYW80",
       "comment_id": 3835889115,
       "path": "backend/django/apps/api_clients/idempotency.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/api_clients/tasks.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Purge expired idempotency records**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/300#discussion_r3835889115"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/300#discussion_r3835889115",
+      "disposition_note": "Expired idempotency records have a scheduled purge task. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 302,
       "thread_id": "PRRT_kwDOTN0BU86bYwFS",
       "comment_id": 3836042729,
       "path": "backend/django/apps/webhooks/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/models.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the prior signing key during rotation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042729"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042729",
+      "disposition_note": "Previous signing key is retained for the bounded overlap and deliveries include dual signatures. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 302,
@@ -8834,10 +8897,13 @@
       "thread_id": "PRRT_kwDOTN0BU86bY2yU",
       "comment_id": 3836082167,
       "path": "backend/django/apps/webhooks/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/models.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject rotations while an earlier overlap is active**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836082167"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836082167",
+      "disposition_note": "An unexpired previous-key overlap rejects a second rotation with conflict. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 302,
@@ -8922,10 +8988,13 @@
       "thread_id": "PRRT_kwDOTN0BU86bY-o7",
       "comment_id": 3836127975,
       "path": "frontend/dashboard/src/features/operations/live-webhooks-page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/features/operations/live-webhooks-page.tsx:rotateEndpoint"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the disclosed secret when rotation is rejected**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127975"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127975",
+      "disposition_note": "Rejected rotation leaves the existing displayed secret intact; replacement happens only after success. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 302,
@@ -8946,10 +9015,13 @@
       "thread_id": "PRRT_kwDOTN0BU86bZB-r",
       "comment_id": 3836147852,
       "path": "frontend/dashboard/src/features/operations/live-webhooks-page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/dashboard/src/features/operations/live-webhooks-page.tsx:create"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the rotated secret across failed creates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836147852"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836147852",
+      "disposition_note": "Failed endpoint creation clears the last displayed rotation secret before the API result."
     },
     {
       "pr_number": 303,
@@ -9057,10 +9129,13 @@
       "thread_id": "PRRT_kwDOTN0BU86bZk2j",
       "comment_id": 3836354482,
       "path": "docs/architecture/api-spec.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:exhaust_processing_job"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Queue retry-exhaustion transitions in the webhook outbox**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354482"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354482",
+      "disposition_note": "First exhaustion queues lifecycle webhook and status notification and schedules evidence; already-final state is guarded. Original body individually read and implementation inspected against immutable main 07a683f. Validation: 154 baseline backend checks (153 passed, one skipped), six direct Node API-origin/request-template checks; unchanged CLI suite 16 run, 15 passed, one skipped. This is repository evidence, not live integration certification."
     },
     {
       "pr_number": 303,
@@ -13193,5 +13268,5 @@
     }
   ],
   "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 332 verified, 37 actionable and 254 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 427 verified, 106 actionable and 90 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

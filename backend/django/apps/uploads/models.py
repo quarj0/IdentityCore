@@ -45,6 +45,10 @@ class Upload(PublicIdModel, BaseModel):
         db_index=True,
     )
     storage_key = models.CharField(max_length=255, unique=True)
+    original_storage_key = models.CharField(max_length=255, blank=True, db_default="")
+    original_cleanup_attempted_at = models.DateTimeField(
+        null=True, blank=True, db_index=True
+    )
     storage_provider = models.CharField(max_length=64, default="local")
     mime_type = models.CharField(max_length=100)
     file_size_bytes = models.PositiveBigIntegerField()
@@ -68,9 +72,14 @@ class Upload(PublicIdModel, BaseModel):
         ordering = ["-created_at"]
         indexes = [
             models.Index(
+                fields=["expires_at", "original_cleanup_attempted_at"],
+                condition=~models.Q(original_storage_key=""),
+                name="upload_original_cleanup_due",
+            ),
+            models.Index(
                 fields=["tenant", "checksum_sha256", "status", "deleted_at"],
                 name="upload_tenant_digest_status",
-            )
+            ),
         ]
 
     def clean(self):
