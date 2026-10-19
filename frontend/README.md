@@ -50,3 +50,7 @@ Chromium/WebKit checks. The browser fixture verifies nonce-bearing HTML, hydrati
 40% native onboarding progress, approved image/PUT requests and blocked unlisted
 connections. Portal header coverage also checks script nonce equality and a hydrated
 theme change under its enforced policy. No test disables CSP.
+
+Dashboard deployments must set `NEXT_PUBLIC_DASHBOARD_URL` to their public HTTPS
+origin at build time; sign-in redirects use this compiled value. Local development
+uses `http://localhost:3000`. Rebuild after changes; see [dashboard configuration](dashboard/README.md).

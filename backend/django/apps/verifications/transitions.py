@@ -108,7 +108,8 @@ def transition_verification(
 ) -> tuple[Verification, bool]:
     """Apply one state transition while serializing concurrent writers.
 
-    Repeating the current transition is an idempotent no-op. Every other
+    Repeating the current transition preserves status and repairs missing legacy
+    cancellation timestamps. Every other
     transition must be present in ``ALLOWED_TRANSITIONS`` and is applied while
     holding a row lock. Callers can use the returned locked instance when they
     need to make additional changes in the same transaction.
@@ -121,6 +122,19 @@ def transition_verification(
         .get(pk=verification.pk)
     )
     if current.status == target:
+        if target == VerificationStatus.CANCELLED:
+            fields = []
+            # Reuse an existing terminal timestamp. If neither survived, this is
+            # the repair time, not a claim about the historical cancellation time.
+            best_known = current.cancelled_at or current.completed_at or timezone.now()
+            if current.cancelled_at is None:
+                current.cancelled_at = best_known
+                fields.append("cancelled_at")
+            if current.completed_at is None:
+                current.completed_at = best_known
+                fields.append("completed_at")
+            if fields:
+                current.save(update_fields=[*fields, "updated_at"])
         verification.status = current.status
         verification.completed_at = current.completed_at
         verification.cancelled_at = current.cancelled_at

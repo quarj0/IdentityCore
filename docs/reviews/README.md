@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 427 verified, 106 actionable and 90 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 448 verified, 120 actionable and 55 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -219,8 +219,8 @@ revokes sessions/jobs, cancels unfinished cases and scrubs copied verification
 references, provider results and prior subject exports. Report pointers stay tracked.
 The current-actor and cached-export safeguards, migration grant boundaries and two
 PostgreSQL finalization races are covered alongside existing fingerprint races.
-Four findings are prepared, not closed; notification/report remediations follow in
-subsequent batches. All remain open until protected merge; see the
+All six privacy findings are prepared, not closed; notification and report
+remediations are included in the subsequent batches below. All remain open until protected merge; see the
 [privacy procedure](../operations/subject-privacy.md).
 
 
@@ -258,3 +258,37 @@ The production portal build (webpack) and standalone BFF's 19 HTTP plus 20
 Chromium/WebKit browser checks pass. Turbopack hit the execution sandbox's port-binding
 restriction; the successful webpack build is the production artifact tested here.
 The processing inventory covers all 1,174 persisted fields and its seven checks pass.
+
+
+Prepared review/lifecycle follow-ups dispatch direct failed outcomes, expose current
+checker eligibility and show an independent waiting state, repair missing legacy
+cancellation timestamps without duplicating cancellation side effects, and preserve
+a displayed signing secret when endpoint creation fails. Dashboard self-origin
+configuration now documents its production build-time requirement. These findings
+remain actionable until protected merge.
+
+A further twenty original recovery/accessibility comments were individually read:
+eight existing changes are verified by source inspection and twelve are actionable.
+These include document terminal/route-exhaustion recovery and gaps in mounted-state,
+keyboard, handoff, evidence and nonce-compatible accessibility coverage. Existing
+mobile coverage does not establish that every mounted capture state is scanned.
+No accessibility certification or finding closure is inferred from test names.
+
+The recovery audit's unchanged immutable-main storage/document/notification baseline
+passes all 29 checks. Accessibility findings above remain source-confirmed gaps,
+with no claim that their failing browser paths have yet been repaired.
+
+Fifteen further originals were inspected individually: thirteen existing logging and
+incident-response behaviors are verified, with ten immutable-main direct Node
+redaction tests and fourteen scanner tests passing. Two additional accessibility
+coverage gaps remain actionable: waiting for the actual handoff DOM before scanning
+and exercising verified/failed terminal panels. Deployed hold/replay procedures and
+incident drills still require operator validation.
+
+Review/lifecycle validation: full backend 1,285 run, 1,232 passed, 53 skipped; 32
+GraphQL/protocol checks pass after including the approval hint in the GraphQL node.
+Nine focused transition/review checks and 19 queue/reason checks (one skipped) pass.
+Production dashboard build and six Chromium/WebKit regressions cover both approval
+states and failed-create secret preservation. Types, changed-source lint, all 69
+OpenAPI operations and SDK model drift checks pass. An initial GraphQL incompatibility
+was corrected before these successful checks; no security or access gate was weakened.

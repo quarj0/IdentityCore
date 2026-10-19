@@ -9,7 +9,6 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.accounts.models import PlatformUser
-from apps.audit.services import record_audit_event
 from apps.platform_settings.services import get_platform_setting_value
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.evidence import (
@@ -31,7 +30,10 @@ from apps.verifications.decision_contract import (
     DECISION_CONTRACT_VERSION,
     build_decision_input_snapshot,
 )
-from apps.verifications.review_access import PLATFORM_REVIEW_WORKFLOWS
+from apps.verifications.review_access import (
+    PLATFORM_REVIEW_WORKFLOWS,
+    can_approve_review,
+)
 from common.pagination import MAX_PAGE_SIZE
 
 
@@ -187,6 +189,9 @@ def serialize_verification(verification: Verification, request=None) -> dict:
                 "contract_version": decision_record.contract_version,
                 "reason_codes": decision_record.reason_codes_json,
                 "approval_status": decision_record.approval_status,
+                "can_approve": can_approve_review(
+                    getattr(request, "user", None), verification, decision_record
+                ),
                 "decided_at": decision_record.decided_at.isoformat(),
             }
             if decision_record is not None

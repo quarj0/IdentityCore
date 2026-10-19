@@ -21,3 +21,16 @@ For maker/checker cases, `/manual-reviews/{id}/approval` accepts the same fields
 Public `/verifications/{id}/result` responses expose only configured organization-facing manual codes, never reviewer notes. Keep codes generic, never embed applicant identity, contact information, document numbers, or provider payloads. Automatic decision reasons retain their existing fixed allowlist. Invalid stored rule objects fail review validation and expose no manual codes in public results.
 
 The nullable policy column supports additive rollout; existing null rows serialize as empty rules. APIs and all four generated SDK model sets include the policy configuration and checker reason fields.
+
+Pending proposals expose `decision.can_approve` in authenticated verification detail.
+It is a current presentation hint: makers, case creators, matching applicant
+identities and callers without review access receive `false`. The dashboard shows
+an independent-review waiting state for these callers. Eligible checkers receive
+the approval controls; the server still revalidates approval under lock. Direct
+manual `failed` outcomes dispatch the same lifecycle webhook/status notification
+as checker-approved failures, with proposal replay preserving idempotency.
+The GraphQL decision node exposes the same hint as `canApprove`. Deploy the backend
+before the dashboard: a missing hint fails closed to the waiting state. Reload the
+case after an access/assignment change; the hint is a snapshot, not an authorization
+token. No additional maker/subject identity is exposed to compute this state in the
+browser.

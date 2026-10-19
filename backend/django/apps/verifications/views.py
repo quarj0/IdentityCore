@@ -352,13 +352,18 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
         serializer.is_valid(raise_exception=True)
         lock_audit_chain(verification.tenant_id)
         try:
-            verification, _ = transition_verification(
+            verification, changed = transition_verification(
                 verification,
                 VerificationStatus.CANCELLED,
                 completed_at=timezone.now(),
             )
         except VerificationTransitionError as exc:
             raise VerificationTransitionConflict() from exc
+        if not changed:
+            return success_response(
+                {"id": verification.public_id, "status": verification.status},
+                request=request,
+            )
         record_audit_event(
             tenant=self._get_tenant(request),
             actor=self._get_actor(request),
@@ -646,6 +651,7 @@ class ManualReviewDecisionView(APIView):
         if decision_record.decision in {
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,
+            VerificationStatus.FAILED,
             VerificationStatus.MANUAL_REVIEW_REQUIRED,
         }:
             queue_webhook_events(

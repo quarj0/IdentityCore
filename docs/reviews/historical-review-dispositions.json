@@ -6920,7 +6920,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the dashboard's production redirect origin**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/274#discussion_r3743058319",
-      "disposition_note": "Production dashboard self-origin is used by login redirects but is absent from required configuration documentation."
+      "disposition_note": "Prepared dashboard self-origin configuration in workspace/dashboard docs and root environment template, explicitly build-time in production. Remains actionable until protected merge."
     },
     {
       "pr_number": 275,
@@ -7578,7 +7578,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Dispatch failed outcomes from direct reviews**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443396",
-      "disposition_note": "Direct manual failed outcome is omitted from the dispatch set used for lifecycle webhook and notification."
+      "disposition_note": "Prepared failed outcome lifecycle dispatch with idempotent replay regression. Remains actionable until protected merge."
     },
     {
       "pr_number": 284,
@@ -7591,7 +7591,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide approval actions from the original maker**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443409",
-      "disposition_note": "Pending maker proposal still displays checker controls to its maker; server rejects self-approval but UI needs waiting state."
+      "disposition_note": "Prepared server-derived can_approve presentation hint and independent waiting state; approval continues to revalidate under lock. Remains actionable until protected merge."
     },
     {
       "pr_number": 284,
@@ -7726,7 +7726,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Repair missing cancellation timestamps on idempotent retries**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/288#discussion_r3767984324",
-      "disposition_note": "Repeated cancelled state returns before repairing missing legacy cancellation/completion timestamps."
+      "disposition_note": "Prepared idempotent locked repair of missing cancellation timestamps preserving known time; repeated cancellation no longer queues duplicate lifecycle side effects. Remains actionable until protected merge."
     },
     {
       "pr_number": 288,
@@ -9021,7 +9021,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the rotated secret across failed creates**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836147852",
-      "disposition_note": "Failed endpoint creation clears the last displayed rotation secret before the API result."
+      "disposition_note": "Prepared preservation of the displayed signing secret until endpoint creation succeeds. Remains actionable until protected merge."
     },
     {
       "pr_number": 303,
@@ -9156,10 +9156,13 @@
       "thread_id": "PRRT_kwDOTN0BU86bZurZ",
       "comment_id": 3836412273,
       "path": "backend/django/apps/uploads/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/common/storage.py:move_object"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Make the storage move itself recoverable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836412273"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836412273",
+      "disposition_note": "Missing source on retry is accepted only when the canonical destination exists, covering a completed copy/delete before PROMOTED persistence. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 303,
@@ -9180,10 +9183,13 @@
       "thread_id": "PRRT_kwDOTN0BU86bZ2en",
       "comment_id": 3836458308,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:VerificationCancelView"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Isolate notification dispatch from cancellation commit**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458308"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458308",
+      "disposition_note": "Broker callbacks already use robust=True, but repeated cancellation still queued duplicate lifecycle effects. Prepared changed-status guard suppresses repeats. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 303,
@@ -9403,20 +9409,26 @@
       "thread_id": "PRRT_kwDOTN0BU86bbHdp",
       "comment_id": 3836939671,
       "path": "tools/apply_pr304_document_failure_guard.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Commit the document failure ownership guards directly**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836939671"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836939671",
+      "disposition_note": "Route-exhausted and generic failure handlers directly lock the processing owner in atomic source code; no later branch-rewrite step is needed. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 304,
       "thread_id": "PRRT_kwDOTN0BU86bbHdq",
       "comment_id": 3836939674,
       "path": ".github/workflows/pr304-document-guard.yml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        ".github/workflows/ci.yml"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use a single workflow to mutate the PR branch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836939674"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836939674",
+      "disposition_note": "Both one-shot PR304 branch writers and the apply script are absent; current CI does not race to rewrite that branch. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 304,
@@ -9439,160 +9451,208 @@
       "thread_id": "PRRT_kwDOTN0BU86bblIV",
       "comment_id": 3837115813,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:_resource_processing_finished"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Repair document route exhaustion after ownership handoff**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115813"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115813",
+      "disposition_note": "Document completion recovery does not recognize route-exhaustion decisions, unlike biometric recovery; provider work may be repeated after handoff. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 304,
       "thread_id": "PRRT_kwDOTN0BU86bblIW",
       "comment_id": 3837115814,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:generic failure handler"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve document failure state after terminal transitions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115814"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115814",
+      "disposition_note": "Generic document failure still attempts AWAITING_DOCUMENT after a terminal transition and can roll back the FAILED resource write. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITe",
       "comment_id": 3836944573,
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/platform-admin/src/features/review/pages/review-case-detail-page.tsx"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Label the review-note field before enforcing this scan**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944573"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944573",
+      "disposition_note": "Review note textarea has an explicit accessible Review note name. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITf",
       "comment_id": 3836944574,
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:mockAdminBackend"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the approved state in the detail-query mock**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944574"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944574",
+      "disposition_note": "The fixture retains currentReviewItem after mutation and subsequent detail/queue reads use that state. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITg",
       "comment_id": 3836944575,
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-accessibility.spec.ts"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep axe coverage enabled for mobile projects**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944575"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944575",
+      "disposition_note": "Older critical test skips all mobile scans. A newer mobile journey exists, but gates must be consolidated with full mounted-state coverage. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITi",
       "comment_id": 3836944583,
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-accessibility.spec.ts:pressFocused"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reach controls through keyboard navigation instead of focus()**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944583"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944583",
+      "disposition_note": "Programmatic focus/ WebKit click bypasses sequential keyboard reachability; reviewer test repeats this pattern. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITl",
       "comment_id": 3836944589,
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/a11y-helpers.ts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include WCAG 2.1 Level A rules in the axe gate**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944589"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944589",
+      "disposition_note": "All inspected axe tag sets omit wcag21a, including the supporting shared helper. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITo",
       "comment_id": 3836944595,
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-accessibility.spec.ts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exercise the actual mobile-handoff branch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944595"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944595",
+      "disposition_note": "Handoff coverage selects local continuation without exercising QR creation, copyable link or waiting state. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITr",
       "comment_id": 3836944601,
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/playwright.config.ts:testIgnore"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exclude the admin spec from the portal test configuration**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944601"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944601",
+      "disposition_note": "Normal portal discovery excludes platform-admin and dashboard specs. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITw",
       "comment_id": 3836944607,
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-accessibility.spec.ts"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Scan the live-camera UI after mounting it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944607"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944607",
+      "disposition_note": "Live camera controls are mounted and operated after the last liveness-state scan; mounted/recording/review states need scans. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbITy",
       "comment_id": 3836944610,
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:mockAdminBackend"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Handle CORS preflights in the admin backend mock**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944610"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944610",
+      "disposition_note": "Backend mock responds to OPTIONS before reading a JSON body and supplies credentialed origin/header/method CORS values. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbIT0",
       "comment_id": 3836944612,
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:reviewItem"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include supporting evidence in the reviewer fixture**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944612"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944612",
+      "disposition_note": "Supporting documents are empty, so submitted evidence actions are not exercised. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bblKm",
       "comment_id": 3837116018,
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/playwright.platform-admin.config.ts"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bypass CSP before injecting axe**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116018"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116018",
+      "disposition_note": "Production nonce CSP and axe inline injection are incompatible without nonce-aware injection; test bypassCSP is also unset. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bblKn",
       "comment_id": 3837116019,
       "path": "frontend/verification-portal/e2e/critical-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scan captured evidence before submitting it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116019"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116019",
+      "disposition_note": "Document and selfie EvidenceReview DOMs are not scanned after capture. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 306,
       "thread_id": "PRRT_kwDOTN0BU86bbq6P",
       "comment_id": 3837150057,
       "path": "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scan the post-decision review state**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837150057"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837150057",
+      "disposition_note": "Axe scan follows approved-state rendering and disabled decision controls. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 307,
       "thread_id": "PRRT_kwDOTN0BU86bbOss",
       "comment_id": 3836982507,
       "path": "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts:activateWithKeyboard"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Drive controls through the real tab order**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3836982507"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3836982507",
+      "disposition_note": "Newer subject journey still uses locator.focus and click on WebKit; existing focusByTab helper is unused. Original body individually read and corresponding source/configuration inspected. No browser accessibility certification is inferred from source inspection; unmerged fixes remain actionable."
     },
     {
       "pr_number": 307,
@@ -9615,20 +9675,26 @@
       "thread_id": "PRRT_kwDOTN0BU86bbsHX",
       "comment_id": 3837157190,
       "path": "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Wait for the handoff UI before scanning it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157190"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157190",
+      "disposition_note": "Desktop handoff scan runs before waiting for the mounted handoff chooser; synchronize on actual UI before scanning. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 307,
       "thread_id": "PRRT_kwDOTN0BU86bbsHa",
       "comment_id": 3837157193,
       "path": "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Cover the remaining decision terminal states**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157193"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157193",
+      "disposition_note": "Fixture only renders manual-review completion; verified and failed terminal panels need rendered/keyboard/axe scenarios. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 308,
@@ -9650,10 +9716,13 @@
       "thread_id": "PRRT_kwDOTN0BU86hS4S8",
       "comment_id": 3984757476,
       "path": "frontend/packages/api-client/src/safe-logging.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/packages/api-client/src/safe-logging.ts:redactLogValueUnsafe"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact every typed-array view before traversing objects**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757476"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757476",
+      "disposition_note": "ArrayBuffer.isView redacts every typed-array/DataView before traversing objects. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 308,
@@ -9795,20 +9864,26 @@
       "thread_id": "PRRT_kwDOTN0BU86hXdpu",
       "comment_id": 3986604713,
       "path": "frontend/scripts/check-safe-logging.mjs",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/scripts/check-safe-logging.mjs:isConsoleObject"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject computed and qualified console calls**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986604713"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986604713",
+      "disposition_note": "Computed/global-qualified console references and destructuring are rejected. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hXdpy",
       "comment_id": 3986604716,
       "path": "frontend/packages/api-client/src/safe-logging.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/packages/api-client/src/safe-logging.ts:normalizeKey"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Split camelCase before matching sensitive keys**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986604716"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986604716",
+      "disposition_note": "Camel-case and acronym boundaries are split before lowercasing and matching sensitive keys. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 308,
@@ -9830,10 +9905,13 @@
       "thread_id": "PRRT_kwDOTN0BU86hmYDp",
       "comment_id": 3992438271,
       "path": "frontend/scripts/check-safe-logging.mjs",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/scripts/check-safe-logging.mjs:isConsoleMethodReference"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject every output-capable console method**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3992438271"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3992438271",
+      "disposition_note": "Console methods are rejected independently of method name, including table/dir/assert and dynamic property access. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 308,
@@ -9930,10 +10008,13 @@
       "thread_id": "PRRT_kwDOTN0BU86h1Jdq",
       "comment_id": 3998204477,
       "path": "frontend/packages/api-client/src/safe-logging.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/packages/api-client/src/safe-logging.ts:redactLogValue"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Contain failures while traversing frontend log context**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3998204477"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3998204477",
+      "disposition_note": "Traversal/string-conversion failures are contained by safe format-error fallback; safeLog also contains output failures. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 308,
@@ -9953,10 +10034,13 @@
       "thread_id": "PRRT_kwDOTN0BU86h3lS4",
       "comment_id": 3999173423,
       "path": "frontend/scripts/check-safe-logging.mjs",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/scripts/check-safe-logging.mjs:containsUnsafeConsoleUse"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Track aliases of the console object**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173423"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173423",
+      "disposition_note": "Bare/qualified console object references themselves are rejected, covering aliases at binding sites. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 308,
@@ -10053,50 +10137,65 @@
       "thread_id": "PRRT_kwDOTN0BU86hXNNB",
       "comment_id": 3986505154,
       "path": "docs/operations/incident-response.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/operations/incident-response.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep required deletion running for over-retention incidents**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505154"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505154",
+      "disposition_note": "Separate premature deletion from overdue deletion; approved overdue deletion remediation continues outside valid preservation holds. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86hXNNF",
       "comment_id": 3986505158,
       "path": "docs/operations/incident-evidence.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/tasks.py:cleanup_expired_uploads_task"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve temporary uploads when placing a legal hold**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505158"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505158",
+      "disposition_note": "Temporary-upload retention checks tenant/case holds, and evidence acquisition procedure requires draining already-admitted deletes. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86hXNNG",
       "comment_id": 3986505161,
       "path": "docs/operations/incident-response.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/operations/incident-response.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate idempotent webhook effects instead of zero duplicates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505161"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505161",
+      "disposition_note": "Recovery validates stable event IDs, atomic receiver deduplication and no duplicate side effects; duplicate transport remains possible. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86hXeIL",
       "comment_id": 3986607581,
       "path": "docs/operations/incident-response.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/views.py:WebhookEventReplayView"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Add recovery for exhausted webhook events**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986607581"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986607581",
+      "disposition_note": "Tenant-scoped idempotent event replay requeues failed events, preserves stable ID/history and reactivates endpoint atomically; documented executable API path. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86hXeIR",
       "comment_id": 3986607589,
       "path": "backend/django/apps/uploads/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/tasks.py:_defer_failed_deletion"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent failed uploads from monopolizing the cleanup batch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986607589"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986607589",
+      "disposition_note": "Failures persist retry eligibility with exponential backoff; eligible query skips deferred rows so later uploads progress. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 312,
@@ -10161,10 +10260,13 @@
       "thread_id": "PRRT_kwDOTN0BU86huNoz",
       "comment_id": 3995504951,
       "path": "docs/operations/incident-evidence.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/management/commands/manage_retention_hold.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide an executable path for placing retention holds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504951"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504951",
+      "disposition_note": "Tenant-scoped operator command places/releases/optionally expires holds with validation, locks and audit; evidence procedure includes actual invocations. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 312,
@@ -10185,10 +10287,13 @@
       "thread_id": "PRRT_kwDOTN0BU86huNo3",
       "comment_id": 3995504957,
       "path": "docs/operations/incident-evidence.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/management/commands/manage_retention_hold.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide an executable path for placing retention holds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504957"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504957",
+      "disposition_note": "Duplicate original individually read: documented validated management command provides executable hold lifecycle. Original body individually read and current/immutable-main sources inspected. Logging validation: ten direct Node redaction tests and fourteen scanner tests pass against immutable main. Repository evidence does not certify deployed incident procedures."
     },
     {
       "pr_number": 312,
@@ -13268,5 +13373,5 @@
     }
   ],
   "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 427 verified, 106 actionable and 90 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 448 verified, 120 actionable and 55 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

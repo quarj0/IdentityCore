@@ -45,3 +45,22 @@ def can_review_verification(user, verification: Verification) -> bool:
         tenant=verification.tenant_id,
         review_owner=verification.review_owner,
     ).allowed
+
+
+def can_approve_review(user, verification, decision) -> bool:
+    """Current presentation hint; approval rechecks these constraints under lock."""
+    from apps.verifications.models import VerificationApprovalStatus
+
+    if not decision or decision.approval_status != VerificationApprovalStatus.PENDING:
+        return False
+    if verification.status != "manual_review_required" or not can_review_verification(
+        user, verification
+    ):
+        return False
+    if decision.decided_by_id == getattr(
+        user, "pk", None
+    ) or verification.created_by_id == getattr(user, "pk", None):
+        return False
+    reviewer_email = (getattr(user, "email", "") or "").strip().lower()
+    subject_email = (verification.verification_subject.email or "").strip().lower()
+    return not (reviewer_email and reviewer_email == subject_email)

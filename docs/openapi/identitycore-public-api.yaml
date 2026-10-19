@@ -850,6 +850,10 @@ components:
         decision:
           type: [object, "null"]
           additionalProperties: true
+          properties:
+            can_approve:
+              type: boolean
+              description: Current authenticated review eligibility hint; false for makers, creators, subject identities and callers without review access. Approval revalidates under lock.
         created_at:
           type: string
           format: date-time

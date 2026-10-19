@@ -654,7 +654,11 @@ Example:
 
 ## POST /verifications/{verification_id}/cancel
 
-Cancels a Verification.
+Cancels a Verification. Repeating cancellation returns the current cancelled state
+without duplicating cancellation audit, webhook or notification records. Missing
+legacy cancellation/completion timestamps are repaired under the row lock using an
+existing terminal timestamp. If neither timestamp survived, the repair time is used;
+it does not establish the original historical cancellation time.
 
 Required scope:
 

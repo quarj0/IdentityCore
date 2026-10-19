@@ -331,10 +331,26 @@ export function LiveVerificationDetail({
       {review && <AuthenticityEvidence verificationId={id} />}
 
       {review &&
+      item.decision?.approval_status === "pending" &&
+      !item.decision.can_approve ? (
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle>Awaiting independent review</CardTitle>
+          </CardHeader>
+          <CardContent>
+            The proposed outcome is{" "}
+            <strong>{item.decision.proposed_decision}</strong>. An eligible
+            independent reviewer must record the final decision.
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {review &&
       item.status === "manual_review_required" &&
       (!item.decision ||
         ["automatic", "system"].includes(item.decision.decision_type) ||
-        item.decision.approval_status === "pending") ? (
+        (item.decision.approval_status === "pending" &&
+          item.decision.can_approve)) ? (
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle>

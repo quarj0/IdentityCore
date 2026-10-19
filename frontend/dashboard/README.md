@@ -9,8 +9,14 @@ Required configuration:
 
 ```env
 NEXT_PUBLIC_API_ORIGIN=http://localhost:8000
+NEXT_PUBLIC_DASHBOARD_URL=http://localhost:3000
 NEXT_PUBLIC_IDENTITYCORE_ORIGIN=http://localhost:3001
 ```
+
+Set `NEXT_PUBLIC_DASHBOARD_URL` to the actual public HTTPS dashboard origin in
+production. The login redirect is compiled into browser code: provide this value
+at build time and rebuild the dashboard when it changes. The local default is
+`http://localhost:3000`.
 
 From `frontend/`, run `corepack pnpm install --frozen-lockfile` and then
 `pnpm dev:dashboard`; open `http://localhost:3000`.
