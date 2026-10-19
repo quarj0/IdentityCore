@@ -36,3 +36,7 @@ so peer matching does not scan the tenant's complete retained upload history.
 Active motion matching uses a bound, ordered eight-direction challenge rather than
 unordered membership. See [active liveness](active-liveness.md) for its retry budget,
 rollout requirements and evaluation limits.
+
+Receipts are committed only after the final fresh-consent check. See
+[upload transfers](upload-transfers.md) for concurrent candidate handling and
+cleanup limitations; a storage write or admission audit alone is not acceptance.

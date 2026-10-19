@@ -5712,10 +5712,14 @@
       "thread_id": "PRRT_kwDOTN0BU86V5174",
       "comment_id": 3702348172,
       "path": "backend/django/apps/verification_sessions/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/views.py:VerificationMobileHandoffRedeemView inherits source.allowed_actions",
+        "backend/django/apps/verification_sessions/tests.py:test_mobile_handoff_redemption_preserves_source_action_scope"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve restrictions when redeeming a mobile handoff**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348172"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348172",
+      "disposition_note": "Redeemed session inherits exactly the source action list. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 242,
@@ -5736,100 +5740,146 @@
       "thread_id": "PRRT_kwDOTN0BU86V5z9i",
       "comment_id": 3702336348,
       "path": "backend/django/apps/verification_sessions/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/views.py:VerificationMobileHandoffRedeemView inherits source.allowed_actions",
+        "backend/django/apps/verification_sessions/tests.py:test_mobile_handoff_redemption_preserves_source_action_scope"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve action scopes across mobile handoff redemption**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/243#discussion_r3702336348"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/243#discussion_r3702336348",
+      "disposition_note": "Redeemed session inherits exactly the source action list. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 243,
       "thread_id": "PRRT_kwDOTN0BU86V5z9p",
       "comment_id": 3702336354,
       "path": "backend/django/apps/verifications/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/models.py:VerificationSession.allowed_actions",
+        "backend/django/apps/verification_sessions/tests.py:test_empty_session_action_scope_denies_all_operations"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Treat an empty action set as deny-all**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/243#discussion_r3702336354"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/243#discussion_r3702336354",
+      "disposition_note": "Empty persisted actions remain deny-all; no fallback to global grants. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 244,
       "thread_id": "PRRT_kwDOTN0BU86V6BBW",
       "comment_id": 3702413690,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/serializers.py:UploadCreateSerializer",
+        "backend/django/apps/uploads/tests.py:test_create_upload_returns_consent_aware_transfer_path",
+        "backend/django/apps/uploads/tests.py:test_complete_validates_direct_upload_into_immutable_key"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Finalize uploads sent through the presigned URL**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413690"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413690",
+      "disposition_note": "Creation returns no competing writable direct PUT; legacy completion validates into a separate accepted key and initiated objects cannot be submitted. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 244,
       "thread_id": "PRRT_kwDOTN0BU86V6BBa",
       "comment_id": 3702413698,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/views.py:UploadTransferView.post uploaded_file.size before chunks",
+        "backend/django/apps/uploads/tests.py:UploadCreateTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Check the declared size before reading the upload**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413698"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413698",
+      "disposition_note": "Actual multipart file size is compared with the bounded declared size before file chunks are materialized. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 244,
       "thread_id": "PRRT_kwDOTN0BU86V6BBe",
       "comment_id": 3702413705,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/uploads/views.py:two-phase transfer admission and fresh-consent finalization",
+        "backend/django/apps/uploads/tests.py:UploadTransferTransactionTests",
+        "backend/django/apps/consent/test_races.py:test_upload_storage_write_rechecks_consent_after_withdrawal",
+        "docs/decisions/ADR-057-upload-transfer-transactions.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep upload I/O outside the database transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413705"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413705",
+      "disposition_note": "Reproduced outer atomic multipart/storage transaction on main. Prepared short transactions with unique storage candidates, audited consent admission and final fresh-consent receipt gate. PostgreSQL race and non-atomic API tests validate withdrawal and concurrent retries. Remains actionable until protected merge."
     },
     {
       "pr_number": 245,
       "thread_id": "PRRT_kwDOTN0BU86V6DJq",
       "comment_id": 3702426075,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/serializers.py:UploadCreateSerializer",
+        "backend/django/apps/uploads/tests.py:test_create_upload_returns_consent_aware_transfer_path",
+        "backend/django/apps/uploads/tests.py:test_complete_validates_direct_upload_into_immutable_key"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Finalize direct object-storage uploads before accepting evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426075"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426075",
+      "disposition_note": "Creation returns no competing writable direct PUT; legacy completion validates into a separate accepted key and initiated objects cannot be submitted. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 245,
       "thread_id": "PRRT_kwDOTN0BU86V6DJt",
       "comment_id": 3702426079,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/views.py:UploadTransferView.post uploaded_file.size before chunks",
+        "backend/django/apps/uploads/tests.py:UploadCreateTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject oversized uploads before reading them into memory**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426079"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426079",
+      "disposition_note": "Actual multipart file size is compared with the bounded declared size before file chunks are materialized. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 245,
       "thread_id": "PRRT_kwDOTN0BU86V6DJv",
       "comment_id": 3702426082,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/tests.py:test_transfer_upload_proxies_file_to_private_storage",
+        "backend/django/apps/uploads/views.py:_upload_for_session"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Accept completion retries after the upload is consumed**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426082"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426082",
+      "disposition_note": "Lookup includes uploaded/consumed/promoted states, with matching-checksum idempotency. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 245,
       "thread_id": "PRRT_kwDOTN0BU86V6DJy",
       "comment_id": 3702426086,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/uploads/views.py:two-phase transfer admission and fresh-consent finalization",
+        "backend/django/apps/uploads/tests.py:UploadTransferTransactionTests",
+        "backend/django/apps/consent/test_races.py:test_upload_storage_write_rechecks_consent_after_withdrawal",
+        "docs/decisions/ADR-057-upload-transfer-transactions.md"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Parse multipart bodies before opening the row-locking transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426086"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426086",
+      "disposition_note": "Reproduced outer atomic multipart/storage transaction on main. Prepared short transactions with unique storage candidates, audited consent admission and final fresh-consent receipt gate. PostgreSQL race and non-atomic API tests validate withdrawal and concurrent retries. Remains actionable until protected merge."
     },
     {
       "pr_number": 246,
       "thread_id": "PRRT_kwDOTN0BU86V6K4s",
       "comment_id": 3702472448,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/pyproject.toml:dependency-groups.django Pillow",
+        "backend/django/apps/uploads/tests.py:UploadCreateTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Add Pillow to the Django dependency group**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472448"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472448",
+      "disposition_note": "Pillow is explicitly in the Django group; prior fresh frozen Django-group installation and startup validated. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 246,
@@ -5851,20 +5901,29 @@
       "thread_id": "PRRT_kwDOTN0BU86V6K42",
       "comment_id": 3702472461,
       "path": "backend/django/apps/uploads/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/tests.py:test_unsafe_retry_is_scanned_but_does_not_quarantine_validated_upload",
+        "backend/django/apps/uploads/views.py:_finalize_upload"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Check retry checksums before quarantining completed uploads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472461"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472461",
+      "disposition_note": "Unsafe retries are rejected, but quarantine mutation is limited to initiated uploads and preserves accepted evidence. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 246,
       "thread_id": "PRRT_kwDOTN0BU86V6K47",
       "comment_id": 3702472469,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/scanning.py:inspect_upload_content catches Pillow verification failures",
+        "backend/django/apps/uploads/tests.py:test_decompression_bomb_is_quarantined",
+        "backend/django/apps/uploads/tests.py:test_image_decompression_warning_is_rejected"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Quarantine Pillow decompression-bomb errors**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472469"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472469",
+      "disposition_note": "Supported parser SyntaxError, decompression bomb errors/warnings and malformed images are classified unsafe. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 246,
@@ -5885,20 +5944,28 @@
       "thread_id": "PRRT_kwDOTN0BU86V6K5B",
       "comment_id": 3702472479,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/scanning.py:ISO-BMFF and EBML structure parsers",
+        "backend/django/apps/uploads/tests.py:UploadVideoInspectionTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate video containers beyond their leading magic bytes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472479"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472479",
+      "disposition_note": "Video gate checks complete supported container/track/frame structure; magic-only and truncated impostors are rejected. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 247,
       "thread_id": "PRRT_kwDOTN0BU86V6Qlz",
       "comment_id": 3702505462,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/pyproject.toml:dependency-groups.django Pillow",
+        "backend/django/apps/uploads/tests.py:UploadCreateTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Declare Pillow in the Django dependency group**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505462"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505462",
+      "disposition_note": "Pillow is explicitly in the Django group; prior fresh frozen Django-group installation and startup validated. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 247,
@@ -5981,10 +6048,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6QmH",
       "comment_id": 3702505486,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/scanning.py:inspect_upload_content catches Pillow verification failures",
+        "backend/django/apps/uploads/tests.py:test_decompression_bomb_is_quarantined",
+        "backend/django/apps/uploads/tests.py:test_image_decompression_warning_is_rejected"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Quarantine all Pillow verification exceptions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505486"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505486",
+      "disposition_note": "Supported parser SyntaxError, decompression bomb errors/warnings and malformed images are classified unsafe. Individually inspected against immutable main 07a683f; 99 upload/video/session baseline regressions pass."
     },
     {
       "pr_number": 248,

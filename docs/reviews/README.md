@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 380 verified, 82 actionable and 161 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 394 verified, 84 actionable and 145 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -161,3 +161,13 @@ journey cases pass across Chromium/WebKit. Exact script nonces, hydration, allow
 asset/PUT requests and blocked unlisted connections are verified. These four
 findings stay actionable until protected merge; configuration is documented in the
 [frontend guide](../../frontend/README.md#dashboard-csp-resource-configuration).
+
+
+Sixteen upload/session originals were individually inspected against immutable main:
+fourteen are already addressed, with 99 baseline upload/video/session tests passing.
+Two transaction findings remain actionable. Their remediation moves multipart,
+inspection and storage outside SQL and checks fresh purpose-bound consent before
+acceptance. PostgreSQL barriers cover withdrawal during a write and two simultaneous
+identical candidates; a losing request deletes only its own candidate. See
+[ADR 057](../decisions/ADR-057-upload-transfer-transactions.md) for admission,
+receipt and uncertain-commit cleanup limits.

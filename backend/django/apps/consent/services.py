@@ -235,7 +235,7 @@ def lock_session_consent(request, *, scope, action):
     request.verification_session = session
     require_verification_session_action(request, action)
     try:
-        require_active_consent(case, scope)
+        return require_active_consent(case, scope)
     except ValidationError:
         raise APIValidationError("Active consent for this evidence scope is required.") from None
 

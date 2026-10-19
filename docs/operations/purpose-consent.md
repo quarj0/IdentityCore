@@ -41,3 +41,8 @@ authorize processing. The normal consent-proof checks still apply. This reportin
 change leaves stored locale defaults, notice snapshots, hashes, proof envelopes,
 withdrawal timestamps and retained deleted records unchanged. Any future repair
 of historical data requires independent evidence of the original notice locale.
+
+Upload storage uses audited admission and a fresh-consent receipt commit without
+holding SQL locks over external I/O. Withdrawal may complete during an admitted
+write; the late candidate is rejected and receives best-effort cleanup. See
+[upload transfers](upload-transfers.md) for recovery and retention requirements.

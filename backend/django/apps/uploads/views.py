@@ -1,13 +1,15 @@
 from common.fields import environment_for_instance
 import hashlib
 import logging
+from uuid import uuid4
 
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from apps.audit.services import record_audit_event
 from apps.uploads.serializers import UploadCreateSerializer
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.consent.services import lock_session_consent
@@ -48,7 +50,7 @@ def _lock_upload_consent(request, purpose, action):
     }.get(purpose)
     if scope is None:
         raise ValidationError("This upload purpose is unavailable.")
-    lock_session_consent(request, scope=scope, action=action)
+    return lock_session_consent(request, scope=scope, action=action)
 
 
 def _validate_upload_content(
@@ -70,30 +72,84 @@ def _validate_upload_content(
     return checksum_sha256, "" if content_is_safe else quarantine_reason
 
 
+_COMPLETED = {UploadStatus.UPLOADED, UploadStatus.CONSUMED, UploadStatus.PROMOTED}
+
+
+def _locked_upload(request, upload_id):
+    # Global audit -> case -> session -> upload order also used by withdrawal.
+    upload = _upload_for_session(request, upload_id)
+    proof = _lock_upload_consent(request, upload.purpose, "upload:transfer")
+    upload = Upload.objects.select_for_update().get(pk=upload.pk)
+    if upload.is_expired or upload.status == UploadStatus.EXPIRED:
+        raise ValidationError({"file": "This upload has expired."})
+    return upload, proof
+
+
+def _admit_transfer(request, upload_id, operation_id):
+    with transaction.atomic():
+        upload, proof = _locked_upload(request, upload_id)
+        record_audit_event(
+            tenant=request.tenant,
+            request=request,
+            action="upload.transfer_admitted",
+            target_type="upload",
+            target_id=upload.public_id,
+            metadata={
+                "operation_id": operation_id,
+                "consent_record_id": proof.public_id,
+                "purpose": upload.purpose,
+            },
+        )
+        return upload
+
+
+def _delete_temporary_object(bucket_name, key, upload, operation_id):
+    try:
+        delete_object(bucket_name=bucket_name, key=key)
+    except Exception as exc:
+        logger.warning(
+            "Temporary upload cleanup failed upload=%s operation=%s error=%s",
+            upload.public_id,
+            operation_id,
+            type(exc).__name__,
+        )
+
+
+def _validate_state(upload, checksum):
+    if upload.status in _COMPLETED:
+        if upload.checksum_sha256 != checksum:
+            raise ValidationError(
+                {"file": "This upload was already completed with different content."}
+            )
+        return True
+    if upload.status != UploadStatus.INITIATED:
+        raise ValidationError({"file": "This upload is no longer available."})
+    return False
+
+
 def _finalize_upload(
     request,
     *,
     upload_id: str,
     content: bytes,
     content_type: str,
+    operation_id: str,
     cleanup_original: bool = False,
 ) -> Upload:
     upload = _upload_for_session(request, upload_id)
-    if upload.is_expired or upload.status == UploadStatus.EXPIRED:
-        raise ValidationError({"file": "This upload has expired."})
     checksum_sha256, quarantine_reason = _validate_upload_content(
         upload=upload,
         content=content,
         content_type=content_type,
     )
-    if quarantine_reason:
-        with transaction.atomic():
-            locked = Upload.objects.select_for_update().get(pk=upload.pk)
-            if locked.status == UploadStatus.INITIATED:
-                locked.status = UploadStatus.QUARANTINED
-                locked.checksum_sha256 = checksum_sha256
-                locked.quarantine_reason = quarantine_reason
-                locked.save(
+    with transaction.atomic():
+        upload, _ = _locked_upload(request, upload_id)
+        if quarantine_reason:
+            if upload.status == UploadStatus.INITIATED:
+                upload.status = UploadStatus.QUARANTINED
+                upload.checksum_sha256 = checksum_sha256
+                upload.quarantine_reason = quarantine_reason
+                upload.save(
                     update_fields=[
                         "status",
                         "checksum_sha256",
@@ -101,6 +157,10 @@ def _finalize_upload(
                         "updated_at",
                     ]
                 )
+        elif _validate_state(upload, checksum_sha256):
+            return upload
+    # Commit quarantine before returning the validation error.
+    if quarantine_reason:
         raise ValidationError(
             {
                 "file": "This file could not be safely validated.",
@@ -108,63 +168,70 @@ def _finalize_upload(
             }
         )
 
-    if upload.status in {
-        UploadStatus.UPLOADED,
-        UploadStatus.CONSUMED,
-        UploadStatus.PROMOTED,
-    }:
-        if upload.checksum_sha256 != checksum_sha256:
-            raise ValidationError(
-                {"file": "This upload was already completed with different content."}
-            )
-        return upload
-    if upload.status != UploadStatus.INITIATED:
-        raise ValidationError({"file": "This upload is no longer available."})
-
     original_storage_key = upload.storage_key
-    finalized_storage_key = f"{original_storage_key}.validated.{checksum_sha256[:16]}"
+    # Each attempt owns its candidate: a losing concurrent request must never
+    # remove the winner's object, even when both contain the same bytes.
+    finalized_storage_key = f"{original_storage_key}.validated.{operation_id}"
+    if len(finalized_storage_key) > Upload._meta.get_field("storage_key").max_length:
+        raise ValidationError({"file": "This upload storage location is unavailable."})
     bucket_name = get_object_storage_temp_bucket_name()
-    put_object_bytes(
-        bucket_name=bucket_name,
-        key=finalized_storage_key,
-        tenant_scope=upload.tenant.public_id,
-        environment=environment_for_instance(upload),
-        content=content,
-        content_type=upload.mime_type,
-    )
-    with transaction.atomic():
-        locked = Upload.objects.select_for_update().get(pk=upload.pk)
-        if locked.status == UploadStatus.INITIATED:
-            locked.storage_key = finalized_storage_key
-            locked.status = UploadStatus.UPLOADED
-            locked.checksum_sha256 = checksum_sha256
-            locked.quarantine_reason = ""
-            locked.capture_provenance_version = 1
-            locked.capture_receipt = issue_receipt(locked)
-            locked.save(
-                update_fields=[
-                    "storage_key",
-                    "status",
-                    "checksum_sha256",
-                    "quarantine_reason",
-                    "capture_receipt",
-                    "capture_provenance_version",
-                    "updated_at",
-                ]
-            )
-        elif locked.checksum_sha256 != checksum_sha256:
-            raise ValidationError(
-                {"file": "This upload was already completed with different content."}
-            )
-    if cleanup_original and original_storage_key != finalized_storage_key:
-        try:
-            delete_object(bucket_name=bucket_name, key=original_storage_key)
-        except Exception as exc:
-            logger.warning(
-                "Validated upload %s but could not delete its original temporary object: %s",
-                locked.public_id,
-                exc,
-            )
+    try:
+        put_object_bytes(
+            bucket_name=bucket_name,
+            key=finalized_storage_key,
+            tenant_scope=upload.tenant.public_id,
+            environment=environment_for_instance(upload),
+            content=content,
+            content_type=upload.mime_type,
+        )
+    except Exception:
+        _delete_temporary_object(
+            bucket_name, finalized_storage_key, upload, operation_id
+        )
+        raise
+    try:
+        with transaction.atomic():
+            locked, _ = _locked_upload(request, upload_id)
+            if not _validate_state(locked, checksum_sha256):
+                locked.storage_key = finalized_storage_key
+                locked.status = UploadStatus.UPLOADED
+                locked.checksum_sha256 = checksum_sha256
+                locked.quarantine_reason = ""
+                locked.capture_provenance_version = 1
+                locked.capture_receipt = issue_receipt(locked)
+                locked.save(
+                    update_fields=[
+                        "storage_key",
+                        "status",
+                        "checksum_sha256",
+                        "quarantine_reason",
+                        "capture_receipt",
+                        "capture_provenance_version",
+                        "updated_at",
+                    ]
+                )
+    except DatabaseError:
+        # A lost commit acknowledgement is ambiguous. Never delete an object
+        # which the database may already have accepted. Lifecycle reconciles it.
+        logger.warning(
+            "Upload finalization uncertain upload=%s operation=%s",
+            upload.public_id,
+            operation_id,
+        )
+        raise
+    except Exception:
+        _delete_temporary_object(
+            bucket_name, finalized_storage_key, upload, operation_id
+        )
+        raise
+    if locked.storage_key != finalized_storage_key:
+        _delete_temporary_object(
+            bucket_name, finalized_storage_key, upload, operation_id
+        )
+    if cleanup_original and original_storage_key != locked.storage_key:
+        _delete_temporary_object(
+            bucket_name, original_storage_key, upload, operation_id
+        )
     return locked
 
 
@@ -183,7 +250,9 @@ class UploadCreateView(APIView):
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        _lock_upload_consent(request, serializer.validated_data["purpose"], self.required_session_action)
+        _lock_upload_consent(
+            request, serializer.validated_data["purpose"], self.required_session_action
+        )
         payload = serializer.save()
         return success_response(
             payload, request=request, status=status.HTTP_201_CREATED
@@ -199,11 +268,8 @@ class UploadTransferView(APIView):
         super().initial(request, *args, **kwargs)
         require_verification_session_action(request, self.required_session_action)
 
-    @transaction.atomic
     def post(self, request, upload_id: str):
         upload = _upload_for_session(request, upload_id)
-        _lock_upload_consent(request, upload.purpose, self.required_session_action)
-        upload = Upload.objects.select_for_update().get(pk=upload.pk)
         uploaded_file = request.FILES.get("file")
         if uploaded_file is None:
             raise ValidationError({"file": "Choose a file to upload."})
@@ -211,6 +277,8 @@ class UploadTransferView(APIView):
             raise ValidationError(
                 {"file": "The selected file changed. Please choose it again."}
             )
+        operation_id = uuid4().hex
+        _admit_transfer(request, upload_id, operation_id)
         content = b"".join(uploaded_file.chunks())
         try:
             upload = _finalize_upload(
@@ -218,6 +286,7 @@ class UploadTransferView(APIView):
                 upload_id=upload_id,
                 content=content,
                 content_type=uploaded_file.content_type,
+                operation_id=operation_id,
             )
         except ValidationError as exc:
             details = getattr(exc, "detail", {})
@@ -234,16 +303,10 @@ class UploadTransferView(APIView):
 
 
 class UploadCompleteView(UploadTransferView):
-    @transaction.atomic
     def post(self, request, upload_id: str):
-        upload = _upload_for_session(request, upload_id)
-        _lock_upload_consent(request, upload.purpose, self.required_session_action)
-        upload = Upload.objects.select_for_update().get(pk=upload.pk)
-        if upload.status in {
-            UploadStatus.UPLOADED,
-            UploadStatus.CONSUMED,
-            UploadStatus.PROMOTED,
-        }:
+        operation_id = uuid4().hex
+        upload = _admit_transfer(request, upload_id, operation_id)
+        if upload.status in _COMPLETED:
             return success_response({"upload_id": upload.public_id}, request=request)
         try:
             content, content_type = get_object_bytes(
@@ -264,6 +327,7 @@ class UploadCompleteView(UploadTransferView):
                 content=content,
                 content_type=content_type,
                 cleanup_original=True,
+                operation_id=operation_id,
             )
         except ValidationError as exc:
             details = getattr(exc, "detail", {})
