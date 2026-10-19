@@ -33,7 +33,7 @@
         "backend/django/apps/notifications/models.py",
         "backend/django/apps/tenants/models.py"
       ],
-      "retention": "Account and membership lifetime, followed by the configured legal/security deletion period; short-lived tokens expire and are purged.",
+      "retention": "Account and membership lifetime, followed by the configured legal/security deletion period. Email-verification and password-reset capabilities expire or are marked used/revoked, but their user-linked hash/timestamp rows have no scheduled purge; they remain until user deletion (CASCADE) or controlled maintenance. Refresh/session history has separate expiry-based scheduled cleanup in accounts.sessions, including a 90-day expired dashboard-session history window.",
       "processors": [
         "IdentityCore Django",
         "PostgreSQL",
@@ -282,6 +282,35 @@
       "owners": [
         "platform",
         "identity",
+        "security",
+        "privacy"
+      ]
+    },
+    {
+      "id": "notification-delivery",
+      "fields": [
+        "Recipient email/phone or in-app destination and recipient type",
+        "Subject and body preview, including account reset/verification or applicant link content in flows that persist it",
+        "Channel, template code, delivery status, timestamps and provider reference",
+        "Encrypted pending platform/team invitation delivery payload; platform invitation capabilities expire after seven days"
+      ],
+      "purpose": "Deliver account, invitation, verification-status and operational notifications and retain delivery state for authorized support.",
+      "locations": [
+        "backend/django/apps/notifications/models.py",
+        "backend/django/apps/notifications/services.py",
+        "backend/django/apps/accounts/passwords.py",
+        "backend/django/apps/accounts/verification.py"
+      ],
+      "retention": "No scheduled notification-row purge is implemented. Recipient, subject, body preview, provider reference and delivery metadata remain after sending/failure or capability expiry until controlled explicit deletion; soft deletion alone does not erase them. Encrypted invitation delivery payloads are cleared when the delivery processor completes or rejects delivery; capability expiry alone does not delete the row. Deployment privacy owners must define and implement an approved deletion schedule before release.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "Tenant-configured email/SMS transport",
+        "Deployment email transport for platform administrator invitations"
+      ],
+      "transfers": "Destination and message content are sent to the selected notification transport. Platform administrator invitations use deployment email configuration, never tenant credentials. Record each provider, region, retention and transfer safeguards in the controlled deployment register. Repository persistence is separate from provider-side retention.",
+      "owners": [
+        "platform",
         "security",
         "privacy"
       ]
@@ -2832,82 +2861,82 @@
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.body_preview",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.channel",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.created_at",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.deleted_at",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.delivery_json",
-      "activity": "account-and-tenant-administration"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.id",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.provider_reference",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.public_id",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.recipient",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.recipient_type",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.sent_at",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.status",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.subject",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.template_code",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.tenant",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.updated_at",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/organizations/models.py",

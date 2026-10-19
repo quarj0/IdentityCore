@@ -1,11 +1,25 @@
 # IdentityCore backend
 
 The backend workspace contains the Django control plane and the internal FastAPI AI
-service. From the repository root, copy the development configuration and start the
-complete backend stack:
+service. Run these commands from the repository root. For the real-mode stack,
+copy the development configuration, then configure its storage endpoints/credentials,
+internal service token and other required settings before starting services:
 
 ```bash
 cp .env.example .env
+```
+
+Real mode requires provisioned model assets; runtime downloads are disabled. Fetch
+the pinned PAD candidate and bootstrap the named model volume before starting the
+workers (see the [AI model guide](ai-service/README.md) for approval and checksum
+requirements). These downloads need network access and disk space; they do not
+establish biometric accuracy or production approval:
+
+```bash
+docker compose --profile model-bootstrap run --rm --build --entrypoint python \
+  ai-model-bootstrap /app/scripts/fetch_pad_model.py \
+  --model-root /opt/identitycore/models
+docker compose --profile model-bootstrap run --rm ai-model-bootstrap
 docker compose up --build -d
 curl http://localhost:8000/api/v1/health
 curl -H "X-Internal-Token: $(sed -n 's/^AI_SERVICE_SHARED_TOKEN=//p' .env)" http://localhost:8001/v1/ready

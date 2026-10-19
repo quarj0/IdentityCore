@@ -3646,13 +3646,12 @@
       "path": "backend/README.md",
       "status": "actionable",
       "evidence": [
-        "backend/README.md:complete backend stack instructions",
-        "docker-compose.yml:ai-model-bootstrap profile",
-        "backend/ai-service/README.md:model provisioning"
+        "backend/README.md:real-mode model provisioning before stack start",
+        "backend/django/README.md:linked shared setup prerequisites"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bootstrap AI models before starting the documented stack**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852627",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The root backend startup sequence still omits the PAD fetch and model bootstrap needed before real-mode readiness. Correct the advertised fresh-checkout sequence."
+      "disposition_note": "Remediation documents required configuration, pinned PAD fetch and named-volume bootstrap before starting real-mode dependent workers. Commands match the existing Compose profile and AI guide. Model downloads/real inference were not run; runtime/device/model approval is excluded release evidence. Await protected review/merge."
     },
     {
       "pr_number": 180,
@@ -3661,12 +3660,12 @@
       "path": "docs/privacy/processing-inventory.json",
       "status": "actionable",
       "evidence": [
-        "docs/privacy/processing-inventory.json:account-and-tenant-administration",
-        "backend/django/apps/notifications/models.py:Notification"
+        "docs/privacy/processing-inventory.json:notification-delivery and Notification field catalog",
+        "docs/privacy/records-of-processing.md:notification persistence and retention"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record persisted notification data in the inventory**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852629",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The inventory now lists notification storage but still does not accurately describe persisted recipients, subject/body preview/provider references and their actual retention. Complete the activity rather than treating a listed path as sufficient coverage."
+      "disposition_note": "Remediation gives notification recipients, subject/body preview (including persisted link content), provider references, channel/status and invitation payloads a dedicated activity and maps every Notification field to it. Explicitly records no automatic notification-row purge, separate terminal encrypted-payload clearing and required deployment deletion policy. Inventory validation passes. Await protected review/merge."
     },
     {
       "pr_number": 180,
@@ -3675,12 +3674,11 @@
       "path": "backend/django/README.md",
       "status": "actionable",
       "evidence": [
-        "backend/django/README.md:mypy backend",
-        "docker-compose.yml:django working_dir"
+        "backend/django/README.md:docker compose run --rm django mypy ."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Pass an existing path to the documented mypy command**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852633",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The documented Compose mypy positional backend path is still absent from the service working directory. Correct it to the actual Django tree."
+      "disposition_note": "Remediation targets the existing Django service working tree with mypy . instead of the nonexistent backend child. This fixes the documented path; it does not assert the whole repository is mypy-clean. Await protected review/merge."
     },
     {
       "pr_number": 180,
@@ -3705,12 +3703,11 @@
       "status": "actionable",
       "evidence": [
         "docs/privacy/processing-inventory.json:account-and-tenant-administration retention",
-        "backend/django/apps/accounts/models.py:EmailVerificationToken and PasswordResetToken",
-        "backend/django/config/settings/base.py:CELERY_BEAT_SCHEDULE"
+        "docs/privacy/records-of-processing.md:account token retention"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove the unsupported token-purge claim**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852644",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Expiry/revocation rejects account capabilities but does not purge these account-token rows. The inventory still promises purge; correct the retention statement to actual storage behavior."
+      "disposition_note": "Remediation removes the false token-purge claim: account verification/reset hashes and timestamps remain until CASCADE user deletion or controlled maintenance; capability expiry/use/revocation is separate. Describes scheduled refresh/session cleanup independently. Await protected review/merge."
     },
     {
       "pr_number": 181,
@@ -3745,12 +3742,11 @@
       "path": "frontend/dashboard/src/components/shared/settings-navigation.tsx",
       "status": "actionable",
       "evidence": [
-        "frontend/dashboard/src/app/settings/security/page.tsx",
-        "frontend/dashboard/src/components/shared/settings-navigation.tsx"
+        "frontend/dashboard/src/app/settings/security/page.tsx:SettingsNavigation"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep the settings navigation visible on Security**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858898",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Security still renders without the shared settings navigation. Add the same persistent navigation used by Workspace and Profile."
+      "disposition_note": "Remediation renders the same SettingsNavigation on Security, retaining Workspace/Profile links and active-page state. Dashboard TypeScript passes. Await protected review/merge."
     },
     {
       "pr_number": 185,

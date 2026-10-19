@@ -120,3 +120,10 @@ and retains inclusive date filters through all four SDK pagination methods.
 Typed JavaScript, Python, Java and .NET regressions/builds and contract/model
 checks pass; live compatibility services were not configured. None of these
 findings is closed before protected merge.
+
+Setup/retention/navigation remediation now documents real-mode model provisioning
+before stack startup, corrects the Compose mypy working-tree target, records actual
+account-token retention and gives persisted notifications their own processing
+activity. Security keeps the shared settings navigation. These five findings remain
+actionable until protected merge; documentation does not claim automated retention
+that the code does not implement.

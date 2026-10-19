@@ -31,6 +31,15 @@ repository paths; deployment personnel are assigned in the controlled register.
    delete media and records according to tenant policy; compliance exports use the
    evidence bucket.
 
+Notification delivery has its own inventory activity covering persisted recipients,
+subject/body previews (including link content where a flow stores it), channel/status,
+provider references and encrypted pending invitation payloads. Notification rows have
+no scheduled purge; delivery or capability expiry does not erase those rows. Define
+and implement the deployment's approved deletion schedule before release. Email
+verification/password-reset token hashes also have no scheduled purge: expiry or
+use revokes capability, while rows remain until user deletion or controlled maintenance.
+Refresh/session history uses its separate scheduled expiry cleanup.
+
 Platform administrator invitation emails are a separate platform-scoped outbox use.
 Their single-use links are encrypted in notification delivery data, excluded from
 previews, delivered through deployment email configuration and cleared after terminal
