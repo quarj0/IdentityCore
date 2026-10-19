@@ -41,6 +41,12 @@ class VerificationSubjectListView(APIView):
 class VerificationSubjectDetailView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
+    def get_permissions(self):
+        self.required_permission_code = (
+            "manage_subject_privacy" if self.request.method == "POST" else None
+        )
+        return super().get_permissions()
+
     def get(self, request, subject_id):
         subject = get_object_or_404(
             request.user.tenant.verification_subjects, public_id=subject_id

@@ -134,6 +134,7 @@ class Command(BaseCommand):
                     ("manage_team", "Manage team invitations"),
                     ("manage_encryption", "Manage customer encryption keys"),
                     ("manage_consent", "Manage consent"),
+                    ("manage_subject_privacy", "Manage subject privacy requests"),
                     ("manage_providers", "Manage providers"),
                     ("approve_provider_promotion", "Approve provider promotion"),
                 ):

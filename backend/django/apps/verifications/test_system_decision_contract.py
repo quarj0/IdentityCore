@@ -100,7 +100,17 @@ class ProcessingSystemDecisionContractTests(SystemDecisionContractAssertions):
         job = queue_identity_document_processing(self.identity_document)
         exhaust_processing_job(job)
         decision = VerificationDecision.objects.get(verification=self.verification)
-        self.assertEqual(decision.reason_codes_json, ["processing_retries_exhausted"])
+        # Erasure now cancels unfinished processing. A stale retry must preserve
+        # the retained outcome/reasons instead of replacing them after erasure.
+        self.assertEqual(decision.reason_codes_json, ["old_reason"])
+        self.verification.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.CANCELLED)
+        self.assertTrue(
+            all(
+                check.normalized_result_json == {}
+                for check in self.verification.provider_checks.all()
+            )
+        )
         self.assertEqual(decision.input_snapshot_json, {})
 
 

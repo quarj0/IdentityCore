@@ -349,6 +349,7 @@ def ensure_tenant_administrator_role(*, tenant: Tenant, user: PlatformUser) -> N
     RolePermission.objects.get_or_create(role=role, permission=permission)
     for code, name in (
         ("review_verification", "Review verification cases"),
+        ("manage_subject_privacy", "Manage subject privacy requests"),
         ("manage_providers", "Manage providers"),
         ("manage_team", "Manage team invitations"),
         ("manage_billing", "Manage organization billing"),

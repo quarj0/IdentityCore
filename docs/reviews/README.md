@@ -211,3 +211,12 @@ Security workflow remediation retains unfixed findings in JSON artifacts and run
 dependency/secret enforcement independently unless cancelled. These three findings
 remain actionable, with governed protected-definition review and approval required
 before merge. This does not resolve the current secret alert or claim deployed scans.
+
+
+Subject privacy boundary remediation requires a narrowly granted privacy permission,
+revokes sessions/jobs, cancels unfinished cases and scrubs copied verification
+references, provider results and prior subject exports. Report pointers stay tracked.
+The current-actor and cached-export safeguards, migration grant boundaries and two
+PostgreSQL finalization races are covered alongside existing fingerprint races.
+Four findings are prepared, not closed; notification cleanup and report-object
+retention remain open in the [privacy procedure](../operations/subject-privacy.md).

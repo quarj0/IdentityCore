@@ -6667,11 +6667,15 @@
       "path": "backend/django/apps/verification_subjects/services.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/verification_subjects/services.py:request_subject_deletion"
+        "backend/django/apps/verification_subjects/services.py:request_subject_deletion and create_subject_export",
+        "backend/django/apps/verification_subjects/tests.py",
+        "backend/django/apps/verification_subjects/test_deletion_races.py",
+        "backend/django/apps/access_control/migrations/0008_manage_subject_privacy_permission.py",
+        "docs/operations/subject-privacy.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revoke active sessions before completing deletion**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668068",
-      "disposition_note": "Confirmed subject deletion does not revoke active sessions/jobs or prevent processing from repopulating evidence. Requires coordinated privacy finalization guards. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared privacy boundary remediation: explicit narrow manage_subject_privacy grant and fresh service actor check; audit/case serialization; session revocation, unfinished-job exhaustion and case cancellation; reference/provider-result/export scrubbing with owning encryption context. Existing fresh-consent deletion guards plus PostgreSQL late/started-finalization races prevent restored results. Opaque report pointers remain tracked; notification cleanup and report-object retention remain separately open. Keep actionable until protected merge."
     },
     {
       "pr_number": 253,
@@ -6680,11 +6684,15 @@
       "path": "backend/django/apps/verification_subjects/services.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/verification_subjects/services.py:request_subject_deletion"
+        "backend/django/apps/verification_subjects/services.py:request_subject_deletion and create_subject_export",
+        "backend/django/apps/verification_subjects/tests.py",
+        "backend/django/apps/verification_subjects/test_deletion_races.py",
+        "backend/django/apps/access_control/migrations/0008_manage_subject_privacy_permission.py",
+        "docs/operations/subject-privacy.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Clear verification external references**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668075",
-      "disposition_note": "Confirmed related verification external_reference remains populated after reported metadata anonymization. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared privacy boundary remediation: explicit narrow manage_subject_privacy grant and fresh service actor check; audit/case serialization; session revocation, unfinished-job exhaustion and case cancellation; reference/provider-result/export scrubbing with owning encryption context. Existing fresh-consent deletion guards plus PostgreSQL late/started-finalization races prevent restored results. Opaque report pointers remain tracked; notification cleanup and report-object retention remain separately open. Keep actionable until protected merge."
     },
     {
       "pr_number": 253,
@@ -6693,11 +6701,15 @@
       "path": "backend/django/apps/verification_subjects/services.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/verification_subjects/services.py:request_subject_deletion"
+        "backend/django/apps/verification_subjects/services.py:request_subject_deletion and create_subject_export",
+        "backend/django/apps/verification_subjects/tests.py",
+        "backend/django/apps/verification_subjects/test_deletion_races.py",
+        "backend/django/apps/access_control/migrations/0008_manage_subject_privacy_permission.py",
+        "docs/operations/subject-privacy.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Erase persisted OCR results during deletion**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668082",
-      "disposition_note": "Confirmed OCR/provider response and normalized-result copies are not scrubbed by deletion. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared privacy boundary remediation: explicit narrow manage_subject_privacy grant and fresh service actor check; audit/case serialization; session revocation, unfinished-job exhaustion and case cancellation; reference/provider-result/export scrubbing with owning encryption context. Existing fresh-consent deletion guards plus PostgreSQL late/started-finalization races prevent restored results. Opaque report pointers remain tracked; notification cleanup and report-object retention remain separately open. Keep actionable until protected merge."
     },
     {
       "pr_number": 253,
@@ -6732,11 +6744,15 @@
       "path": "backend/django/apps/verification_subjects/views.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/verification_subjects/views.py:VerificationSubjectDetailView.post"
+        "backend/django/apps/verification_subjects/services.py:request_subject_deletion and create_subject_export",
+        "backend/django/apps/verification_subjects/tests.py",
+        "backend/django/apps/verification_subjects/test_deletion_races.py",
+        "backend/django/apps/access_control/migrations/0008_manage_subject_privacy_permission.py",
+        "docs/operations/subject-privacy.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require a privileged permission for subject deletion**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668102",
-      "disposition_note": "Confirmed deletion uses membership-only IsTenantUser without a dedicated privileged privacy permission. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared privacy boundary remediation: explicit narrow manage_subject_privacy grant and fresh service actor check; audit/case serialization; session revocation, unfinished-job exhaustion and case cancellation; reference/provider-result/export scrubbing with owning encryption context. Existing fresh-consent deletion guards plus PostgreSQL late/started-finalization races prevent restored results. Opaque report pointers remain tracked; notification cleanup and report-object retention remain separately open. Keep actionable until protected merge."
     },
     {
       "pr_number": 265,

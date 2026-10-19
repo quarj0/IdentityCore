@@ -74,3 +74,10 @@ delivery. They never use tenant notification credentials. See
 This inventory describes repository-controlled processing, not a claim of legal
 completeness for every deployment. Each controller must add lawful bases, local
 statutory periods, contacts, regions, and vendor agreements to its controlled ROPA.
+
+
+Subject privacy requests require an explicit privileged tenant grant. Deletion
+revokes processing, scrubs provider-result copies and invalidates stored subject
+exports while retaining required audit/outcome facts and tracked report pointers.
+Notification cleanup and report-object retention remediation remain open; see the
+[privacy procedure](../operations/subject-privacy.md) before claiming erasure coverage.
