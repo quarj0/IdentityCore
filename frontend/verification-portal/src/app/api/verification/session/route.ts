@@ -9,6 +9,9 @@ import {
   requestIsSameOrigin,
   responseHeaders,
   sessionCookieOptions,
+  sessionCookieName,
+  validSessionId,
+  validSessionToken,
 } from "@/lib/bff-session";
 
 export async function POST(request: Request) {
@@ -35,11 +38,9 @@ export async function POST(request: Request) {
     );
   }
   if (
-    typeof body?.sessionId !== "string" ||
-    !/^[A-Za-z0-9_-]{1,128}$/.test(body.sessionId) ||
-    typeof body.sessionToken !== "string" ||
-    !body.sessionToken ||
-    !/^[\x21-\x7e]{1,4096}$/.test(body.sessionToken)
+    body === null ||
+    !validSessionId(body?.sessionId) ||
+    !validSessionToken(body.sessionToken)
   ) {
     return NextResponse.json(
       { error: "Invalid verification credential." },
@@ -90,8 +91,14 @@ export async function POST(request: Request) {
     { success: true },
     { headers: responseHeaders(id) },
   );
-  response.cookies.set(SESSION_COOKIE, body.sessionToken, sessionCookieOptions);
-  response.cookies.set(SESSION_ID_COOKIE, body.sessionId, sessionCookieOptions);
+  response.cookies.set(
+    sessionCookieName(body.sessionId),
+    body.sessionToken,
+    sessionCookieOptions,
+  );
+  for (const legacy of [SESSION_COOKIE, SESSION_ID_COOKIE]) {
+    response.cookies.set(legacy, "", { ...sessionCookieOptions, maxAge: 0 });
+  }
   return response;
 }
 
@@ -103,15 +110,17 @@ export async function DELETE(request: Request) {
       { status: 403, headers: responseHeaders(id) },
     );
   }
+  const sessionId = request.headers.get("x-session-id");
+  if (!validSessionId(sessionId))
+    return NextResponse.json(
+      { error: "A verification session identifier is required." },
+      { status: 400, headers: responseHeaders(id) },
+    );
   const response = NextResponse.json(
     { success: true },
     { headers: responseHeaders(id) },
   );
-  response.cookies.set(SESSION_COOKIE, "", {
-    ...sessionCookieOptions,
-    maxAge: 0,
-  });
-  response.cookies.set(SESSION_ID_COOKIE, "", {
+  response.cookies.set(sessionCookieName(sessionId), "", {
     ...sessionCookieOptions,
     maxAge: 0,
   });

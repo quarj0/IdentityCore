@@ -20,7 +20,7 @@ async function proxy(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const id = requestId(request);
-  const session = await readBffSession();
+  const session = await readBffSession(request.headers.get("x-session-id"));
   if (!session)
     return NextResponse.json(
       { error: { message: "Verification session is not authenticated." } },

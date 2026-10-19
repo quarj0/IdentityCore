@@ -92,6 +92,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   let uploadCreateRequests = 0;
   let failBackUploadOnce = true;
   let failLivenessSubmissionOnce = true;
+  let failSessionExchangeOnce = true;
   let livenessUploadMimeType = "";
   let documentPayload: {
     captures?: Array<{ side: string; upload_id: string }>;
@@ -142,6 +143,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     const method = request.method();
 
     if (path === "/api/verification/session" && method === "POST") {
+      if (failSessionExchangeOnce) {
+        failSessionExchangeOnce = false;
+        return route.fulfill({ status: 502, json: { error: "Unavailable" } });
+      }
       return route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -359,6 +364,12 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   });
 
   await page.goto(`/verify/${sessionId}#token=browser-secret`);
+  await expect(
+    page.getByRole("heading", { name: "Verification unavailable" }),
+  ).toBeVisible();
+  expect(new URL(page.url()).hash).toBe("#token=browser-secret");
+  await page.getByRole("button", { name: "Retry secure session" }).click();
+  await expect.poll(() => new URL(page.url()).hash).toBe("");
   if (!isMobile) {
     await page
       .getByRole("button", { name: "Continue on this computer" })

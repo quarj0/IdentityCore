@@ -18,14 +18,22 @@ const portal = process.argv[2]
   : resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const standalone = join(portal, ".next/standalone/verification-portal");
 const sessionId = "ses_BffTransport";
+const secondSessionId = "ses_BffTransport_Second";
 const metadataSecret = "synthetic-private-metadata-secret-for-testing";
 const token = "synthetic-bff-transport-token";
+const secondToken = "synthetic-bff-second-token";
+const sessionTokens = new Map([
+  [sessionId, token],
+  [secondSessionId, secondToken],
+]);
 const routes = new Set([
   `/api/v1/sessions/${sessionId}`,
   `/api/v1/sessions/${sessionId}/status`,
   `/api/v1/sessions/${sessionId}/consent`,
   `/api/v1/sessions/${sessionId}/consent/withdraw`,
   `/api/v1/sessions/${sessionId}/liveness/challenge`,
+  `/api/v1/sessions/${secondSessionId}`,
+  `/api/v1/sessions/${secondSessionId}/status`,
   "/api/v1/uploads/",
   "/api/v1/uploads/upl_Test/transfer",
 ]);
@@ -97,8 +105,9 @@ try {
       if (
         !handoff &&
         (!routes.has(url.pathname) ||
-          request.headers.authorization !== `Bearer ${token}` ||
-          request.headers["x-session-id"] !== sessionId)
+          !sessionTokens.has(request.headers["x-session-id"]) ||
+          request.headers.authorization !==
+            `Bearer ${sessionTokens.get(request.headers["x-session-id"])}`)
       ) {
         response.writeHead(404, { "Content-Type": "application/json" });
         response.end("{}");
@@ -109,6 +118,13 @@ try {
       const body = Buffer.concat(chunks);
       response.writeHead(200, { "Content-Type": "application/json" });
       if (handoff) {
+        if (JSON.parse(body.toString()).handoff === "synthetic-slow-handoff") {
+          response.write('{"data":');
+          const timer = setTimeout(() => response.end("null}"), 15000);
+          timer.unref();
+          response.once("close", () => clearTimeout(timer));
+          return;
+        }
         assert.equal(JSON.parse(body.toString()).handoff, "synthetic-handoff");
         response.end(
           JSON.stringify({
@@ -195,6 +211,7 @@ try {
     Origin: origin,
     "X-Request-Id": "bff-transport-synthetic",
     "Content-Type": "application/json",
+    "X-Session-Id": sessionId,
   };
   for (const [path, payload] of [
     ["session", { sessionId, sessionToken: token }],
@@ -216,13 +233,19 @@ try {
       "Private session token must remain HttpOnly",
     );
     const cookies = exchanged.headers.getSetCookie();
-    assert.equal(cookies.length, 2);
+    const activeCookies = cookies.filter(
+      (cookie) => !/Max-Age=0/i.test(cookie),
+    );
+    assert.equal(activeCookies.length, 1);
+    assert.match(activeCookies[0], /^__Host-identitycore_verify_[a-f0-9]{32}=/);
     for (const cookie of cookies) {
       assert.match(cookie, /HttpOnly/i);
       assert.match(cookie, /Secure/i);
       assert.match(cookie, /SameSite=Strict/i);
     }
-    headers.Cookie = cookies.map((cookie) => cookie.split(";")[0]).join("; ");
+    headers.Cookie = activeCookies
+      .map((cookie) => cookie.split(";")[0])
+      .join("; ");
     checks++;
   }
   for (const [path, method, body] of [
@@ -276,6 +299,18 @@ try {
   assert.equal(
     largeResult.data.bodyDigest,
     createHash("sha256").update(largePayload).digest("hex"),
+  );
+  checks++;
+  const slowStarted = performance.now();
+  const slowHandoff = await fetch(`${origin}/api/verification/handoff`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ handoff: "synthetic-slow-handoff" }),
+  });
+  assert.equal(slowHandoff.status, 502);
+  assert(
+    performance.now() - slowStarted < 14000,
+    "Handoff deadline must cover response body consumption",
   );
   checks++;
   const beforeDenied = upstreamRequests;
@@ -412,7 +447,8 @@ try {
       const browser = await engine.launch();
       try {
         // The generated loopback certificate is scoped to this test server.
-        const page = await browser.newPage({ ignoreHTTPSErrors: true });
+        const context = await browser.newContext({ ignoreHTTPSErrors: true });
+        const page = await context.newPage();
         await page.goto(browserOrigin);
         // Browser requests reach the actual standalone BFF. Only the server's
         // upstream is a mock; page.route never intercepts these requests.
@@ -426,10 +462,12 @@ try {
             const exchangeBody = await exchange.text();
             const status = await fetch(
               `/api/verification/sessions/${sessionId}/status`,
+              { headers: { "X-Session-Id": sessionId } },
             );
             const statusBody = await status.json();
             const upload = await fetch("/api/verification/uploads", {
               method: "POST",
+              headers: { "X-Session-Id": sessionId },
               body: new Uint8Array([0, 255, 1, 254]),
             });
             const uploadBody = await upload.json();
@@ -466,6 +504,51 @@ try {
         assert(!result.handoffBody.includes(token));
         assert(!result.visibleCookies.includes(token));
         browserChecks += 4;
+        const secondPage = await page.context().newPage();
+        await secondPage.goto(browserOrigin);
+        assert.equal(
+          await secondPage.evaluate(
+            async ({ sessionId, token }) => {
+              return (
+                await fetch("/api/verification/session", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sessionId, sessionToken: token }),
+                })
+              ).status;
+            },
+            { sessionId: secondSessionId, token: secondToken },
+          ),
+          200,
+        );
+        const scopedStatus = async (tab, id) =>
+          tab.evaluate(
+            async (sessionId) =>
+              (
+                await fetch(`/api/verification/sessions/${sessionId}/status`, {
+                  headers: { "X-Session-Id": sessionId },
+                })
+              ).status,
+            id,
+          );
+        assert.equal(await scopedStatus(page, sessionId), 200);
+        assert.equal(await scopedStatus(secondPage, secondSessionId), 200);
+        assert.equal(
+          await page.evaluate(
+            async (sessionId) =>
+              (
+                await fetch("/api/verification/session", {
+                  method: "DELETE",
+                  headers: { "X-Session-Id": sessionId },
+                })
+              ).status,
+            sessionId,
+          ),
+          200,
+        );
+        assert.equal(await scopedStatus(page, sessionId), 401);
+        assert.equal(await scopedStatus(secondPage, secondSessionId), 200);
+        browserChecks += 6;
       } finally {
         await browser.close();
       }

@@ -1,6 +1,10 @@
 import { subjectMetadataHeaders } from "@/lib/bff-subject-metadata";
 import { NextResponse } from "next/server.js";
-import { ProxyBodyLimitError, readBoundedRequestText } from "@/lib/bff-proxy";
+import {
+  ProxyBodyLimitError,
+  readBoundedRequestText,
+  readBoundedProxyBody,
+} from "@/lib/bff-proxy";
 import {
   apiUrl,
   requestId,
@@ -9,6 +13,9 @@ import {
   SESSION_COOKIE,
   SESSION_ID_COOKIE,
   sessionCookieOptions,
+  sessionCookieName,
+  validSessionId,
+  validSessionToken,
 } from "@/lib/bff-session";
 
 export async function POST(request: Request) {
@@ -44,6 +51,7 @@ export async function POST(request: Request) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   let upstream: Response;
+  let text: string;
   try {
     const upstreamUrl = apiUrl("sessions/mobile-handoff/redeem");
     upstream = await fetch(upstreamUrl, {
@@ -59,6 +67,14 @@ export async function POST(request: Request) {
       redirect: "manual",
       signal: controller.signal,
     });
+    if (Number(upstream.headers.get("content-length") ?? 0) > 16384)
+      throw new ProxyBodyLimitError();
+    const bytes = await readBoundedProxyBody(
+      { method: "POST", body: upstream.body },
+      controller.signal,
+      16384,
+    );
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
     return NextResponse.json(
       { error: { message: "Verification service unavailable." } },
@@ -67,7 +83,6 @@ export async function POST(request: Request) {
   } finally {
     clearTimeout(timeout);
   }
-  const text = await upstream.text();
   let payload: {
     data?: { session_id?: string; session_token?: string };
   };
@@ -83,19 +98,34 @@ export async function POST(request: Request) {
       { status: 502, headers: responseHeaders(id) },
     );
   }
-  if (upstream.ok && payload.data?.session_id && payload.data.session_token) {
+  if (upstream.ok) {
+    if (
+      !validSessionId(payload?.data?.session_id) ||
+      !validSessionToken(payload?.data?.session_token)
+    ) {
+      return NextResponse.json(
+        {
+          error: {
+            message: "Verification service returned an invalid credential.",
+          },
+        },
+        { status: 502, headers: responseHeaders(id) },
+      );
+    }
     const token = payload.data.session_token;
     delete payload.data.session_token;
     const sanitized = NextResponse.json(payload, {
       status: upstream.status,
       headers: responseHeaders(id),
     });
-    sanitized.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
     sanitized.cookies.set(
-      SESSION_ID_COOKIE,
-      payload.data.session_id,
+      sessionCookieName(payload.data.session_id),
+      token,
       sessionCookieOptions,
     );
+    for (const legacy of [SESSION_COOKIE, SESSION_ID_COOKIE]) {
+      sanitized.cookies.set(legacy, "", { ...sessionCookieOptions, maxAge: 0 });
+    }
     return sanitized;
   }
   return new NextResponse(text, {

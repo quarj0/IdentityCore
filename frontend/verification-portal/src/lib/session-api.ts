@@ -92,6 +92,7 @@ async function request<T>(
 ) {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
+  headers.set("X-Session-Id", credentials.sessionId);
   if (
     init.body &&
     !(init.body instanceof FormData) &&
@@ -146,28 +147,10 @@ async function request<T>(
   return payload.data;
 }
 
-export async function consumeSessionCredentials(sessionId: string) {
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  const fragmentToken = hash.get("token");
-  if (fragmentToken) {
-    window.history.replaceState(null, "", window.location.pathname);
-    const response = await fetch(`${API_BASE}/session`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, sessionToken: fragmentToken }),
-    });
-    if (!response.ok)
-      throw new Error(
-        "The secure verification credential could not be accepted.",
-      );
-  }
-  return { sessionId };
-}
-
-export function clearSessionCredentials(sessionId: string) {
-  void sessionId;
-  void fetch(`${API_BASE}/session`, { method: "DELETE", keepalive: true });
-}
+export {
+  consumeSessionCredentials,
+  clearSessionCredentials,
+} from "./session-credentials";
 
 export function fetchVerificationSession(
   credentials: SessionCredentials,

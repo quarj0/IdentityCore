@@ -37,7 +37,7 @@ export class ProxyBodyLimitError extends Error {
 }
 
 export async function readBoundedProxyBody(
-  request: Request,
+  request: Pick<Request, "method" | "body">,
   signal: AbortSignal,
   maxBytes = MAX_PROXY_BODY_BYTES,
 ): Promise<ArrayBuffer | undefined> {

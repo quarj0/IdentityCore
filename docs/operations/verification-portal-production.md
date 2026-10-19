@@ -1,6 +1,6 @@
 # Verification portal production operations
 
-Last reviewed: 2026-10-18
+Last reviewed: 2026-10-19
 
 The repository-owned portal has a working vertical slice and closed IC-081 through
 IC-086 acceptance issues. Later historical review findings remain tracked in #281; see
@@ -18,6 +18,12 @@ Configure the dedicated server-only metadata key on Django and the portal. Estab
 the trusted ingress boundary before enabling a client-IP header; otherwise keep
 subject IP unavailable. Verify synthetic session, consent and audit provenance using
 [Hosted subject metadata attribution](subject-metadata.md).
+
+## Session isolation and cutover
+
+Use the [per-session BFF cookie and retry guide](portal-sessions.md) when upgrading
+the portal. Check two tabs and transient exchange recovery before promotion; old
+portal-wide credentials are retired and require reopening the original secure link.
 
 ## Service-level objectives
 

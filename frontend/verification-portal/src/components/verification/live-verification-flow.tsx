@@ -467,6 +467,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         locale={initialLocale}
         title={localizeText(initialLocale, "Verification unavailable")}
         message={localizeText(initialLocale, error)}
+        onRetry={() => window.location.reload()}
       />
     );
   }
@@ -1370,10 +1371,12 @@ function OpeningState({
   title,
   message,
   locale,
+  onRetry,
 }: {
   title: string;
   message?: string;
   locale: string;
+  onRetry?: () => void;
 }) {
   return (
     <main
@@ -1402,6 +1405,11 @@ function OpeningState({
               )}
             </p>
           )}
+          {onRetry ? (
+            <Button onClick={onRetry}>
+              {localizeText(locale, "Retry secure session")}
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     </main>

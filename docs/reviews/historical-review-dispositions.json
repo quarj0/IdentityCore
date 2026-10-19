@@ -2790,40 +2790,51 @@
       "thread_id": "PRRT_kwDOTN0BU86UU4pn",
       "comment_id": 3663808995,
       "path": "frontend/verification-portal/next.config.ts",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exclude hashed assets from the no-store matcher**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/56#discussion_r3663808995"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/56#discussion_r3663808995",
+      "disposition_note": "Inspected current page Proxy matcher: _next/static and _next/image are excluded; next.config only attaches no-store API headers to /api/verification. Hashed assets retain Next asset caching.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 56,
       "thread_id": "PRRT_kwDOTN0BU86UU4po",
       "comment_id": 3663808999,
       "path": "frontend/verification-portal/next.config.ts",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Permit configured object-storage origins in connect-src**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/56#discussion_r3663808999"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/56#discussion_r3663808999",
+      "disposition_note": "Superseded by consent-aware API-only session evidence acceptance: UploadCreateSerializer returns an empty upload_url and an authenticated transfer path. Presigned PUTs would outlive consent/session revocation, so self-only connect-src is deliberate; no external storage origin is required.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 57,
       "thread_id": "PRRT_kwDOTN0BU86UVHCU",
       "comment_id": 3663894286,
       "path": "frontend/verification-portal/test-results/.last-run.json",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop tracking Playwright's generated last-run state**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/57#discussion_r3663894286"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/57#discussion_r3663894286",
+      "disposition_note": "No frontend test-results files are tracked; root .gitignore excludes test-results/. Browser runs leave generated state ignored.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 58,
       "thread_id": "PRRT_kwDOTN0BU86UVQoi",
       "comment_id": 3663952011,
       "path": "frontend/verification-portal/next.config.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/session-credentials.test.mjs",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Permit Turbopack eval only during development**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/58#discussion_r3663952011"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/58#discussion_r3663952011",
+      "disposition_note": "Confirmed securityHeaders always emits production script-src even for development; documented Turbopack development needs a development-only unsafe-eval allowance while production remains strict. Remediation is implemented on the portal follow-up branch with unit and actual-BFF/browser regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 58,
@@ -2847,50 +2858,60 @@
       "thread_id": "PRRT_kwDOTN0BU86UVQot",
       "comment_id": 3663952022,
       "path": "backend/django/common/catalog.py",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Pass only declared fields to the GraphQL node**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/58#discussion_r3663952022"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/58#discussion_r3663952022",
+      "disposition_note": "SupportedDocumentTypeNode now declares capture_sides, and countryProfiles passes its declared fields. Existing GraphQL regression verifies GH national_id front/back captureSides.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 60,
       "thread_id": "PRRT_kwDOTN0BU86UVvUq",
       "comment_id": 3664132935,
       "path": "frontend/dashboard/package.json",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the root workspace lockfile**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/60#discussion_r3664132935"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/60#discussion_r3664132935",
+      "disposition_note": "The root frontend/pnpm-lock.yaml is the sole tracked workspace lockfile and the frozen eight-project workspace install passed. App-local lockfiles were removed; the workspace guide requires root installation.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 60,
       "thread_id": "PRRT_kwDOTN0BU86UVvUv",
       "comment_id": 3664132941,
       "path": "frontend/dashboard/package.json",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep TypeScript within the ESLint parser's supported range**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/60#discussion_r3664132941"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/60#discussion_r3664132941",
+      "disposition_note": "Application manifests use TypeScript ^6.0.3 and the frozen graph resolves 6.0.3 within the installed typescript-eslint parser supported <6.1 range. Frontend builds/typechecks and lint complete.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 60,
       "thread_id": "PRRT_kwDOTN0BU86UVvUx",
       "comment_id": 3664132943,
       "path": "frontend/dashboard/pnpm-lock.yaml",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Resolve the shared UI against the application's React**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/60#discussion_r3664132943"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/60#discussion_r3664132943",
+      "disposition_note": "App-local workspace lockfiles are no longer tracked or supported. The frozen root workspace resolves React/React DOM 19.2.8 across apps/shared UI; actual browser journeys and builds pass with the shared graph.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 67,
       "thread_id": "PRRT_kwDOTN0BU86UXGpc",
       "comment_id": 3664639070,
       "path": "frontend/verification-portal/playwright.config.ts",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Install WebKit before running the expanded matrix**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639070"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639070",
+      "disposition_note": "Current CI explicitly installs Chromium and WebKit with dependencies before the expanded matrix; package test:e2e:install also installs both browsers.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 67,
@@ -2917,20 +2938,30 @@
       "thread_id": "PRRT_kwDOTN0BU86UXGpk",
       "comment_id": 3664639079,
       "path": "frontend/verification-portal/src/lib/bff-session.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/session-credentials.test.mjs",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scope BFF credentials to each verification session**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639079"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639079",
+      "disposition_note": "Confirmed BFF credentials remain two portal-wide cookies and clearSessionCredentials ignores its sessionId; a second tab overwrites the first. Scope server cookies and every proxy/clear request to the selected session and verify two tabs against the actual BFF. Remediation is implemented on the portal follow-up branch with unit and actual-BFF/browser regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 67,
       "thread_id": "PRRT_kwDOTN0BU86UXGpn",
       "comment_id": 3664639082,
       "path": "frontend/verification-portal/src/lib/session-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/session-credentials.test.mjs",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Retain the fragment until the cookie exchange succeeds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639082"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639082",
+      "disposition_note": "Confirmed consumeSessionCredentials removes the bearer fragment before exchange succeeds. Preserve it until confirmed success, share an in-flight exchange across duplicate initialization, and test transient exchange recovery without credential loss. Remediation is implemented on the portal follow-up branch with unit and actual-BFF/browser regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 67,
@@ -2955,20 +2986,24 @@
       "thread_id": "PRRT_kwDOTN0BU86UXGpv",
       "comment_id": 3664639092,
       "path": "frontend/verification-portal/next.config.ts",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Permit configured presigned upload origins through CSP**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639092"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639092",
+      "disposition_note": "Superseded by deliberate consent-aware API-only uploads: the backend never issues a session presigned upload URL. Current BFF reads bounded streams rather than arrayBuffer; cross-origin storage CSP allowance is not part of the current session contract.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 67,
       "thread_id": "PRRT_kwDOTN0BU86UXGp1",
       "comment_id": 3664639099,
       "path": "frontend/verification-portal/src/lib/bff-session.ts",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Compare Origin against the public request host**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639099"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639099",
+      "disposition_note": "Individually inspected requestIsSameOrigin: browser Host authority is checked and an explicit canonical VERIFICATION_PUBLIC_ORIGIN handles TLS ingress without trusting arbitrary forwarding headers. Actual BFF TLS/browser checks exercise a different public hostname/port.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 67,
@@ -3011,10 +3046,12 @@
       "thread_id": "PRRT_kwDOTN0BU86UXyli",
       "comment_id": 3664891804,
       "path": "frontend/verification-portal/e2e/verification-flow.spec.ts",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the transfer mock to match the BFF route**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891804"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891804",
+      "disposition_note": "The current critical browser flow matches /api/verification/uploads/.../transfer and completes fallback transfer. Its original matcher is unchanged by this branch; the actual Chromium/WebKit full journey passed.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 70,
@@ -3039,20 +3076,28 @@
       "thread_id": "PRRT_kwDOTN0BU86UXyln",
       "comment_id": 3664891813,
       "path": "frontend/verification-portal/src/lib/session-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Retain the fragment until the cookie exchange succeeds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891813"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891813",
+      "disposition_note": "Confirmed duplicate of the pre-success fragment-removal defect. The current remediation retains the link until confirmed exchange, coalesces duplicate initialization and provides a reload retry; unit and browser recovery pass. Remains actionable until protected merge."
     },
     {
       "pr_number": 70,
       "thread_id": "PRRT_kwDOTN0BU86UXylp",
       "comment_id": 3664891816,
       "path": "frontend/verification-portal/Dockerfile",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Supply public configuration during the image build**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891816"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891816",
+      "disposition_note": "Confirmed production Docker build had no public return configuration inputs. Current remediation adds explicit NEXT_PUBLIC return URL/origin build arguments and documents rebuild/runtime separation. Remains actionable until protected merge."
     },
     {
       "pr_number": 70,
@@ -3123,10 +3168,11 @@
       "thread_id": "PRRT_kwDOTN0BU86UYNDW",
       "comment_id": 3665042780,
       "path": "frontend/verification-portal/src/lib/i18n.ts",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Translate the complete Arabic verification journey**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042780"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042780",
+      "disposition_note": "Individually inspected the Arabic catalog and static portal JSX against immutable main. Most journey copy is translated, but Begin live camera check is missing and raw consent-template, submit-live-check, device-continuation and global error/root/not-found copy remains English. Complete known journey and fallback-page localization with Arabic browser regressions."
     },
     {
       "pr_number": 70,
@@ -3149,10 +3195,12 @@
       "thread_id": "PRRT_kwDOTN0BU86UYNDb",
       "comment_id": 3665042785,
       "path": "frontend/verification-portal/src/app/api/verification/handoff/route.ts",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bound the mobile-handoff upstream request**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042785"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042785",
+      "disposition_note": "The current handoff fetch supplies an AbortController signal and a ten-second timeout. The separate body-consumption timeout finding 3696429053 remains actionable; request-header timeout is already implemented.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 70,
@@ -3235,30 +3283,42 @@
       "thread_id": "PRRT_kwDOTN0BU86UYgpu",
       "comment_id": 3665156280,
       "path": "frontend/verification-portal/Dockerfile",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Inject return configuration before building the client**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156280"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156280",
+      "disposition_note": "Confirmed duplicate Docker return-configuration omission. Explicit build arguments and image rebuild instructions are now implemented; server-only API/metadata settings remain runtime-only. Remains actionable until protected merge."
     },
     {
       "pr_number": 71,
       "thread_id": "PRRT_kwDOTN0BU86UYgpy",
       "comment_id": 3665156284,
       "path": "frontend/verification-portal/src/lib/bff-session.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep BFF credentials isolated per verification session**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156284"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156284",
+      "disposition_note": "Confirmed duplicate portal-wide cookie isolation defect. Current remediation selects a hashed-name cookie per public session ID and clears only that flow; actual two-tab BFF validation is included. Remains actionable until protected merge."
     },
     {
       "pr_number": 71,
       "thread_id": "PRRT_kwDOTN0BU86UYgp1",
       "comment_id": 3665156288,
       "path": "frontend/verification-portal/src/lib/session-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Retain the fragment until session exchange succeeds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156288"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156288",
+      "disposition_note": "Confirmed duplicate irreversible fragment removal on exchange failure. Current remediation retains credentials in the link until confirmed success and tests failure/reload recovery. Remains actionable until protected merge."
     },
     {
       "pr_number": 71,
@@ -3346,10 +3406,12 @@
       "thread_id": "PRRT_kwDOTN0BU86VqaEn",
       "comment_id": 3696429048,
       "path": "frontend/verification-portal/src/app/api/verification/handoff/route.ts",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce the handoff limit before buffering the body**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429048"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429048",
+      "disposition_note": "Current handoff input uses readBoundedRequestText with declared-length rejection and bounded byte-stream reading before JSON parsing. Required actual transport tests cover oversized chunked bodies without Content-Length.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 77,
@@ -3376,30 +3438,40 @@
       "thread_id": "PRRT_kwDOTN0BU86VqaEp",
       "comment_id": 3696429050,
       "path": "frontend/verification-portal/e2e/verification-flow.spec.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid pinning the version when reusing a local server**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429050"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429050",
+      "disposition_note": "Confirmed readiness assertion pins e2e while the default suite allowed a reused development server. Current remediation disables server reuse for the production acceptance suite and documents port ownership, preserving strict version and CSP assertions. Remains actionable until protected merge."
     },
     {
       "pr_number": 77,
       "thread_id": "PRRT_kwDOTN0BU86VqaEq",
       "comment_id": 3696429053,
       "path": "frontend/verification-portal/src/app/api/verification/handoff/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/operations/portal-sessions.md",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep the handoff timeout active while reading the response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429053"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429053",
+      "disposition_note": "Confirmed handoff timer ended at response headers before unbounded upstream.text. Current remediation reads the bounded response under the same abort deadline; actual TLS fault injection stalls after headers. Remains actionable until protected merge."
     },
     {
       "pr_number": 78,
       "thread_id": "PRRT_kwDOTN0BU86VqZHB",
       "comment_id": 3696423335,
       "path": "frontend/identitycore/src/components/platform/service-grid.tsx",
-      "status": "pending",
+      "status": "verified",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Type service entries as tuples**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/78#discussion_r3696423335"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/78#discussion_r3696423335",
+      "disposition_note": "ServiceGrid entries now satisfy ReadonlyArray<readonly [string, LucideIcon]>, preserving proper text/icon types when destructured.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 81,
@@ -3426,20 +3498,22 @@
       "thread_id": "PRRT_kwDOTN0BU86Vql1-",
       "comment_id": 3696498511,
       "path": ".github/ISSUE_TEMPLATE/bug.yml",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Route suspected vulnerabilities to an actual private channel**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/82#discussion_r3696498511"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/82#discussion_r3696498511",
+      "disposition_note": "Individually confirmed bug form accepts possible/confirmed vulnerability selections and no concrete private reporting endpoint is supplied by issue-template configuration or repository security guidance. Provide an actual private channel and stop public vulnerability intake."
     },
     {
       "pr_number": 82,
       "thread_id": "PRRT_kwDOTN0BU86Vql2A",
       "comment_id": 3696498514,
       "path": "docs/planning/implementation-backlog.md",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide matching forms for every advertised backlog type**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/82#discussion_r3696498514"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/82#discussion_r3696498514",
+      "disposition_note": "Individually confirmed only bug and feature forms exist while the backlog advertises security/test/docs types with matching structured forms. Add safe structured engineering forms and align label/dependency instructions."
     },
     {
       "pr_number": 174,
@@ -3462,10 +3536,11 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrgxf",
       "comment_id": 3696846071,
       "path": "scripts/test_all.sh",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Select the required backend dependency groups**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/178#discussion_r3696846071"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/178#discussion_r3696846071",
+      "disposition_note": "Individually confirmed scripts/test_all.sh invokes uv run without the Django or AI dependency groups for their suites and contract checks. Select the correct frozen groups or synchronize required groups explicitly; verify clean-environment execution."
     },
     {
       "pr_number": 178,

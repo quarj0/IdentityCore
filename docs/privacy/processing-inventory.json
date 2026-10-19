@@ -58,20 +58,23 @@
         "contact details",
         "session token hash",
         "workflow responses",
-        "decision and risk signals"
+        "decision and risk signals",
+        "session-specific HttpOnly BFF bearer cookie; transient link fragment retained until successful exchange"
       ],
       "purpose": "Create and execute tenant-requested identity verification workflows.",
       "locations": [
         "backend/django/apps/verification_subjects/models.py",
         "backend/django/apps/verification_sessions/models.py",
         "backend/django/apps/verifications/models.py",
-        "backend/django/apps/risk/models.py"
+        "backend/django/apps/risk/models.py",
+        "frontend/verification-portal/src/lib/session-credentials.ts"
       ],
       "retention": "Tenant policy controls the verification record; session credentials are short-lived; minimization and deletion jobs apply after the case retention window.",
       "processors": [
         "IdentityCore Django",
         "PostgreSQL",
-        "tenant-selected verification providers"
+        "tenant-selected verification providers",
+        "IdentityCore verification portal BFF"
       ],
       "transfers": "Only policy-required attributes/evidence are sent through enabled provider adapters; cross-border region and safeguards are deployment records.",
       "owners": [

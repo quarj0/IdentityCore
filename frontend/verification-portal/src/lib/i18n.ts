@@ -59,6 +59,8 @@ export type MessageKey = keyof typeof messages.en;
 const arabicCopy: Record<string, string> = {
   "Opening your secure session": "جارٍ فتح جلستك الآمنة",
   "Verification unavailable": "التحقق غير متاح",
+  "Retry secure session": "أعد محاولة فتح الجلسة الآمنة",
+  "The secure verification credential could not be accepted. Please retry this link.": "تعذر قبول بيانات اعتماد التحقق الآمن. أعد محاولة فتح هذا الرابط.",
   "Validating your one-time session credential…": "جارٍ التحقق من بيانات اعتماد جلستك لمرة واحدة…",
   "We could not continue": "تعذرت المتابعة",
   "Consent is recorded in the audit trail": "تُسجَّل الموافقة في سجل التدقيق",

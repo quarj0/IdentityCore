@@ -16,8 +16,10 @@ pnpm dev:verify
 The Django API must be available at the server-only `API_ORIGIN`.
 Browser-visible API origins are intentionally unsupported. Verification links
 have the form `/verify/{session_id}#token={session_token}`. The portal
-immediately exchanges the fragment for a same-origin, `HttpOnly`, `SameSite=Strict`
-cookie and removes it from browser history. Browser code never persists or sends
+exchanges the fragment for a same-origin, session-specific `HttpOnly`, `SameSite=Strict`
+cookie. It removes the fragment only after a confirmed successful exchange; failures
+retain the link for the Retry secure session action or reload. Duplicate initialization
+shares one pending exchange. Browser code never persists or sends
 the bearer credential to Django directly; all authenticated requests pass through
 the portal BFF.
 
@@ -121,8 +123,16 @@ support also requires the physical-device evidence described in
 Build the standalone non-root image with the frontend directory as context:
 
 ```bash
-docker build -f verification-portal/Dockerfile -t identitycore/verification-portal .
+docker build -f verification-portal/Dockerfile \
+  --build-arg NEXT_PUBLIC_ONBOARDING_RETURN_URL=https://dashboard.example.com/onboarding \
+  --build-arg NEXT_PUBLIC_ALLOWED_RETURN_ORIGINS=https://dashboard.example.com \
+  -t identitycore/verification-portal .
 ```
+
+The two `NEXT_PUBLIC_` return values are public build inputs embedded in browser
+code; changing only the runtime container environment cannot update them. Rebuild
+the image when they change. API_ORIGIN and metadata keys remain server-only runtime
+configuration; never pass secrets through public build arguments.
 
 The runtime exposes `/api/health` for process liveness and `/api/ready` for
 runtime-configuration readiness. Dependency availability is monitored separately
@@ -130,8 +140,8 @@ so a provider or Django incident does not create a container restart loop.
 
 ## Maturity status
 
-The portal is a working repository vertical slice with open acceptance work in IC-081
-through IC-086. `COMPLETION.md` distinguishes those repository-owned gaps from the
+The portal is a working repository vertical slice; IC-081 through IC-086 are closed.
+Later historical findings remain open in #281. `COMPLETION.md` distinguishes those repository-owned gaps from the
 additional deployment, independent-assurance, provider, physical-device, pilot, and
 approval gates.
 
@@ -139,3 +149,17 @@ Active capture uses an initial neutral hold followed by eight ordered prompts in
 about 20 seconds. The server binds provider evidence to the issued challenge and
 caps retries across sessions. See [active-liveness operations](../../docs/operations/active-liveness.md)
 for provider compatibility, rollout and physical-device evaluation limits.
+
+Each BFF request selects its session with `X-Session-Id`; this public identifier is
+not a credential. The server reads only that session's hashed-name bearer cookie.
+Clearing one flow leaves other tabs intact. Old portal-wide cookies are retired
+and removed during exchange/handoff; deployments must ask already-open legacy tabs
+to reopen their secure link. See [BFF session operations](../../docs/operations/portal-sessions.md).
+
+Development CSP permits eval for Turbopack hot reload. Production retains nonce-based
+scripts and forbids unsafe eval/inline scripts. Session evidence uses the consent-aware
+BFF transfer path; self-only connect-src does not require object-storage origin access.
+
+The default Playwright acceptance suite starts its own production build on port 3002
+and does not reuse development servers. Stop a development server on that port
+before running it; strict production CSP and release-version assertions remain active.
