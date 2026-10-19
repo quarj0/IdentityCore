@@ -96,6 +96,27 @@ class IdentityDocumentTaskTests(TestCase):
         )
         accept_test_consent(self.verification)
 
+    @patch(
+        "apps.identity_documents.tasks._quality_result_requires_rejection",
+        side_effect=RuntimeError("synthetic persistence failure"),
+    )
+    @patch("apps.identity_documents.tasks.run_document_quality")
+    def test_workflow_failure_preserves_recorded_invocation_completion(
+        self, mock_quality, _mock_rejection
+    ):
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.88,
+            "issues": [],
+        }
+        result = process_identity_document_task(self.identity_document.public_id)
+        self.assertEqual(result, IdentityDocumentStatus.FAILED)
+        check = self.verification.provider_checks.get(
+            check_type=ProviderCheckType.DOCUMENT_QUALITY
+        )
+        self.assertGreaterEqual(check.completed_at, check.started_at)
+        self.assertLessEqual(check.completed_at, check.execution_attempt.completed_at)
+
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_quality")
@@ -161,8 +182,56 @@ class IdentityDocumentTaskTests(TestCase):
             "model_version": "v1",
         }
 
+        back = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=self.identity_document,
+            side="back",
+            storage_key="uploads/documents/doc_back",
+            captured_at=timezone.now(),
+        )
+        seal_test_upload(
+            Upload.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=self.upload.verification_session,
+                purpose=UploadPurpose.DOCUMENT_CAPTURE,
+                storage_key=back.storage_key,
+                storage_provider="local",
+                mime_type="image/jpeg",
+                file_size_bytes=1024,
+                status=UploadStatus.CONSUMED,
+                expires_at=timezone.now() + timedelta(minutes=10),
+                consumed_at=timezone.now(),
+            )
+        )
         result = process_identity_document_task(self.identity_document.public_id)
 
+        completed = self.verification.provider_checks.filter(
+            check_type__in=[
+                ProviderCheckType.DOCUMENT_QUALITY,
+                ProviderCheckType.DOCUMENT_CLASSIFICATION,
+                ProviderCheckType.DOCUMENT_OCR,
+            ],
+            status=ProviderCheckStatus.COMPLETED,
+        )
+        self.assertEqual(completed.count(), 4)
+        quality_checks = completed.filter(check_type=ProviderCheckType.DOCUMENT_QUALITY)
+        self.assertEqual(quality_checks.count(), 2)
+        self.assertEqual(
+            {check.request_metadata_json["capture_id"] for check in quality_checks},
+            {self.capture.public_id, back.public_id},
+        )
+        self.assertEqual(mock_quality.call_count, 2)
+        for check in completed:
+            with self.subTest(capability=check.check_type, check=check.public_id):
+                self.assertIsNotNone(check.started_at)
+                self.assertIsNotNone(check.completed_at)
+                self.assertGreaterEqual(check.completed_at, check.started_at)
+                self.assertLessEqual(
+                    check.completed_at, check.execution_attempt.completed_at
+                )
+                self.assertIsNotNone(check.duration_ms)
+                self.assertGreaterEqual(check.duration_ms, 0)
         self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
         self.identity_document.refresh_from_db()
         self.capture.refresh_from_db()

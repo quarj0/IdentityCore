@@ -185,7 +185,6 @@ def process_identity_document_task(identity_document_id: str) -> str:
             complete_processing_job(processing_job)
         return identity_document.status
 
-    now = timezone.now()
     ocr_provider_check = _latest_provider_check_for_document(
         verification,
         identity_document_id=identity_document.public_id,
@@ -334,7 +333,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
             lock_processing_job_for_finalization(processing_job)
             if quality_provider_check is not None:
                 quality_provider_check.status = ProviderCheckStatus.COMPLETED
-                quality_provider_check.completed_at = now
+                quality_provider_check.completed_at = (
+                    quality_provider_check.completed_at or timezone.now()
+                )
                 quality_provider_check.response_metadata_json = {
                     "capture_results": [
                         {
@@ -601,7 +602,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     if classification_result.get("provider_error")
                     else ProviderCheckStatus.COMPLETED
                 )
-                classification_provider_check.completed_at = now
+                classification_provider_check.completed_at = (
+                    classification_provider_check.completed_at or timezone.now()
+                )
                 classification_provider_check.response_metadata_json = (
                     classification_result
                 )
@@ -637,7 +640,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     if ocr_result.get("provider_error")
                     else ProviderCheckStatus.COMPLETED
                 )
-                ocr_provider_check.completed_at = now
+                ocr_provider_check.completed_at = (
+                    ocr_provider_check.completed_at or timezone.now()
+                )
                 ocr_provider_check.response_metadata_json = ocr_result
                 ocr_provider_check.normalized_result_json = (
                     preserve_provider_result_envelope(
@@ -732,7 +737,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 provider_check.status = provider_check_status
                 provider_check.error_code = error_code
                 provider_check.error_message = "Document processing was unavailable."
-                provider_check.completed_at = now
+                provider_check.completed_at = (
+                    provider_check.completed_at or timezone.now()
+                )
                 provider_check.save(
                     update_fields=[
                         "status",

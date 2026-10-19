@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 365 verified, 79 actionable and 179 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 380 verified, 82 actionable and 161 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -143,3 +143,12 @@ Four dedicated regressions pass on SQLite and PostgreSQL, including populated le
 migration; 83 broader regressions pass. The two findings remain actionable until
 protected merge. The [maintenance guide](../operations/legacy-selfie-detection.md)
 requires coordinated data migration rather than bypassing rollout checks.
+
+A further eighteen originals were individually inspected: fifteen current-main
+implementations are verified, with eleven immutable-main CORS/transition/session/
+terminal-race regressions and two atomic PAD-fetch tests passing. Three remaining
+findings track portal nonce forwarding, document completion chronology and missing
+environment-denial audit events on retrieval. Two-capture timing remediation
+preserves orchestrator timestamps; its prior-head regression reproduced three
+backwards completion times without losing the four independent invocation records.
+The audit remains open until all pending/actionable dispositions are completed.

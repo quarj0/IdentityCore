@@ -4248,11 +4248,12 @@
       "path": "backend/django/apps/identity_documents/tasks.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/identity_documents/tasks.py:quality/classification/OCR completed_at = now"
+        "backend/django/apps/identity_documents/tasks.py:orchestrator completion preservation",
+        "backend/django/apps/identity_documents/tests.py:multi-capture and workflow-failure chronology"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep document completion times after their invocation starts**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953116",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The task still overwrites provider completion timestamps with its earlier task-start now. Preserve invocation completion or use a new completion time in success/failure finalization."
+      "disposition_note": "Remediation preserves each orchestrated invocation completion, using a fresh time only when absent. The two-sided-document regression reproduces three backwards timestamps on the previous head and verifies all four independent calls after repair. Generic workflow failure also preserves recorded invocation completion. Await protected review/merge."
     },
     {
       "pr_number": 194,
@@ -4751,11 +4752,12 @@
       "path": "backend/django/apps/identity_documents/tasks.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/identity_documents/tasks.py:completed_at assignments"
+        "backend/django/apps/identity_documents/tasks.py:orchestrator completion preservation",
+        "backend/django/apps/identity_documents/tests.py:multi-capture and workflow-failure chronology"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Set completion timestamps after document calls**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989632",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Duplicate original timestamp finding individually read: quality/classification/OCR and generic failure still overwrite completion with task-start now. Track with the provider timestamp remediation; no resolution inferred from the other thread."
+      "disposition_note": "Remediation preserves each orchestrated invocation completion, using a fresh time only when absent. The two-sided-document regression reproduces three backwards timestamps on the previous head and verifies all four independent calls after repair. Generic workflow failure also preserves recorded invocation completion. Await protected review/merge."
     },
     {
       "pr_number": 200,
@@ -4823,20 +4825,28 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5La",
       "comment_id": 3696989641,
       "path": "frontend/verification-portal/src/security-headers.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/serializers.py:session upload_url empty and upload_transfer_path",
+        "frontend/verification-portal/src/lib/session-api.ts:uploadThroughApi",
+        "docs/operations/portal-sessions.md:transfer contract"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Allow direct object-storage uploads in the CSP**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989641"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989641",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. The current hosted contract deliberately returns no presigned PUT URL and transfers evidence through its consent-aware same-origin API endpoint. This is documented policy, so the reported production direct-upload path is not emitted by Django. External object-storage CSP allowance is not required for the current portal upload contract."
     },
     {
       "pr_number": 201,
       "thread_id": "PRRT_kwDOTN0BU86Vr5Qh",
       "comment_id": 3696990106,
       "path": "frontend/verification-portal/src/proxy.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/src/proxy.ts:only x-nonce forwarded"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Forward the nonce-bearing CSP to the renderer**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990106"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990106",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. The portal proxy still adds nonce-bearing CSP only to the response. Forward the same CSP to the renderer and verify real production HTML script nonces and hydration under enforced policy."
     },
     {
       "pr_number": 201,
@@ -4860,10 +4870,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5Qn",
       "comment_id": 3696990112,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:completion preservation",
+        "backend/django/apps/identity_documents/tests.py:two-capture chronology regression"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep document completion timestamps after invocation start**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990112"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990112",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Duplicate timestamp original independently read. A new two-capture regression reproduces three completions preceding invocation start on the prior head. Remediation preserves orchestrator completion and supplies a fresh time only when absent, including generic failure; it never reuses task-start now. Await protected validation/review/merge."
     },
     {
       "pr_number": 201,
@@ -4885,10 +4899,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5Qr",
       "comment_id": 3696990116,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/services.py:execute_provider_route distinct checks/attempts",
+        "backend/django/apps/identity_documents/tests.py:test_process_identity_document_task_marks_document_processed"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record the duration of all quality invocations**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990116"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990116",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Current main allocates one check/attempt per capture invocation rather than reusing a completed/attempted initial check. The two-capture regression records two quality checks with distinct capture metadata and four total invocations; the separately reproduced completion overwrite does not erase invocation/duration rows."
     },
     {
       "pr_number": 201,
@@ -4940,30 +4958,44 @@
       "thread_id": "PRRT_kwDOTN0BU86VsJx9",
       "comment_id": 3697097330,
       "path": "docs/planning/implementation-backlog.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/accounts/serializers.py:RefreshInputSerializer delegates rotate_refresh_token",
+        "backend/django/apps/accounts/views.py:complete_login delegates imported issue_refresh_token",
+        "backend/django/apps/accounts/test_sessions.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep the broken authentication items open**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097330"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097330",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. The undefined SimpleJWT class/token references no longer exist. Current serializers/views use explicitly imported session helpers. Nineteen immutable-main auth/session/locale/cursor regressions passed previously, loading these modules and exercising refresh, revocation and legacy paths."
     },
     {
       "pr_number": 204,
       "thread_id": "PRRT_kwDOTN0BU86VsJyH",
       "comment_id": 3697097340,
       "path": "docs/planning/implementation-backlog.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verification_policies/views.py:VerificationPolicyDetailView.get_object and environment filter",
+        "backend/django/apps/verifications/views.py:environment-filtered retrieval"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep IC-011 open until denied accesses are audited**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097340"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097340",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Creation-path environment denials are audited, but detail retrieval still filters wrong-environment objects into a 404 without an audit event. Add non-disclosing denial auditing for scoped retrievals; do not treat the earlier acceptance issue closure as complete coverage."
     },
     {
       "pr_number": 204,
       "thread_id": "PRRT_kwDOTN0BU86VsJyJ",
       "comment_id": 3697097344,
       "path": "docs/planning/implementation-backlog.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/models.py:ProviderExecutionAttempt",
+        "backend/django/apps/providers/services.py:execute_provider_route use_initial_check eligibility and _record_execution_attempt",
+        "backend/django/apps/identity_documents/tests.py:two-capture invocation assertions"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record each invocation before closing IC-031**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097344"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097344",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Current main persists a distinct attempt/check per invocation; an existing check with an attempt or terminal result cannot be reused as a fresh initial check. A front/back case records four calls, separate quality capture IDs, completion and duration fields. The completion-overwrite finding is tracked independently."
     },
     {
       "pr_number": 215,
@@ -5328,20 +5360,30 @@
       "thread_id": "PRRT_kwDOTN0BU86VvIYc",
       "comment_id": 3698320531,
       "path": "frontend/developer-portal/src/components/docs/interactive-api-reference.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/settings/base.py:merge_cors_allow_headers required defaults",
+        "backend/django/common/cors.py:LocalCorsMiddleware",
+        "backend/django/config/tests.py:CorsConfigurationTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow required API headers through CORS**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320531"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320531",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Both authentication and idempotency headers are in required defaults and remain when deployment settings add headers. Actual Django preflight/config regressions pass in the 11-test immutable-main control run."
     },
     {
       "pr_number": 220,
       "thread_id": "PRRT_kwDOTN0BU86VvIYg",
       "comment_id": 3698320535,
       "path": "frontend/developer-portal/src/components/docs/interactive-api-reference.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/developer-portal/src/proxy.ts:configuredApiOrigin passed to securityHeaders",
+        "frontend/developer-portal/src/lib/api-origin.ts",
+        "frontend/developer-portal/src/lib/api-origin.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the legacy API URL in the explorer CSP**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320535"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320535",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Current main normalizes the preferred or legacy API setting and passes that origin to CSP connect-src. Four direct origin regressions passed, including the versioned legacy URL and HTTPS production validation."
     },
     {
       "pr_number": 220,
@@ -5366,10 +5408,14 @@
       "thread_id": "PRRT_kwDOTN0BU86VvIYl",
       "comment_id": 3698320542,
       "path": "frontend/developer-portal/src/components/docs/interactive-api-reference.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/developer-portal/src/components/docs/interactive-api-reference.tsx:SwaggerUI props",
+        "frontend/pnpm-lock.yaml:pinned swagger-ui-react dependency"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid persisting client secrets across browser sessions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320542"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320542",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. The explorer no longer enables persistAuthorization or writes credentials to browser storage. The pinned Swagger implementation defaults persistAuthorization to false. Authorization stays in the mounted explorer state; no persistence override remains."
     },
     {
       "pr_number": 222,
@@ -5410,20 +5456,27 @@
       "thread_id": "PRRT_kwDOTN0BU86V5Fvq",
       "comment_id": 3702062294,
       "path": "frontend/pnpm-workspace.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/pnpm-workspace.yaml:allowBuilds literal booleans"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Replace allowBuilds placeholders with booleans**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062294",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. All current allowBuilds entries are literal true/false, including the optional telemetry exclusions and required native grammars. The prior frozen root workspace install and frontend builds succeeded; the reported placeholder strings are gone."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5Fvu",
       "comment_id": 3702062300,
       "path": "scripts/fetch_pad_model.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "scripts/fetch_pad_model.py:download_verified_model",
+        "backend/ai-service/tests/test_fetch_pad_model.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Verify downloads before replacing the approved model**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062300"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062300",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Current main downloads to a same-directory temporary file, verifies the pinned digest, then atomically replaces the approved model. Failure deletes only the temporary file. Both immutable-main preservation/replacement regressions pass without downloading real model assets."
     },
     {
       "pr_number": 222,
@@ -5498,20 +5551,28 @@
       "thread_id": "PRRT_kwDOTN0BU86V5XSb",
       "comment_id": 3702164065,
       "path": "backend/django/apps/api_clients/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/features/operations/live-api-keys-page.tsx:rotation confirmation/result overlap expiry"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Surface the overlap in the dashboard rotation flow**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/240#discussion_r3702164065"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/240#discussion_r3702164065",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Current main warns that the old secret remains valid temporarily, directs immediate shutdown to revocation and displays client_secret_overlap_expires_at in the result. It no longer promises immediate invalidation after rotation."
     },
     {
       "pr_number": 241,
       "thread_id": "PRRT_kwDOTN0BU86V5qLl",
       "comment_id": 3702276376,
       "path": "backend/django/apps/verifications/transitions.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/transitions.py:MANUAL_REVIEW_REQUIRED allows EXPIRED",
+        "backend/django/apps/verifications/tests.py:test_manual_review_can_expire",
+        "backend/django/apps/verifications/tests.py:test_expiry_preserves_submitted_review_and_rechecks_locked_state"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow manual-review verifications to expire**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276376"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276376",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Current transitions accept explicit manual-review expiry, and the task separately preserves submitted review under the accepted policy. The invalid-transition queue-starvation path is gone; transition regression passes in the 11-test immutable-main run."
     },
     {
       "pr_number": 241,
@@ -5533,10 +5594,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V5qLv",
       "comment_id": 3702276389,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/transitions.py:transition_verification cancellation timestamp under row lock",
+        "backend/django/apps/verifications/views.py:VerificationCancelView.post transaction.atomic",
+        "backend/django/apps/verifications/tests.py:test_cancellation_persists_status_and_timestamps_together"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Save the cancellation timestamp in the locked transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276389"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276389",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Status, completion and cancellation timestamp now save together under the transition row lock and outer cancellation transaction. The atomic-state regression passes in the 11-test immutable-main run."
     },
     {
       "pr_number": 241,
@@ -5556,30 +5622,42 @@
       "thread_id": "PRRT_kwDOTN0BU86V5qLz",
       "comment_id": 3702276393,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:terminal VerificationTransitionError handling and processing-owner guard",
+        "backend/django/apps/identity_documents/tests.py:test_terminal_transition_race_preserves_processed_document"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not classify transition conflicts as document failures**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276393"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276393",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. A terminal transition conflict is handled separately: refresh terminal state and retain processed document evidence. Ownership loss also propagates separately. The dedicated terminal-race regression passes in the 11-test immutable-main run."
     },
     {
       "pr_number": 241,
       "thread_id": "PRRT_kwDOTN0BU86V5qL2",
       "comment_id": 3702276395,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:VerificationCancelView maps VerificationTransitionError",
+        "backend/django/apps/verifications/tests.py:test_cancel_terminal_verification_returns_conflict"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Translate invalid cancellation transitions into an API response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276395"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276395",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Predictable invalid cancellation now maps to VerificationTransitionConflict (HTTP 409), not an unhandled ValueError. The endpoint regression passes in the 11-test immutable-main run."
     },
     {
       "pr_number": 242,
       "thread_id": "PRRT_kwDOTN0BU86V517c",
       "comment_id": 3702348139,
       "path": "backend/django/apps/verifications/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/models.py:VerificationSession.allowed_actions",
+        "backend/django/apps/verification_sessions/tests.py:test_empty_session_action_scope_denies_all_operations"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Treat an empty action set as denying all actions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348139"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348139",
+      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. The property returns the explicitly stored list without a truthiness fallback. An empty list remains empty and its authorization regression passes in the 11-test immutable-main run."
     },
     {
       "pr_number": 242,
