@@ -238,11 +238,11 @@ Runtime modes:
 
 Model asset behavior:
 
-- If `INSIGHTFACE_ALLOW_DOWNLOAD=1`, InsightFace may download missing model assets at runtime into its configured cache/model location.
-- If `PADDLE_OCR_ALLOW_DOWNLOAD=1`, PaddleOCR may download missing OCR model assets at runtime.
-- If those flags are `0`, the AI service expects the model files to already exist under `AI_MODEL_ROOT`.
-- The bootstrap job records every artifact and its SHA-256 digest in `AI_MODEL_ROOT/manifest.json` (or the path configured by `AI_MODEL_MANIFEST`). Real mode is not ready and will not process requests if that inventory is missing, malformed, or does not match the files on disk.
-- For predictable production deployments, prefer preloading models and keeping both download flags disabled.
+- Bootstrap alone enables model downloads; real inference requires both download flags disabled.
+- The bootstrap inventory is authenticated by `AI_MODEL_MANIFEST_SHA256`, pinned in trusted deployment configuration outside the model volume.
+- Inference uses read-only immutable assets. Missing, altered or unlisted files and a mismatched configured model fail closed.
+- Startup streams hashes; warm requests inspect inventory metadata and reuse digests until it changes. Restart services for each approved model release.
+- See [model provisioning](../operations/ai-models.md) for trust, concurrent-writer and cold-start requirements.
 
 Real-mode prerequisites:
 
@@ -250,8 +250,9 @@ Real-mode prerequisites:
 - `OBJECT_STORAGE_ENDPOINT_URL`
 - `OBJECT_STORAGE_ACCESS_KEY_ID`
 - `OBJECT_STORAGE_SECRET_ACCESS_KEY`
-- Local InsightFace assets under `AI_MODEL_ROOT/insightface/models/<INSIGHTFACE_MODEL_NAME>` unless `INSIGHTFACE_ALLOW_DOWNLOAD=1`
-- Local PaddleOCR assets under `AI_MODEL_ROOT/paddleocr/det`, `AI_MODEL_ROOT/paddleocr/rec`, and `AI_MODEL_ROOT/paddleocr/cls` unless `PADDLE_OCR_ALLOW_DOWNLOAD=1`
+- Approved `AI_MODEL_MANIFEST_SHA256` in trusted deployment configuration
+- Local InsightFace assets under `AI_MODEL_ROOT/insightface/models/<INSIGHTFACE_MODEL_NAME>`
+- Local PaddleOCR detection/recognition assets under `AI_MODEL_ROOT/paddleocr/det` and `AI_MODEL_ROOT/paddleocr/rec`; all optional assets must also be listed
 
 Expected model root layout:
 

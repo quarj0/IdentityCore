@@ -4094,12 +4094,14 @@
       "path": "backend/ai-service/app/settings.py",
       "status": "actionable",
       "evidence": [
-        "backend/ai-service/app/settings.py:model_asset_integrity_errors",
-        "backend/ai-service/app/settings.py:real_inference_missing_requirements"
+        "backend/ai-service/app/model_integrity.py",
+        "backend/ai-service/tests/test_health.py",
+        "backend/ai-service/tests/test_bootstrap_models.py",
+        "docs/operations/ai-models.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject model assets omitted from the manifest**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944684",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Manifest validation checks listed files and mandatory PAD only; it does not bind all configured InsightFace/OCR assets or reject unlisted model files. Close this real-mode integrity gap."
+      "disposition_note": "Prepared remediation: Configured InsightFace metadata and required InsightFace/Paddle/PAD assets are bound to the trusted inventory; all unlisted assets and symlink assets are rejected, as are runtime downloads. Full AI suite: 91 passed. Remains actionable until protected merge; no real model/accuracy claim."
     },
     {
       "pr_number": 191,
@@ -4108,12 +4110,14 @@
       "path": "backend/ai-service/app/pipeline.py",
       "status": "actionable",
       "evidence": [
-        "backend/ai-service/app/pipeline.py:run_with_mode",
-        "backend/ai-service/app/settings.py:model_asset_integrity_errors"
+        "backend/ai-service/app/model_integrity.py",
+        "backend/ai-service/tests/test_health.py",
+        "backend/ai-service/tests/test_bootstrap_models.py",
+        "docs/operations/ai-models.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Avoid rehashing the complete model volume per request**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944687",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Every real call and readiness still re-read each complete model file with read_bytes and hash it. Replace per-request whole-volume scans with a validated, invalidation-aware runtime integrity state and streaming digests."
+      "disposition_note": "Prepared remediation: Startup streams hashes once; warm checks reuse cached digests keyed by configured release and complete filesystem metadata. Changes invalidate validation without allocating whole model files. Full AI suite: 91 passed. Remains actionable until protected merge; no real model/accuracy claim."
     },
     {
       "pr_number": 191,
@@ -4122,12 +4126,14 @@
       "path": "backend/ai-service/app/settings.py",
       "status": "actionable",
       "evidence": [
-        "backend/ai-service/app/settings.py:model_manifest_path",
-        "docker-compose.yml:ai-service ai-models mount"
+        "backend/ai-service/app/model_integrity.py",
+        "backend/ai-service/tests/test_health.py",
+        "backend/ai-service/tests/test_bootstrap_models.py",
+        "docs/operations/ai-models.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Anchor the manifest outside the writable model volume**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944689",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Default manifest remains on the writable asset volume without a separately configured authenticated digest or read-only trust anchor. Integrity checks do not authenticate a replaced manifest; fix the trust boundary and deployment contract."
+      "disposition_note": "Prepared remediation: AI_MODEL_MANIFEST_SHA256 pins the approved manifest outside the volume; joint asset/manifest tampering is rejected. Compose inference mounts the model volume read-only; only bootstrap writes. Independent approval and immutable release operations are documented. Full AI suite: 91 passed. Remains actionable until protected merge; no real model/accuracy claim."
     },
     {
       "pr_number": 191,
@@ -4136,11 +4142,14 @@
       "path": "backend/ai-service/app/bootstrap_models.py",
       "status": "actionable",
       "evidence": [
-        "backend/ai-service/app/bootstrap_models.py:manifest inventory lexical exclusion"
+        "backend/ai-service/app/model_integrity.py",
+        "backend/ai-service/tests/test_health.py",
+        "backend/ai-service/tests/test_bootstrap_models.py",
+        "docs/operations/ai-models.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve the manifest path before excluding it**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944690",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Bootstrap still compares path != manifest_path lexically. Canonicalize both before exclusion to avoid hashing a manifest through a symlink alias."
+      "disposition_note": "Prepared remediation: Bootstrap excludes the manifest by resolved path identity and streams artifact digests; repeated bootstrap through aliased and direct roots is covered. Full AI suite: 91 passed. Remains actionable until protected merge; no real model/accuracy claim."
     },
     {
       "pr_number": 192,

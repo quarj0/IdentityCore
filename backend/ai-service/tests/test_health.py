@@ -488,96 +488,151 @@ def test_real_mode_requires_storage_and_models(tmp_path):
     assert any(item.startswith("models.manifest_missing:") for item in missing)
 
 
-def test_model_manifest_detects_missing_and_altered_assets(tmp_path):
-    asset = tmp_path / "insightface" / "models" / "buffalo_l" / "model.onnx"
-    asset.parent.mkdir(parents=True)
-    asset.write_bytes(b"trusted-model")
-    (tmp_path / "manifest.json").write_text(
+def _trusted_model_settings(tmp_path, **kwargs):
+    paths = [
+        "insightface/models/buffalo_l/model.onnx",
+        "liveness/pad.onnx",
+        "paddleocr/det/inference.yml",
+        "paddleocr/det/inference.json",
+        "paddleocr/rec/inference.yml",
+        "paddleocr/rec/inference.json",
+    ]
+    for name in paths:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"approved-model-fixture")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
         json.dumps(
             {
+                "insightface_model": "buffalo_l",
                 "files": [
                     {
-                        "path": str(asset.relative_to(tmp_path)),
-                        "sha256": hashlib.sha256(asset.read_bytes()).hexdigest(),
+                        "path": name,
+                        "sha256": hashlib.sha256(
+                            (tmp_path / name).read_bytes()
+                        ).hexdigest(),
                     }
-                ]
+                    for name in paths
+                ],
             }
         )
     )
-    settings = Settings(AI_MODEL_ROOT=tmp_path)
-    assert settings.model_asset_integrity_errors() == [
-        "models.manifest_required_asset_missing:liveness/pad.onnx"
-    ]
+    return Settings(
+        AI_MODEL_ROOT=tmp_path,
+        AI_MODEL_MANIFEST_SHA256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
+        **kwargs,
+    )
 
+
+def test_model_manifest_detects_missing_and_altered_assets(tmp_path):
+    settings = _trusted_model_settings(tmp_path)
+    asset = tmp_path / "insightface/models/buffalo_l/model.onnx"
+    assert settings.model_asset_integrity_errors() == []
     asset.write_bytes(b"tampered-model")
     assert settings.model_asset_integrity_errors() == [
-        "models.asset_checksum_mismatch:insightface/models/buffalo_l/model.onnx",
-        "models.manifest_required_asset_missing:liveness/pad.onnx",
+        "models.asset_checksum_mismatch:insightface/models/buffalo_l/model.onnx"
     ]
     asset.unlink()
     assert settings.model_asset_integrity_errors() == [
-        "models.asset_missing:insightface/models/buffalo_l/model.onnx",
-        "models.manifest_required_asset_missing:liveness/pad.onnx",
+        "models.asset_missing:insightface/models/buffalo_l/model.onnx"
     ]
 
 
 def test_model_manifest_requires_configured_pad_asset(tmp_path):
-    pad_asset = tmp_path / "liveness" / "pad.onnx"
-    pad_asset.parent.mkdir(parents=True)
-    pad_asset.write_bytes(b"approved-pad")
-    (tmp_path / "manifest.json").write_text(
-        json.dumps(
-            {
-                "files": [
-                    {
-                        "path": "liveness/pad.onnx",
-                        "sha256": hashlib.sha256(pad_asset.read_bytes()).hexdigest(),
-                    }
-                ]
-            }
-        )
-    )
-
-    settings = Settings(AI_MODEL_ROOT=tmp_path)
-
+    settings = _trusted_model_settings(tmp_path)
     assert settings.model_asset_integrity_errors() == []
+    settings.pad_model_relative_path = "liveness/other.onnx"
+    assert (
+        "models.manifest_required_asset_missing:liveness/other.onnx"
+        in settings.model_asset_integrity_errors()
+    )
 
 
 def test_real_requirements_validate_pad_model_contract(tmp_path, monkeypatch):
-    pad_asset = tmp_path / "liveness" / "pad.onnx"
-    pad_asset.parent.mkdir(parents=True)
-    pad_asset.write_bytes(b"approved-pad")
-    (tmp_path / "manifest.json").write_text(
-        json.dumps(
-            {
-                "files": [
-                    {
-                        "path": "liveness/pad.onnx",
-                        "sha256": hashlib.sha256(pad_asset.read_bytes()).hexdigest(),
-                    }
-                ]
-            }
-        )
-    )
-
     def reject_contract(model_path, live_class_index):
         raise ProcessingConfigurationError("invalid model contract")
 
     monkeypatch.setattr("app.pad.validate_pad_model_contract", reject_contract)
-    settings = Settings(
+    settings = _trusted_model_settings(
+        tmp_path,
         AI_SERVICE_MODE="real",
         OBJECT_STORAGE_MEDIA_BUCKET="identitycore-media",
         OBJECT_STORAGE_ENDPOINT_URL="https://example.invalid",
         OBJECT_STORAGE_ACCESS_KEY_ID="key",
         OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
-        INSIGHTFACE_ALLOW_DOWNLOAD=True,
-        PADDLE_OCR_ALLOW_DOWNLOAD=True,
-        AI_MODEL_ROOT=tmp_path,
     )
-
     assert settings.real_inference_missing_requirements() == [
-        f"models.pad_contract_invalid:{pad_asset}"
+        f"models.pad_contract_invalid:{tmp_path / 'liveness/pad.onnx'}"
     ]
+
+
+def test_manifest_requires_external_trust_anchor_and_detects_joint_tampering(tmp_path):
+    settings = _trusted_model_settings(tmp_path)
+    digest = settings.ai_model_manifest_sha256
+    settings.ai_model_manifest_sha256 = ""
+    assert settings.model_asset_integrity_errors() == [
+        "models.manifest_trust_anchor_required"
+    ]
+    settings.ai_model_manifest_sha256 = digest
+    asset = tmp_path / "insightface/models/buffalo_l/model.onnx"
+    asset.write_bytes(b"replacement")
+    manifest = tmp_path / "manifest.json"
+    payload = json.loads(manifest.read_text())
+    for entry in payload["files"]:
+        if entry["path"] == str(asset.relative_to(tmp_path)):
+            entry["sha256"] = hashlib.sha256(asset.read_bytes()).hexdigest()
+    manifest.write_text(json.dumps(payload))
+    assert settings.model_asset_integrity_errors() == [
+        "models.manifest_checksum_mismatch"
+    ]
+
+
+def test_manifest_rejects_unlisted_assets_selected_model_and_runtime_downloads(
+    tmp_path,
+):
+    settings = _trusted_model_settings(tmp_path)
+    extra = tmp_path / "insightface/models/unapproved/model.onnx"
+    extra.parent.mkdir(parents=True)
+    extra.write_bytes(b"unapproved-model")
+    assert settings.model_asset_integrity_errors() == [
+        "models.asset_unlisted:insightface/models/unapproved/model.onnx"
+    ]
+    settings.insightface_model_name = "unapproved"
+    errors = settings.model_asset_integrity_errors()
+    assert "models.insightface_model_mismatch" in errors
+    assert "models.manifest_insightface_assets_missing" in errors
+    settings.insightface_allow_download = True
+    assert settings.model_asset_integrity_errors() == [
+        "models.runtime_downloads_forbidden"
+    ]
+
+
+def test_warm_validation_does_not_reread_model_bytes(tmp_path, monkeypatch):
+    from app import model_integrity
+
+    settings = _trusted_model_settings(tmp_path)
+    original = model_integrity.file_digest
+    reads = []
+
+    def digest(path):
+        reads.append(path)
+        return original(path)
+
+    monkeypatch.setattr(model_integrity, "file_digest", digest)
+    assert settings.model_asset_integrity_errors() == []
+    first_reads = list(reads)
+    assert len(first_reads) == 7
+    for _ in range(3):
+        assert settings.model_asset_integrity_errors() == []
+    assert reads == first_reads
+    asset = tmp_path / "liveness/pad.onnx"
+    asset.write_bytes(b"altered")
+    assert (
+        "models.asset_checksum_mismatch:liveness/pad.onnx"
+        in settings.model_asset_integrity_errors()
+    )
+    assert len(reads) > len(first_reads)
 
 
 def test_liveness_pad_only_receives_exactly_one_face_frames(monkeypatch):
@@ -797,3 +852,60 @@ def test_labeled_document_dates_do_not_confuse_issue_date_with_birth():
         _normalize_ocr_fields(["ISSUED 2020-01-02"], "passport", "GH")["date_of_birth"]
         == ""
     )
+
+
+@pytest.mark.parametrize(
+    "damage", ["unlisted", "anchor", "joint_replacement", "configured_model"]
+)
+def test_real_processing_refuses_untrusted_inventory_before_inference(
+    tmp_path, monkeypatch, damage
+):
+    from app.pipeline import run_with_mode, ProcessingError
+
+    settings = _trusted_model_settings(tmp_path, AI_SERVICE_MODE="real")
+    if damage == "unlisted":
+        (tmp_path / "new-model.onnx").write_bytes(b"unlisted")
+    elif damage == "anchor":
+        settings.ai_model_manifest_sha256 = ""
+    elif damage == "configured_model":
+        settings.insightface_model_name = "unapproved"
+    else:
+        asset = tmp_path / "liveness/pad.onnx"
+        asset.write_bytes(b"replaced")
+        manifest = tmp_path / "manifest.json"
+        payload = json.loads(manifest.read_text())
+        for entry in payload["files"]:
+            if entry["path"] == "liveness/pad.onnx":
+                entry["sha256"] = hashlib.sha256(asset.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(payload))
+    monkeypatch.setattr("app.pipeline.get_settings", lambda: settings)
+
+    def forbidden():
+        pytest.fail("Untrusted inventory reached inference")
+
+    with pytest.raises(
+        ProcessingError, match="Model asset integrity validation failed"
+    ):
+        run_with_mode(real_callable=forbidden, mock_callable=forbidden, mock_args=())
+
+
+def test_manifest_rejects_omitted_configured_engine_files(tmp_path):
+    settings = _trusted_model_settings(tmp_path)
+    manifest = tmp_path / "manifest.json"
+    payload = json.loads(manifest.read_text())
+    omitted = {
+        "paddleocr/rec/inference.json",
+        "insightface/models/buffalo_l/model.onnx",
+    }
+    payload["files"] = [
+        entry for entry in payload["files"] if entry["path"] not in omitted
+    ]
+    manifest.write_text(json.dumps(payload))
+    settings.ai_model_manifest_sha256 = hashlib.sha256(
+        manifest.read_bytes()
+    ).hexdigest()
+    errors = settings.model_asset_integrity_errors()
+    assert "models.manifest_insightface_assets_missing" in errors
+    assert "models.manifest_paddle_assets_missing:rec" in errors
+    for name in omitted:
+        assert f"models.asset_unlisted:{name}" in errors

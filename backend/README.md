@@ -20,6 +20,8 @@ docker compose --profile model-bootstrap run --rm --build --entrypoint python \
   ai-model-bootstrap /app/scripts/fetch_pad_model.py \
   --model-root /opt/identitycore/models
 docker compose --profile model-bootstrap run --rm ai-model-bootstrap
+# Review the candidate manifest and configure AI_MODEL_MANIFEST_SHA256 in .env.
+# Follow docs/operations/ai-models.md; do not trust a digest from a mutable volume automatically.
 docker compose up --build -d
 curl http://localhost:8000/api/v1/health
 curl -H "X-Internal-Token: $(sed -n 's/^AI_SERVICE_SHARED_TOKEN=//p' .env)" http://localhost:8001/v1/ready

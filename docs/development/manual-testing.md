@@ -16,6 +16,7 @@ Before starting the AI service, verify:
 
 - `AI_SERVICE_MODE` is set to `mock`, `hybrid`, or `real`
 - `AI_MODEL_ROOT` matches the deployed model directory layout
+- real inference uses a reviewed `AI_MODEL_MANIFEST_SHA256`, read-only model release and disabled runtime downloads (see [provisioning](../operations/ai-models.md))
 - object storage credentials and media bucket settings are present for `hybrid` and `real`
 
 After startup:

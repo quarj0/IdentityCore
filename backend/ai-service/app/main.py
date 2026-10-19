@@ -4,7 +4,9 @@ from app.core.safe_logging import install_safe_logging
 # exception paths cannot emit raw evidence or credentials.
 install_safe_logging()
 
+from contextlib import asynccontextmanager  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
+from starlette.concurrency import run_in_threadpool  # noqa: E402
 
 from app.core.auth import (
     enforce_internal_token as _enforce_internal_token,
@@ -38,7 +40,19 @@ from app.settings import get_settings  # noqa: E402
 settings = get_settings()
 configure_runtime_environment(settings)
 
-app = FastAPI(title="IdentityCore AI Service", version=settings.service_version)
+
+@asynccontextmanager
+async def lifespan(app):
+    # Stream/hash once before serving. Missing/untrusted models remain a readiness
+    # failure; warm requests inspect metadata without rereading the full volume.
+    if settings.real_mode_enabled:
+        await run_in_threadpool(settings.model_asset_integrity_errors)
+    yield
+
+
+app = FastAPI(
+    title="IdentityCore AI Service", version=settings.service_version, lifespan=lifespan
+)
 from shared import observability as telemetry
 
 telemetry.configure("identitycore-ai")

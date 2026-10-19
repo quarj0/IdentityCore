@@ -171,3 +171,13 @@ acceptance. PostgreSQL barriers cover withdrawal during a write and two simultan
 identical candidates; a losing request deletes only its own candidate. See
 [ADR 057](../decisions/ADR-057-upload-transfer-transactions.md) for admission,
 receipt and uncertain-commit cleanup limits.
+
+
+Model-integrity remediation separately pins the reviewed manifest digest in trusted
+deployment configuration, mounts inference assets read-only and rejects unlisted or
+omitted configured models and runtime downloads. Streamed startup hashing and a
+metadata-invalidated cache avoid per-request full-volume reads. Alias-safe bootstrap
+and real-processing denial regressions are included; all 91 AI tests pass. These
+four findings remain actionable until protected merge. The
+[provisioning guide](../operations/ai-models.md) requires independent release approval,
+no concurrent writers and worker restart; synthetic tests do not certify real models.

@@ -1,4 +1,3 @@
-import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -7,6 +6,7 @@ import yaml
 from app.pipeline import get_insightface_analyzer, get_paddle_ocr_engine
 from app.pad import validate_pad_model_contract
 from app.settings import get_settings
+from app.model_integrity import file_digest
 
 PADDLE_MODEL_CANDIDATES = {
     "det": ("PP-OCRv5_server_det", "PP-OCRv5_mobile_det"),
@@ -83,11 +83,11 @@ def main() -> None:
         settings, "model_manifest_path", settings.ai_model_root / "manifest.json"
     )
     for path in sorted(settings.ai_model_root.rglob("*")):
-        if path.is_file() and path != manifest_path:
+        if path.is_file() and path.resolve() != manifest_path.resolve():
             files.append(
                 {
                     "path": str(path.relative_to(settings.ai_model_root)),
-                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "sha256": file_digest(path),
                     "bytes": path.stat().st_size,
                 }
             )
@@ -108,6 +108,7 @@ def main() -> None:
         ),
         encoding="utf-8",
     )
+    print(f"Candidate manifest SHA-256: {file_digest(manifest_path)}")
     print(
         f"Model bootstrap complete: {len(files)} artifacts recorded in {manifest_path}"
     )
