@@ -22,8 +22,8 @@ Protected independent review and current-head CI/Security remain merge requireme
 
 | Check | Result |
 | --- | --- |
-| Complete Django suite | 1,366 tests; passed, 61 environment-dependent skips |
-| Governed evidence/claims, subject privacy and provider PostgreSQL suite | 84 tests; passed, no skips |
+| Complete Django suite | 1,369 tests; passed, 61 environment-dependent skips |
+| Governed evidence/claims, subject privacy and provider PostgreSQL suite | 87 tests; passed, no skips, including the three review regressions |
 | Exact CI PostgreSQL concurrency selection | 245 tests; passed, no skips; overlaps the focused suite |
 | Public contract/generator/config regression selection | 111 tests; passed |
 | Public route/OpenAPI parity | 111 operations validated |
@@ -59,3 +59,23 @@ Runtime operations and authorization boundaries are documented in
 [governed resources](../operations/governed-resources.md) and
 [provider operations](../operations/provider-operations.md). Retained deployment
 reports and independent references require their own accountable approval.
+
+
+## Independent review remediation and AI startup follow-up
+
+The first configured review of `f396f49` found three P2 issues. Each was reproduced:
+future-dated consent grant creation failed; a callback after proof withdrawal
+returned 500; and route assignment accepted a configuration without its required
+approved assurance. The fixes preserve the not-before grant boundary, return a
+controlled 409 for withdrawn proof, and check current capability/level-scoped
+assurance under the existing tenant serialization lock before publishing a route.
+The 87-test PostgreSQL run includes these regression cases.
+
+The AI application starts in an isolated local runtime. Without provisioned models
+and storage configuration it correctly returns readiness 503. The actual error
+from the user's machine has been requested; no unobserved crash is claimed fixed.
+The added authenticated Compose/readiness diagnostic reports bounded requirement
+codes without raw responses, tokens or model paths. All 96 AI tests passed,
+including real HTTP tests of authentication, unready exit status and redaction.
+`make up` preserves startup failure and attempts this probe; `make check-ai` runs it
+explicitly. Real mode and model integrity requirements remain enforced.

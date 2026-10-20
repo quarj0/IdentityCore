@@ -257,7 +257,9 @@ def propose_authorization(
         # Only current, exact-purpose proof can activate without a second officer.
         record.approved_at = timezone.now()
         record.approved_by_id_snapshot = identity(actor)
-        require_authorization(record, operation=operations[0])
+        require_authorization(
+            record, operation=operations[0], at=max(timezone.now(), record.valid_from)
+        )
         _transition(
             record,
             approved_at=record.approved_at,

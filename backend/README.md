@@ -34,3 +34,17 @@ for service-specific commands and configuration. The root [`.env.example`](../.e
 is the authoritative variable list; its values are for local development only.
 
 Run all backend tests with `make test` and static checks with `make lint`.
+
+
+## AI startup diagnostics
+
+If `make up` fails, it attempts the AI readiness diagnostic while preserving the
+original startup failure status. `make check-ai` runs the same authenticated probe
+as the Compose healthcheck and
+prints the missing requirement codes without credentials or raw responses.
+`make logs-ai` shows the service startup log. A running process with `/v1/ready`
+returning 503 is not ready for real inference: provision the reviewed model bundle,
+pin `AI_MODEL_MANIFEST_SHA256`, and configure the object-storage values above.
+Changing to mock/hybrid or weakening the probe does not fix real inference readiness.
+If the process exits or restarts, inspect `docker compose logs --tail=40 ai-service`
+for the import/runtime/configuration error before retrying `make up`.

@@ -269,6 +269,40 @@ class ProviderOperationTests(TestCase):
         replay = client.post(path, body, content_type="application/json", **headers)
         self.assertEqual(replay.status_code, 403)
 
+    def test_withdrawn_consent_callback_is_rejected_without_internal_error(self):
+        from apps.consent.models import ConsentRecord
+
+        record = self.pending()
+        # Exercise loss of proof independently of the later worker-cancellation checks.
+        proof = ConsentRecord.objects.get(verification=self.case)
+        proof.withdrawn_at = timezone.now()
+        proof._withdrawal_authorized = True
+        proof.save(update_fields=["withdrawn_at", "updated_at"])
+        path = f"/api/v1/providers/operations/{record.public_id}/callback"
+        body = canonical_json(self.completed(record))
+        from apps.providers.configuration import _signing_context
+
+        context = _signing_context(self.config)
+        signed = sign_message(
+            method="POST",
+            path=path,
+            body=body,
+            key_id=context.key_id,
+            secret=context.secret,
+        )
+        headers = {
+            "HTTP_" + key.upper().replace("-", "_"): value
+            for key, value in signed.headers().items()
+        }
+        client = APIClient()
+        client.raise_request_exception = False
+        response = client.post(path, body, content_type="application/json", **headers)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["error"]["code"], "provider_callback_rejected")
+        record.refresh_from_db()
+        self.assertEqual(record.status, "pending")
+        self.assertEqual(record.result_json, {})
+
     def test_late_and_deleted_subject_completions_cannot_restore_results(self):
         record = self.pending()
         response = self.completed(record)

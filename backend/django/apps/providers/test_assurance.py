@@ -90,6 +90,47 @@ class ProviderAssuranceTests(TestCase):
         )
         self.assertNotIn("report", assurance.summary(record))
 
+    def test_route_assignment_requires_current_approved_assurance_at_required_level(
+        self,
+    ):
+        from apps.providers.configuration import assign_configuration
+        from apps.providers.models import ProviderRoute
+
+        self.public = {**self.public, "required_assurance": "assured"}
+        self.config = self.sandbox()
+
+        def assign():
+            return assign_configuration(
+                config=self.config,
+                user=self.requester,
+                capability="document_ocr",
+                countries=["GH"],
+                document_types=["passport"],
+            )
+
+        with self.assertRaises(PermissionDenied):
+            assign()
+        pending = self.propose()
+        with self.assertRaises(PermissionDenied):
+            assign()
+        conformance = self.approve(self.propose(assurance_level="conformance"))
+        with self.assertRaises(PermissionDenied):
+            assign()
+        self.assertFalse(ProviderRoute.objects.filter(tenant=self.tenant).exists())
+        self.approve(pending)
+        route = assign()
+        self.assertEqual(route.status, "active")
+        assurance.revoke_certification(
+            tenant_id=self.tenant.pk,
+            actor=self.approver,
+            certification_id=pending.public_id,
+            reason="synthetic_revocation",
+        )
+        with self.assertRaises(PermissionDenied):
+            assign()
+        self.assertEqual(ProviderRoute.objects.filter(tenant=self.tenant).count(), 1)
+        self.assertIsNotNone(conformance.approved_at)
+
     def test_scope_and_all_required_cases_cannot_be_forged_or_omitted(self):
         for overrides in (
             {"environment": "production"},

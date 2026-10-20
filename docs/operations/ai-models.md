@@ -19,6 +19,9 @@ running; a read-only mount does not prevent another container from changing the
 underlying volume. Equivalent deployments must enforce the same access boundary.
 Allow cold-start time for the streamed model verification before health probes.
 Confirm authenticated `GET /v1/ready` before starting processing workers.
+`make check-ai` runs the same credential-protected probe without exposing its token
+and prints missing requirement codes. A failed `make up` attempts this diagnostic;
+`make logs-ai` distinguishes a process crash from a running but unready service.
 
 Real processing rejects absent/untrusted manifests, altered/missing/unlisted files,
 a manifest selecting a different InsightFace model, omitted configured InsightFace

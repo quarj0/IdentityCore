@@ -129,6 +129,33 @@ class EvidenceServiceTests(TestCase):
             }
         )
 
+    def test_future_consent_grant_can_be_proposed_but_not_used_early(self):
+        from unittest.mock import patch
+        from apps.consent.test_helpers import accept_test_consent
+        from apps.verifications.models import Verification
+
+        case = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.tenant.organization,
+            project=self.project,
+            verification_subject=self.subject,
+            purpose="eligibility",
+            expires_at=self.now + timedelta(days=3),
+        )
+        consent = accept_test_consent(case)
+        starts = self.now + timedelta(hours=1)
+        grant = self.propose(
+            legal_basis="consent",
+            consent_record_id=consent.public_id,
+            valid_from=starts,
+        )
+        self.assertIsNotNone(grant.approved_at)
+        with self.assertRaises(PermissionDenied):
+            self.create(authorization_id=grant.public_id)
+        with patch("apps.evidence.access.timezone.now", return_value=starts):
+            evidence = self.create(authorization_id=grant.public_id, observed_at=starts)
+        self.assertEqual(evidence.authorization_id, grant.pk)
+
     def test_nonconsent_authorization_requires_an_independent_current_privacy_officer(
         self,
     ):

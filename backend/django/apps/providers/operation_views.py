@@ -2,6 +2,7 @@
 
 import json
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.http import JsonResponse
 from redis.exceptions import RedisError
@@ -96,6 +97,7 @@ class ProviderCallbackView(APIView):
             ProviderContractError,
             ProcessingJobOwnershipLost,
             ValidationError,
+            DjangoValidationError,
         ):
             return error_response(
                 "provider_callback_rejected",

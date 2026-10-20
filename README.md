@@ -252,6 +252,15 @@ Some filenames may evolve as the documentation is consolidated. The canonical
 architecture and ADRs determine architectural meaning; OpenAPI remains the source of
 truth for concrete public endpoints.
 
+## Local startup
+
+Follow [backend setup](backend/README.md) before `make up`: the Compose AI service
+runs in real mode and requires configured object storage, provisioned models and
+an independently pinned model-manifest digest. An unready model service prevents
+processing workers from starting. `make check-ai` reports readiness requirement
+codes; `make logs-ai` shows an actual process/import/configuration failure. A failed
+`make up` also attempts the readiness diagnostic and retains its failure status.
+
 ## Production startup configuration
 
 Local development uses the clearly marked sample values in `.env.example`. Before

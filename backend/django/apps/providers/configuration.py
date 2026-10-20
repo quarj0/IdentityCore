@@ -397,6 +397,13 @@ def assign_configuration(*, config, user, capability, countries=(), document_typ
     config.refresh_from_db()
     if config.status != "active":
         raise ValidationError("Assignments require an activated configuration.")
+    minimum_assurance = config.public_configuration_json.get(
+        "required_assurance", "none"
+    )
+    if minimum_assurance != "none":
+        from apps.providers.assurance import require_certification
+
+        require_certification(config, capability, minimum_level=minimum_assurance)
     key = "configured-" + capability
     version = (
         ProviderRoute.objects.filter(
