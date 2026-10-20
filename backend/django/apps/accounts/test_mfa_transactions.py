@@ -111,7 +111,7 @@ class MFATransactionTests(TestCase):
             status="active",
         )
         role = Role.objects.create(
-            name="Synthetic staff", scope=RoleScope.PLATFORM, status="active"
+            name="Platform Admin", scope=RoleScope.PLATFORM, status="active"
         )
         proof = PlatformAdminInvitation.generate_token()
         invitation = PlatformAdminInvitation.objects.create(

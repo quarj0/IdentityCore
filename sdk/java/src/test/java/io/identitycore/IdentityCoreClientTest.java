@@ -10,6 +10,28 @@ import static org.junit.jupiter.api.Assertions.*;
 class IdentityCoreClientTest {
 
     @Test
+    void dateFiltersSurviveListAndEveryCursorPage() {
+        List<String> urls = new ArrayList<>();
+        var client = IdentityCoreClient.builder().apiOrigin("https://api.example.test").clientId("c").clientSecret("s")
+            .transport((m, u, h, b, t) -> {
+                urls.add(u.toString());
+                String cursor = urls.size() == 3 ? "\"next\"" : "null";
+                return new IdentityCoreClient.RawResponse(200, "{\"success\":true,\"data\":{\"results\":[{\"id\":\"1\"}],\"pagination\":{\"next_cursor\":" + cursor + "}}}");
+            }).build();
+        client.verifications.list(null, null, 1, 20, "2026-01-01", "2026-01-31");
+        client.verifications.listCursor(null, null, null, 20, "2026-01-01", "2026-01-31");
+        int count = 0;
+        for (var item : client.verifications.iterate(null, null, 20, "2026-01-01", "2026-01-31")) count++;
+        assertEquals(2, count);
+        assertEquals(4, urls.size());
+        for (var url : urls) {
+            assertTrue(url.contains("created_from=2026-01-01"));
+            assertTrue(url.contains("created_to=2026-01-31"));
+        }
+        assertTrue(urls.get(3).contains("cursor=next"));
+    }
+
+    @Test
     void createsVerificationWithAuthAndIdempotency() throws Exception {
         List<String> seen = new ArrayList<>();
         IdentityCoreClient client = IdentityCoreClient.builder().apiOrigin("https://api.example.test").clientId("cli_test").clientSecret("secret")

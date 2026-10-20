@@ -43,7 +43,7 @@ credentials, or real tenant identifiers.
 ## Provider-side checklist
 
 1. Verify the HMAC signature against the exact body bytes before parsing JSON.
-2. Enforce the five-minute timestamp tolerance and atomically claim the key-ID/nonce pair.
+2. Enforce the five-minute timestamp tolerance and atomically claim a stable provider/direction identity and nonce across key rotations; exclude the rotating key ID.
 3. Preserve the nonce and invocation ID when signing the response.
 4. Reject unsupported contract versions before capability execution.
 5. Keep conformance behavior isolated from normal endpoints and production configuration.
@@ -51,3 +51,5 @@ credentials, or real tenant identifiers.
 
 The suite proves protocol compatibility only. Passing it is not provider certification,
 a security assessment, a model evaluation, or approval for production data.
+
+The disposable conformance secret is a direct message-signing key for the isolated conformance endpoint. Normal configured `hmac_v1` integrations derive that key from the encrypted environment API credential as specified in [Provider message signing](../../docs/architecture/provider-signing.md). Verify exact wire bytes in both modes.

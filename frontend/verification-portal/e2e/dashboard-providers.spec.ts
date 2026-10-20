@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("provider setup keeps credentials private and requires a new production proposal", async ({ page }) => {
-  type Configuration = { id: string; environment: string; version: number; status: string; configuration: { endpoint_url: string }; diff: Record<string, unknown>; test_succeeded: boolean; tested_at: string | null; approved_by: string | null };
+  type Configuration = { id: string; environment: string; version: number; status: string; configuration: { endpoint_url: string; signing_mode?: string }; diff: Record<string, unknown>; test_succeeded: boolean; tested_at: string | null; approved_by: string | null };
   const configs: Configuration[] = [];
   const submissions: Record<string, unknown>[] = [];
   const provider = { id: "prv_browser", tenant_id: "ten_browser", name: "Synthetic Provider", manifest: { capabilities: { document_quality: { countries: ["*"], document_types: ["*"] } } } };
@@ -18,7 +18,7 @@ test("provider setup keeps credentials private and requires a new production pro
     else if (path.endsWith("/providers/setup/")) { const body = request.postDataJSON(); expect(body.manifest.capabilities).toHaveProperty("document_quality"); data = { ...provider, name: body.name }; }
     else if (path.endsWith("/configurations/")) {
       if (request.method() === "GET") data = { results: configs };
-      else { const body = request.postDataJSON(); submissions.push(body); const config = { id: `pec_${configs.length + 1}`, environment: body.environment, version: 1, status: "draft", configuration: body.configuration, diff: {}, test_succeeded: false, tested_at: null, approved_by: null }; configs.push(config); data = config; }
+      else { const body = request.postDataJSON(); submissions.push(body); const source = configs.find((item) => item.id === body.source_id); const beforeMode = source?.configuration.signing_mode ?? "bearer"; const afterMode = body.configuration.signing_mode ?? "bearer"; const config = { id: `pec_${configs.length + 1}`, environment: body.environment, version: 1, status: "draft", configuration: body.configuration, diff: beforeMode === afterMode ? {} : { signing_mode: { before: beforeMode, after: afterMode } }, test_succeeded: false, tested_at: null, approved_by: null }; configs.push(config); data = config; }
     } else if (path.includes("/configurations/pec_")) {
       const config = configs.find((item) => path.includes(item.id));
       if (config && path.endsWith("/test/")) { config.test_succeeded = true; config.tested_at = "2026-10-04T12:00:00Z"; data = config; }
@@ -40,8 +40,10 @@ test("provider setup keeps credentials private and requires a new production pro
   await page.getByRole("button", { name: "Add provider", exact: true }).click();
   await page.getByLabel("HTTPS endpoint").fill("https://provider.example.test/sandbox");
   await page.getByLabel("New environment credential").fill("browser-sandbox-credential");
+  await expect(page.getByLabel("Provider authentication")).toHaveValue("hmac_v1");
   await page.getByRole("button", { name: "Request configuration" }).click();
   await expect(page.getByLabel("New environment credential")).toHaveValue("");
+  expect(submissions[0]).toMatchObject({ configuration: { signing_mode: "hmac_v1" } });
   await page.getByRole("button", { name: "Test connection" }).click();
   await expect(page.getByRole("status")).toContainText("passed");
   await page.getByRole("button", { name: "Activate sandbox" }).click();
@@ -50,10 +52,12 @@ test("provider setup keeps credentials private and requires a new production pro
   await page.getByRole("combobox", { name: "Environment", exact: true }).selectOption("production");
   await page.getByLabel("HTTPS endpoint").fill("https://provider.example.test/production");
   await page.getByLabel("New environment credential").fill("browser-production-credential");
+  await page.getByLabel("Provider authentication").selectOption("bearer");
   await page.getByRole("button", { name: "Request configuration" }).click();
   await expect(page.getByLabel("New environment credential")).toHaveValue("");
-  expect(submissions[1]).toMatchObject({ environment: "production", source_id: "pec_1", credentials: { api_key: "browser-production-credential" } });
+  expect(submissions[1]).toMatchObject({ configuration: { signing_mode: "bearer" }, environment: "production", source_id: "pec_1", credentials: { api_key: "browser-production-credential" } });
   await expect(page.getByRole("button", { name: "Approve production" })).toBeVisible();
+  await expect(page.getByText('signing mode: "hmac_v1" → "bearer"', { exact: true })).toBeVisible();
   await expect(page.locator("body")).not.toContainText("browser-sandbox-credential");
   await expect(page.locator("body")).not.toContainText("browser-production-credential");
   expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage))).not.toContain("credential");

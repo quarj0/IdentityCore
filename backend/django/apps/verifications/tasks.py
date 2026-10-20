@@ -1,8 +1,6 @@
-from datetime import timedelta
-
 from celery import shared_task
 from django.db import transaction
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Exists, OuterRef, Q, F
 from django.utils import timezone
 
 from apps.audit.services import lock_audit_chain, record_audit_event
@@ -24,6 +22,11 @@ from apps.verifications.models import (
 )
 from apps.verifications.processing_jobs import recover_stale_processing_jobs
 from apps.verifications.retention import active_retention_holds
+from apps.verifications.report_retention import (
+    retire_report_objects,
+    report_due_at,
+    refresh_pending_cleanup_deadlines,
+)
 from apps.verifications.transitions import transition_verification
 from apps.webhooks.services import queue_webhook_events
 from common.authorization import ServicePrincipal, require_service_access
@@ -77,7 +80,9 @@ RETENTION_COMPLETED_VERIFICATION_STATUSES = {
 
 @transaction.atomic
 def _expire_pending_verification(verification_id: int, now) -> bool:
-    tenant_id = Verification.objects.values_list("tenant_id", flat=True).get(pk=verification_id)
+    tenant_id = Verification.objects.values_list("tenant_id", flat=True).get(
+        pk=verification_id
+    )
     lock_audit_chain(tenant_id)
     verification = (
         Verification.objects.select_for_update()
@@ -169,32 +174,40 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
         action="verification.cleanup_media",
     )
     now = timezone.now()
+    refresh_pending_cleanup_deadlines(limit=limit)
     cleaned = 0
     candidates = (
         Verification.objects.select_related("tenant")
         .annotate(
             held=Exists(
-                active_retention_holds(now)
-                .filter(tenant_id=OuterRef("tenant_id"))
-                .filter(
-                    Q(verification_id__isnull=True) | Q(verification_id=OuterRef("id"))
+                active_retention_holds(now).filter(
+                    Q(tenant_id=OuterRef("tenant_id"), verification_id__isnull=True)
+                    | Q(verification_id=OuterRef("id"))
                 )
             )
         )
         .filter(
             status__in=RETENTION_COMPLETED_VERIFICATION_STATUSES,
             completed_at__isnull=False,
+            media_cleanup_completed_at__isnull=True,
+            media_cleanup_due_at__lte=now,
         )
     )
     held_verifications = candidates.filter(held=True).order_by("completed_at")
     deferred = 0
     for verification in held_verifications:
-        retention_days = int(
-            (verification.policy_snapshot_json or {}).get("media_retention_days", 30)
-        )
-        cutoff = verification.completed_at + timedelta(days=retention_days)
-        if cutoff > now:
+        cutoff = report_due_at(verification)
+        if cutoff is None:
+            Verification.objects.filter(pk=verification.pk).update(
+                media_cleanup_due_at=None, media_cleanup_attempted_at=now
+            )
             continue
+        if cutoff > now:
+            Verification.objects.filter(pk=verification.pk).update(
+                media_cleanup_due_at=cutoff
+            )
+            continue
+        retention_days = (cutoff - verification.completed_at).days
         record_audit_event(
             tenant=verification.tenant,
             action="retention.media_deletion_deferred",
@@ -205,19 +218,29 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
         deferred += 1
         if deferred >= limit:
             break
-    verifications = candidates.filter(held=False).order_by("completed_at")[:limit]
+    verifications = candidates.filter(held=False).order_by(
+        F("media_cleanup_attempted_at").asc(nulls_first=True), "completed_at", "pk"
+    )[:limit]
     for verification in verifications:
-        retention_days = int(
-            (verification.policy_snapshot_json or {}).get("media_retention_days", 30)
-        )
-        cutoff = verification.completed_at + timedelta(days=retention_days)
-        if cutoff > now:
+        cutoff = report_due_at(verification)
+        if cutoff is None:
+            Verification.objects.filter(pk=verification.pk).update(
+                media_cleanup_due_at=None, media_cleanup_attempted_at=now
+            )
             continue
+        if cutoff > now:
+            Verification.objects.filter(pk=verification.pk).update(
+                media_cleanup_due_at=cutoff
+            )
+            continue
+        retention_days = (cutoff - verification.completed_at).days
 
         if (
             active_retention_holds(timezone.now())
-            .filter(tenant=verification.tenant)
-            .filter(Q(verification__isnull=True) | Q(verification=verification))
+            .filter(
+                Q(tenant=verification.tenant, verification__isnull=True)
+                | Q(verification=verification)
+            )
             .exists()
         ):
             record_audit_event(
@@ -229,6 +252,9 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
             )
             continue
 
+        Verification.objects.filter(pk=verification.pk).update(
+            media_cleanup_attempted_at=now
+        )
         media_deleted = False
 
         media_bucket = get_object_storage_media_bucket_name()
@@ -237,8 +263,9 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
         ):
             for capture in identity_document.captures.filter(deleted_at__isnull=True):
                 try:
-                    if media_bucket:
-                        delete_object(bucket_name=media_bucket, key=capture.storage_key)
+                    if not media_bucket:
+                        raise RuntimeError("Media storage is unavailable.")
+                    delete_object(bucket_name=media_bucket, key=capture.storage_key)
                 except Exception:
                     record_audit_event(
                         tenant=verification.tenant,
@@ -255,8 +282,9 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
 
         for selfie in verification.selfie_captures.filter(deleted_at__isnull=True):
             try:
-                if media_bucket:
-                    delete_object(bucket_name=media_bucket, key=selfie.storage_key)
+                if not media_bucket:
+                    raise RuntimeError("Media storage is unavailable.")
+                delete_object(bucket_name=media_bucket, key=selfie.storage_key)
             except Exception:
                 record_audit_event(
                     tenant=verification.tenant,
@@ -271,7 +299,31 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
             selfie.save(update_fields=["status", "deleted_at", "updated_at"])
             media_deleted = True
 
-        if not media_deleted:
+        reports_deleted = retire_report_objects(verification, now=now)
+        with transaction.atomic():
+            lock_audit_chain(verification.tenant_id)
+            current = Verification.objects.select_for_update(
+                of=("self",), no_key=True
+            ).get(pk=verification.pk)
+            metadata = current.metadata_json or {}
+            tracking_valid = isinstance(metadata, dict) and isinstance(
+                metadata.get("evidence_report_pending_cleanup_keys", []), list
+            )
+            from apps.document_captures.models import DocumentCapture
+            from apps.verifications.report_retention import REPORT_FIELDS, PENDING
+
+            if (
+                tracking_valid
+                and not DocumentCapture.objects.filter(
+                    identity_document__verification=current, deleted_at__isnull=True
+                ).exists()
+                and not current.selfie_captures.filter(deleted_at__isnull=True).exists()
+                and not any(field in metadata for field in REPORT_FIELDS.values())
+                and not metadata.get(PENDING)
+            ):
+                current.media_cleanup_completed_at = now
+                current.save(update_fields=["media_cleanup_completed_at", "updated_at"])
+        if not media_deleted and not reports_deleted:
             continue
 
         from apps.risk.models import ReuseFingerprint

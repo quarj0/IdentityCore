@@ -1,12 +1,13 @@
 # Provider message signing protocol (v1)
 
-The repository supplies an HMAC-SHA256 signing helper and fixture. The current
-configured provider transport uses bearer authentication; it does not invoke this
-helper or verify signed responses. Integrating signing into that transport and
-configuring a shared atomic nonce store remain required before claiming signed
-BYOP traffic or replay protection across workers.
+Set `signing_mode` to `hmac_v1` in an environment's provider configuration to
+sign connection tests and capability requests and require authenticated responses.
+The provider setup form selects this mode for new configurations. Existing
+configurations without the field retain bearer authentication; `bearer` is an
+explicit compatibility option and provides no message signature or nonce guarantee.
+A signed connection test must pass before activation, including production approval.
 
-When integrated, every request and response carries `X-IC-Key-Id`, `X-IC-Timestamp`, `X-IC-Nonce`,
+In signed mode, every request and response carries `X-IC-Key-Id`, `X-IC-Timestamp`, `X-IC-Nonce`,
 `X-IC-Signature-Version`, and `X-IC-Signature`. Responses must echo the request
 nonce, which binds them to the initiating call. A verifier rejects messages more
 than five minutes from its clock and atomically claims each accepted nonce, so a
@@ -53,6 +54,36 @@ Malformed values are rejected before comparison or nonce claims.
 Use one stable replay namespace per provider and traffic direction across signing
 key rotations. Nonce claims exclude key IDs, so an accepted nonce cannot be
 reused under another active key. Independent providers may use separate namespaces.
-The default helper uses Django's cache, whose default local-memory backend is
-process-local; production integration must supply a shared atomic `claim_nonce`
-implementation rather than relying on that development default.
+The helper uses the dedicated `provider_signatures` Django cache alias backed by
+Redis at `REDIS_URL`. Claims use Redis's atomic insert-if-absent operation across
+API and worker processes. Configure Redis without eviction of live nonce keys;
+unit tests explicitly use an isolated local-memory alias. A Redis outage fails
+closed with retryable `provider_replay_store_unavailable`, never unsigned acceptance.
+
+## Credential derivation and interoperability
+
+The existing encrypted environment API credential is also the input to a
+purpose-specific signing-key derivation. The signing secret is the lowercase
+hexadecimal HMAC-SHA256 of the ASCII bytes `identitycore-provider-hmac-v1`, keyed
+by the API credential's ASCII bytes. Use those 64 hexadecimal characters as the
+UTF-8 key for the message signature algorithm above. Do not use the raw API key
+directly as the message-signing key. The request key ID is the configuration's
+public ID; the provider must echo that ID in its signed response.
+
+The request retains its bearer Authorization header for provider authentication.
+Verify the signature over the exact request body bytes and the POST URL path
+(including an unchanged query, if present). Sign the exact response body bytes
+using that same method/path and echo the request nonce. Responses may choose a
+fresh timestamp within the five-minute tolerance. Missing, malformed, stale,
+unbound or invalid response signatures fail before JSON results are returned.
+No response-signature failure falls back to bearer mode. Signed HTTP error bodies
+are also bounded and authenticated before their status can control retries, fallback
+or circuit state. Authenticated HTTP errors retain their status-based retry semantics;
+unsigned, altered or replayed errors return `provider_signature_invalid`.
+
+Replay namespaces bind provider ID, environment and response direction, excluding
+configuration/key IDs so rotation cannot reopen an accepted nonce. Nonces expire
+after twice the timestamp tolerance. Cache connections and operations have a
+one-second timeout independent of the bounded provider HTTP exchange.
+
+The exact-wire interoperability cases in [`provider-signing-wire-v1.json`](../fixtures/provider-signing-wire-v1.json) cover Python and ECMAScript number formatting, signed zero and supplementary Unicode key ordering. Python and Node regression tests verify the published signatures over each raw body; reserializing a received body changes its signature.

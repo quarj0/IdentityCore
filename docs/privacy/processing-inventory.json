@@ -33,14 +33,14 @@
         "backend/django/apps/notifications/models.py",
         "backend/django/apps/tenants/models.py"
       ],
-      "retention": "Account and membership lifetime, followed by the configured legal/security deletion period; short-lived tokens expire and are purged.",
+      "retention": "Account and membership lifetime, followed by the configured legal/security deletion period. Email-verification and password-reset capabilities expire or are marked used/revoked, but their user-linked hash/timestamp rows have no scheduled purge; they remain until user deletion (CASCADE) or controlled maintenance. Refresh/session history has separate expiry-based scheduled cleanup in accounts.sessions, including a 90-day expired dashboard-session history window.",
       "processors": [
         "IdentityCore Django",
         "PostgreSQL",
         "configured email/SMS provider",
         "Customer-approved AWS KMS, including CloudHSM-backed customer keys"
       ],
-      "transfers": "Notification contact data is sent only to the tenant-configured notification provider; deployment owner records region and safeguards. Only random DEKs and connection probes are sent to the customer-approved KMS region; applicant plaintext stays in the application. Deployment records document region and safeguards.",
+      "transfers": "Tenant notification contact data is sent to the tenant-configured provider. Platform administrator invitation contact data and encrypted single-use delivery payload use deployment email configuration, never tenant provider credentials; terminal delivery clears the credential. The deployment owner records region and safeguards. Only random DEKs and connection probes are sent to the customer-approved KMS region; applicant plaintext stays in the application. Deployment records document region and safeguards.",
       "owners": [
         "identity",
         "security",
@@ -58,20 +58,25 @@
         "contact details",
         "session token hash",
         "workflow responses",
-        "decision and risk signals"
+        "decision and risk signals",
+        "session-specific HttpOnly BFF bearer cookie; transient link fragment retained until successful exchange",
+        "Indexed raw-media/report cleanup deadline, last attempt and completion timestamps; retirement markers and retryable owned JSON/PDF report references in verification metadata"
       ],
       "purpose": "Create and execute tenant-requested identity verification workflows.",
       "locations": [
         "backend/django/apps/verification_subjects/models.py",
         "backend/django/apps/verification_sessions/models.py",
         "backend/django/apps/verifications/models.py",
-        "backend/django/apps/risk/models.py"
+        "backend/django/apps/risk/models.py",
+        "frontend/verification-portal/src/lib/session-credentials.ts",
+        "backend/django/apps/verifications/report_retention.py"
       ],
-      "retention": "Tenant policy controls the verification record; session credentials are short-lived; minimization and deletion jobs apply after the case retention window.",
+      "retention": "Snapshotted tenant policy controls the verification record. Raw captures and JSON/PDF reports containing profile/contact/OCR data follow media_retention_days from completion, subject to legal holds; outcomes/audit/metadata follow their separate schedules. Indexed cleanup/deadline-repair attempts retain failed object references until confirmed deletion. Missing/unreadable/invalid legacy policies and completion times are not guessed; bounded deadline repair retries after key recovery, with controlled reconciliation for unresolved records or storage orphans. Subject deletion revokes processing and scrubs profile/metadata/provider/export/known notification copies while preserving tracked raw-report references and required pseudonymous facts. Session credentials are short-lived; capability expiry is distinct from row erasure.",
       "processors": [
         "IdentityCore Django",
         "PostgreSQL",
-        "tenant-selected verification providers"
+        "tenant-selected verification providers",
+        "IdentityCore verification portal BFF"
       ],
       "transfers": "Only policy-required attributes/evidence are sent through enabled provider adapters; cross-border region and safeguards are deployment records.",
       "owners": [
@@ -89,7 +94,9 @@
         "face embedding",
         "match/liveness scores",
         "quality and fraud signals",
-        "optional keyed document/portrait/device/network reuse fingerprints"
+        "optional keyed document/portrait/device/network reuse fingerprints",
+        "active challenge ID, protocol and ordered requested/observed directions",
+        "Explicit legacy face-count correction metadata: previous default count, reason, migration cohort and correction time; retained with the associated selfie/report provenance."
       ],
       "purpose": "Assess document authenticity, extract asserted identity data, and produce biometric match/liveness evidence.",
       "locations": [
@@ -107,7 +114,7 @@
         "S3-compatible object storage",
         "tenant-selected document/biometric providers"
       ],
-      "transfers": "Media leaves the deployment only when the tenant policy selects an external provider; provider region, subprocessors, and transfer mechanism must be recorded before enablement.",
+      "transfers": "Media leaves the deployment only when the tenant policy selects an external provider; provider region, subprocessors, and transfer mechanism must be recorded before enablement. Active providers receive the issued challenge ID/protocol and ordered directions; returned observations bind that same challenge. These associated-case signals follow biometric evidence access and retention.",
       "owners": [
         "identity",
         "security",
@@ -118,6 +125,7 @@
       "id": "consent-audit-and-compliance",
       "fields": [
         "consent artifact and acceptance",
+        "Request provenance distinguishing direct immediate-peer metadata from signed portal context, ingress-asserted or unavailable subject IP, and browser-reported User-Agent",
         "actor identity",
         "IP address",
         "user agent",
@@ -277,6 +285,37 @@
       "owners": [
         "platform",
         "identity",
+        "security",
+        "privacy"
+      ]
+    },
+    {
+      "id": "notification-delivery",
+      "fields": [
+        "Recipient email/phone or in-app destination and recipient type",
+        "Subject and body preview, including account reset/verification or applicant link content in flows that persist it",
+        "Channel, template code, delivery status, timestamps and provider reference",
+        "Encrypted pending platform/team invitation delivery payload; platform invitation capabilities expire after seven days",
+        "Optional tenant-validated subject identifier for deletion-safe delivery; unmatched legacy subject recipients require controlled reconciliation"
+      ],
+      "purpose": "Deliver account, invitation, verification-status and operational notifications and retain delivery state for authorized support.",
+      "locations": [
+        "backend/django/apps/notifications/models.py",
+        "backend/django/apps/notifications/services.py",
+        "backend/django/apps/accounts/passwords.py",
+        "backend/django/apps/accounts/verification.py",
+        "backend/django/apps/notifications/privacy.py"
+      ],
+      "retention": "No scheduled notification-row purge is implemented. Subject deletion pseudonymizes linked subject notifications and tenant-scoped legacy matches against the subject current contacts: recipient becomes a non-deliverable deleted marker, subject/body preview, provider reference and encrypted delivery data are cleared; pending/failed sends are cancelled. Sent status/timestamp and opaque subject linkage remain for delivery/audit facts. Unknown historical contacts and previously erased unbound records require controlled reconciliation; there is no inferred universal historical identity mapping. Other recipient types and unmatched messages remain until controlled explicit deletion. Invitation delivery payloads are cleared on terminal delivery, not capability expiry alone. Deployment privacy owners must define and implement the approved record/provider deletion schedule before release.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "Tenant-configured email/SMS transport",
+        "Deployment email transport for platform administrator invitations"
+      ],
+      "transfers": "Destination and message content are sent to the selected notification transport. Platform administrator invitations use deployment email configuration, never tenant credentials. Record each provider, region, retention and transfer safeguards in the controlled deployment register. Repository persistence is separate from provider-side retention.",
+      "owners": [
+        "platform",
         "security",
         "privacy"
       ]
@@ -2271,6 +2310,11 @@
     },
     {
       "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.face_detection_correction_json",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
       "field": "SelfieCapture.face_detection_confidence",
       "activity": "document-and-biometric-evidence"
     },
@@ -2827,82 +2871,87 @@
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.body_preview",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.channel",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.created_at",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.deleted_at",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.delivery_json",
-      "activity": "account-and-tenant-administration"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.id",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.provider_reference",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.public_id",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.recipient",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.recipient_type",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.sent_at",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.status",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.subject",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.template_code",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.tenant",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.updated_at",
-      "activity": "workflow-configuration-and-operations"
+      "activity": "notification-delivery"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.verification_subject",
+      "activity": "notification-delivery"
     },
     {
       "source": "backend/django/apps/organizations/models.py",
@@ -4506,6 +4555,16 @@
     },
     {
       "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.original_storage_key",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.original_cleanup_attempted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
       "field": "Upload.capture_method",
       "activity": "document-and-biometric-evidence"
     },
@@ -5377,6 +5436,21 @@
     {
       "source": "backend/django/apps/verifications/models.py",
       "field": "Verification.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.media_cleanup_attempted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.media_cleanup_completed_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.media_cleanup_due_at",
       "activity": "verification-subject-and-session"
     },
     {

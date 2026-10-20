@@ -49,6 +49,7 @@ class SelfieCapture(PublicIdModel, BaseModel):
     )
     face_detection_model_name = models.CharField(max_length=120, blank=True)
     face_detection_model_version = models.CharField(max_length=64, blank=True)
+    face_detection_correction_json = models.JSONField(default=dict, blank=True)
     status = models.CharField(
         max_length=32,
         choices=SelfieCaptureStatus.choices,

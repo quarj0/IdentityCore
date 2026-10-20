@@ -1,5 +1,7 @@
 """Durable deterministic samples, independent reviewers and private QA results."""
 
+from common.authorization import AuthorizationAction, decide_user_access
+
 from django.db import transaction
 from django.db.models import Max, Q
 from django.utils import timezone
@@ -18,6 +20,13 @@ from apps.verifications.review_reasons import CODE, validate_reviewer_input
 
 
 def visible_samples(user):
+    if not decide_user_access(
+        user,
+        action=AuthorizationAction.MANUAL_REVIEW,
+        tenant=user.tenant_id,
+        review_owner="tenant",
+    ).allowed:
+        return ReviewQualityAssignment.objects.none()
     return ReviewQualityAssignment.objects.filter(
         tenant_id=user.tenant_id, deleted_at__isnull=True
     ).exclude(Q(maker=user) | Q(checker=user))

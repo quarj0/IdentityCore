@@ -76,7 +76,6 @@ export function LiveWebhooksPage() {
     const form = event.currentTarget;
     const data = new FormData(form);
     setBusy("create");
-    setSecret("");
     setMessage("");
     setError("");
     try {

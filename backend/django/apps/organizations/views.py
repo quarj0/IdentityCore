@@ -124,8 +124,6 @@ class OrganizationDocumentContentUploadView(APIView):
             deleted_at__isnull=True,
         )
         content_type = (request.content_type or "").split(";", maxsplit=1)[0].lower()
-        content = request.body
-
         if content_type != "application/pdf":
             return error_response(
                 "unsupported_media_type",
@@ -133,7 +131,12 @@ class OrganizationDocumentContentUploadView(APIView):
                 request=request,
                 status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             )
-        if not content or len(content) != document.file_size_bytes:
+        # Read the declared PDF plus one byte from the stream. Accessing .body
+        # applies Django's unrelated 2.5 MiB JSON/form memory limit first.
+        maximum = 10 * 1024 * 1024
+        expected = document.file_size_bytes
+        content = request.read(min(expected, maximum) + 1)
+        if expected > maximum or not content or len(content) != expected:
             return error_response(
                 "invalid_upload_size",
                 "The uploaded document does not match the expected file size.",

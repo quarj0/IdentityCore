@@ -1,6 +1,6 @@
 # Tenant review queues
 
-Queue configuration uses authenticated dashboard sessions and the `manage_team` role permission. API credentials cannot administer reviewer skills. Routes are internal under `/api/v1/verifications`:
+Queue access requires an active tenant role granting `review_verification`; configuration additionally requires `manage_team`. See [reviewer permission rollout](reviewer-permissions.md). All routes use authenticated dashboard sessions. API credentials cannot administer reviewer skills. Routes are internal under `/api/v1/verifications`:
 
 - `GET/POST /review-queues`: list or create tenant queues. Creation accepts `name`, `environment` (`sandbox` or `production`), `priority` (0–1000), `sla_minutes` (1–43200), `country_codes` (unique uppercase two-letter codes), `required_skills` (unique lowercase machine codes), and `active`.
 - `PATCH /review-queues/{queue_id}`: edit configuration. Environment cannot change. Deactivate a queue to pause assignments; entries keep their original priority, deadline and skill requirements.

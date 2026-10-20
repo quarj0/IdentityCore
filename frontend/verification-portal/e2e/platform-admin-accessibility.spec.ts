@@ -1,7 +1,10 @@
-import { createRequire } from "node:module";
+import { csvCell } from "../../platform-admin/src/lib/export-csv";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-const require = createRequire(import.meta.url);
+import {
+  expectNoCriticalA11yViolations as assertNoSeriousViolations,
+  focusByTab,
+} from "./a11y-helpers";
 const organizationId = "org_a11y_review";
 
 const reviewItem = {
@@ -21,7 +24,7 @@ const reviewItem = {
   currentStep: "organization_verification",
   organizationVerificationSubmittedAt: "2026-08-22T12:00:00Z",
   organizationVerificationEditable: false,
-  organizationVerificationReviewStatus: "pending",
+  organizationVerificationReviewStatus: "submitted",
   organizationVerificationChangedAfterApproval: false,
   organizationVerificationReviewedAt: null,
   organizationVerificationReviewNote: "",
@@ -34,41 +37,16 @@ const reviewItem = {
   officialWebsite: "https://example.test",
   reviewPriority: "high",
   reviewSummary: "Manual review required for submitted organization evidence.",
-  supportingDocuments: [],
+  supportingDocuments: [
+    {
+      id: "odc_synthetic",
+      filename: "Synthetic supporting evidence.pdf",
+      status: "submitted",
+      file_size_bytes: 128,
+      download_url: "http://127.0.0.1:3004/synthetic-evidence.pdf",
+    },
+  ],
 };
-
-async function assertNoSeriousViolations(page: Page) {
-  await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
-  const violations = await page.evaluate(async () => {
-    const axe = (
-      window as unknown as {
-        axe: {
-          run: (
-            context?: unknown,
-            options?: unknown,
-          ) => Promise<{
-            violations: Array<{
-              id: string;
-              impact: string | null;
-              nodes: unknown[];
-            }>;
-          }>;
-        };
-      }
-    ).axe;
-    const result = await axe.run(document, {
-      runOnly: {
-        type: "tag",
-        values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"],
-      },
-    });
-    return result.violations.filter(
-      (violation) =>
-        violation.impact === "serious" || violation.impact === "critical",
-    );
-  });
-  expect(violations).toEqual([]);
-}
 
 async function mockAdminBackend(page: Page) {
   let currentReviewItem = { ...reviewItem };
@@ -181,7 +159,7 @@ test("review queue and decision flow are WCAG-clean and keyboard operable", asyn
   const reviewLink = page
     .getByRole("link", { name: /accessible organization/i })
     .first();
-  await reviewLink.focus();
+  await focusByTab(page, reviewLink);
   await expect(reviewLink).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/review/${organizationId}$`));
@@ -191,16 +169,37 @@ test("review queue and decision flow are WCAG-clean and keyboard operable", asyn
   ).toBeVisible();
   await assertNoSeriousViolations(page);
 
+  await page
+    .context()
+    .route("**/synthetic-evidence.pdf", (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: "<html><title>Synthetic evidence</title><body>Synthetic supporting evidence</body></html>",
+      }),
+    );
+  const evidence = page.getByRole("link", { name: "Open file", exact: true });
+  await focusByTab(page, evidence);
+  const popupPromise = page.waitForEvent("popup");
+  await page.keyboard.press("Enter");
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL(/synthetic-evidence\.pdf$/);
+  await popup.close();
+  await page.bringToFront();
+
   const note = page.getByRole("textbox", { name: "Review note" });
-  await note.focus();
+  await focusByTab(page, note);
   await expect(note).toBeFocused();
   await page.keyboard.type("Evidence checked with keyboard-only navigation.");
 
   const approve = page.getByRole("button", { name: "Approve" });
-  await approve.focus();
+  await focusByTab(page, approve);
   await expect(approve).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByText(/approved/i).first()).toBeVisible();
+  await expect(approve).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Reject", exact: true }),
+  ).toBeDisabled();
   await assertNoSeriousViolations(page);
 });
 
@@ -269,6 +268,116 @@ async function mockTemplateLifecycle(page: Page, status: string) {
     }
   });
 }
+
+test("workflow author can create steps, edit their order and publish the draft", async ({
+  page,
+}) => {
+  await mockAdminBackend(page);
+  let workflow = {
+    ...lifecycleTemplate,
+    id: "wfl_authored",
+    name: "Authored workflow",
+    status: "draft",
+    projectName: "Synthetic project",
+    currentVersion: 0,
+    steps: ["consent", "document", "decision"],
+    settings: {},
+  };
+  let created = false;
+  let published = false;
+  await page.route("**/api/graphql", async (route) => {
+    const payload = route.request().postDataJSON();
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+    };
+    if (payload.query.includes("mutation CreateWorkflow")) {
+      expect(payload.query).toContain("steps: $steps");
+      expect(payload.variables.steps).toEqual([
+        "consent",
+        "document",
+        "selfie",
+        "liveness",
+        "decision",
+      ]);
+      expect(payload.variables.tenantId).toBe("ten_synthetic");
+      expect(payload.variables.projectId).toBe("prj_synthetic");
+      workflow = { ...workflow, ...payload.variables };
+      created = true;
+      await route.fulfill({ headers, json: { data: { workflow } } });
+    } else if (payload.query.includes("mutation UpdateWorkflow")) {
+      expect(payload.query).toContain("steps: $steps");
+      expect(payload.variables.steps).toEqual([
+        "consent",
+        "selfie",
+        "document",
+        "liveness",
+        "decision",
+      ]);
+      workflow = { ...workflow, ...payload.variables };
+      await route.fulfill({ headers, json: { data: { workflow } } });
+    } else if (payload.query.includes("mutation PublishWorkflow")) {
+      expect(payload.variables.workflowId).toBe(workflow.id);
+      published = true;
+      workflow = { ...workflow, status: "published", currentVersion: 1 };
+      await route.fulfill({
+        headers,
+        json: {
+          data: { publishPlatformWorkflow: { id: "wfv_authored", version: 1 } },
+        },
+      });
+    } else {
+      await route.fulfill({
+        headers,
+        json: {
+          data: {
+            platformWorkflows: created ? [workflow] : [],
+            platformWorkflow: workflow,
+            platformWorkflowVersions: [],
+          },
+        },
+      });
+    }
+  });
+  await page.goto("/workflows");
+  await page
+    .getByRole("button", { name: "Create workflow", exact: true })
+    .click();
+  await page.getByLabel("Tenant ID", { exact: true }).fill("ten_synthetic");
+  await page.getByLabel("Project ID", { exact: true }).fill("prj_synthetic");
+  await page
+    .getByLabel("Workflow name", { exact: true })
+    .fill("Authored workflow");
+  await page.getByRole("button", { name: "Add Selfie", exact: true }).click();
+  await page.getByRole("button", { name: "Add Liveness", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Remove Consent", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Create draft", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page
+    .getByRole("link", { name: "Authored workflow", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Edit draft", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Move Selfie up", exact: true })
+    .click();
+  await assertNoSeriousViolations(page);
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await page
+    .getByLabel("Release notes", { exact: true })
+    .fill("Reviewed ordered verification steps.");
+  await page
+    .getByRole("button", { name: "Publish workflow", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Archive", exact: true }),
+  ).toBeVisible();
+  expect(created).toBe(true);
+  expect(published).toBe(true);
+});
 
 for (const status of ["draft", "published", "archived"]) {
   test(`template ${status} exposes only valid lifecycle actions`, async ({
@@ -487,3 +596,172 @@ for (const entity of ["template", "workflow"]) {
     });
   }
 }
+
+test("platform invitation acceptance clears the fragment and continues through sign-in", async ({
+  page,
+}) => {
+  const submissions: Record<string, unknown>[] = [];
+  await page.route("**/api/graphql", async (route) => {
+    const request = route.request();
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers":
+        "Content-Type, X-IdentityCore-Session-Scope",
+    };
+    if (request.method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    expect(request.headers().authorization).toBeUndefined();
+    expect(request.headers()["x-identitycore-session-scope"]).toBe(
+      "platform_admin",
+    );
+    submissions.push(request.postDataJSON().variables);
+    return route.fulfill({
+      headers,
+      json: {
+        data: {
+          acceptPlatformAdminInvitation: {
+            user: { email: "synthetic@example.test" },
+            mfaRequired: true,
+          },
+        },
+      },
+    });
+  });
+  await page.goto("/accept-invitation#token=synthetic-invitation-token");
+  await expect(page).toHaveURL(/\/accept-invitation$/);
+  await page.getByLabel("New password").fill("StrongSyntheticPassword123!");
+  await page
+    .getByRole("button", { name: "Accept invitation", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "Your account was created",
+  );
+  expect(submissions).toEqual([
+    {
+      token: "synthetic-invitation-token",
+      password: "StrongSyntheticPassword123!",
+    },
+  ]);
+  expect(
+    await page.evaluate(() =>
+      JSON.stringify({ ...sessionStorage, ...localStorage }),
+    ),
+  ).not.toContain("synthetic-invitation-token");
+  await expect(
+    page.getByRole("link", { name: "Continue to sign in" }),
+  ).toHaveAttribute("href", "/login");
+  await assertNoSeriousViolations(page);
+});
+
+test("platform invitation UI states full privilege and queues a validated address", async ({
+  page,
+}) => {
+  await mockAdminBackend(page);
+  const submissions: Record<string, unknown>[] = [];
+  await page.route("**/api/graphql", async (route) => {
+    const request = route.request();
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, X-IdentityCore-Session-Scope",
+    };
+    if (request.method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    const body = request.postDataJSON();
+    if (body.query.includes("InvitePlatformAdmin")) {
+      submissions.push(body.variables);
+      return route.fulfill({
+        headers,
+        json: {
+          data: {
+            invitePlatformAdmin: {
+              invitation: { id: "pinv_synthetic", status: "pending" },
+            },
+          },
+        },
+      });
+    }
+    return route.fulfill({ headers, json: { data: { platformAdmins: [] } } });
+  });
+  await page.goto("/users");
+  await page.getByRole("button", { name: "Invite admin", exact: true }).click();
+  await expect(
+    page.getByText("This invitation grants full platform administration.", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await page.getByLabel("Email address").fill("not-an-address");
+  await expect(
+    page.getByRole("button", { name: "Send invite" }),
+  ).toBeDisabled();
+  await page.getByLabel("Email address").fill("synthetic@example.test");
+  await page.getByRole("button", { name: "Send invite" }).click();
+  await expect(page.getByRole("status")).toContainText("Invitation queued");
+  expect(submissions).toEqual([
+    { email: "synthetic@example.test", roleName: "Platform Admin" },
+  ]);
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("CSV exports neutralize formula and control prefixes", () => {
+  for (const value of [
+    '=HYPERLINK("https://example.test")',
+    "+1+1",
+    "-1+1",
+    "@SUM(1)",
+    "  =1+1",
+    "\t=1+1",
+    "\rvalue",
+    "\nvalue",
+  ]) {
+    expect(csvCell(value).startsWith("\"'")).toBe(true);
+  }
+  expect(csvCell('ordinary "text"')).toBe('"ordinary ""text"""');
+  expect(csvCell(null)).toBe('""');
+});
+
+test("generic admin lists retain a functional safe export of loaded results", async ({
+  page,
+}) => {
+  await mockAdminBackend(page);
+  await page.route("**/api/graphql", async (route) => {
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, X-IdentityCore-Session-Scope",
+    };
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    return route.fulfill({
+      headers,
+      json: {
+        data: {
+          platformProviders: [
+            {
+              id: "prv_synthetic",
+              name: "=SUM(1)",
+              code: "synthetic",
+              providerType: "document",
+              status: "active",
+              configuration: { configured: true },
+              updatedAt: "2026-10-18T00:00:00Z",
+            },
+          ],
+        },
+      },
+    });
+  });
+  await page.goto("/providers");
+  const pending = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Export loaded results", exact: true })
+    .click();
+  const stream = await (await pending).createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(chunk);
+  expect(Buffer.concat(chunks).toString()).toContain('"\'=SUM(1)"');
+});

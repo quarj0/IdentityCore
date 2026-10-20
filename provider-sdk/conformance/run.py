@@ -10,6 +10,7 @@ import ipaddress
 import json
 import math
 import os
+import re
 import secrets
 import socket
 import sys
@@ -161,7 +162,10 @@ def _verify_response_signature(
         body=result.body,
         secret=secret,
     )
-    if not hmac.compare_digest(headers["x-ic-signature"], expected):
+    supplied = headers["x-ic-signature"]
+    if not isinstance(supplied, str) or re.fullmatch(r"[0-9a-f]{64}", supplied) is None:
+        raise ConformanceError(f"{case_id}: response signature is invalid.")
+    if not hmac.compare_digest(supplied, expected):
         raise ConformanceError(f"{case_id}: response signature is invalid.")
 
 
@@ -177,11 +181,12 @@ def _send(
                 response.read(1_048_577),
             )
     except error.HTTPError as exc:
-        return HTTPResult(
-            exc.code,
-            {key.lower(): value for key, value in exc.headers.items()},
-            exc.read(1_048_577),
-        )
+        with exc:
+            return HTTPResult(
+                exc.code,
+                {key.lower(): value for key, value in exc.headers.items()},
+                exc.read(1_048_577),
+            )
 
 
 def _validate_result(

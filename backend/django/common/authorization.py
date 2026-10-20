@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+REVIEW_VERIFICATION_PERMISSION = "review_verification"
+
 
 class AuthorizationAction(StrEnum):
     AUTHENTICATED = "authenticated"
@@ -53,7 +55,8 @@ def decide_user_access(
 ) -> AuthorizationDecision:
     """Return the shared authorization decision for an interactive user.
 
-    Supplying ``permission_code`` opts an action into explicit RBAC. Unknown,
+    Tenant manual review always requires ``review_verification``. Supplying
+    ``permission_code`` adds an explicit RBAC requirement to other actions. Unknown,
     inactive, incorrectly scoped, and unassigned roles all deny by default.
     Existing tenant membership checks remain available for endpoints whose
     permissions have not yet been decomposed into role permission codes.
@@ -79,6 +82,11 @@ def decide_user_access(
         return _allow() if is_platform_admin else _deny()
 
     if action == AuthorizationAction.MANUAL_REVIEW:
+        if (
+            getattr(user, "status", "active") != "active"
+            or getattr(user, "deleted_at", None) is not None
+        ):
+            return _deny("active_reviewer_required")
         if review_owner == ReviewOwner.PLATFORM:
             return _allow() if is_platform_admin else _deny()
         if review_owner == ReviewOwner.TENANT:
@@ -86,12 +94,24 @@ def decide_user_access(
                 return _deny()
             if target_tenant_id is None or user_tenant_id != target_tenant_id:
                 return _deny()
+            required = _has_role_permission(
+                user, REVIEW_VERIFICATION_PERMISSION, target_tenant_id
+            )
+            if not required.allowed:
+                return required
             return _has_role_permission(user, permission_code, target_tenant_id)
 
         # Collection-level permission; object ownership is enforced when the
         # queryset or object permission is evaluated.
-        if is_platform_admin or user_tenant_id is not None:
+        if is_platform_admin:
             return _allow()
+        if user_tenant_id is not None:
+            required = _has_role_permission(
+                user, REVIEW_VERIFICATION_PERMISSION, user_tenant_id
+            )
+            if not required.allowed:
+                return required
+            return _has_role_permission(user, permission_code, user_tenant_id)
         return _deny()
 
     if action != AuthorizationAction.TENANT_ACCESS:

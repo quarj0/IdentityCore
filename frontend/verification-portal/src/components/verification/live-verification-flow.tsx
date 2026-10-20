@@ -47,6 +47,7 @@ import {
 } from "@/lib/safe-navigation";
 import {
   direction,
+  countryLabel,
   localizeText,
   resolveLocale,
   supportedLocales as portalLocales,
@@ -467,6 +468,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         locale={initialLocale}
         title={localizeText(initialLocale, "Verification unavailable")}
         message={localizeText(initialLocale, error)}
+        onRetry={() => window.location.reload()}
       />
     );
   }
@@ -661,16 +663,15 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
                 {session.consent.content}
               </span>
               <span className="sr-only">
-                Consent template version {session.consent.version}. Consent
-                template version{" "}
-                {session.consent.version ?? "organization default"}.
+                {t("Consent template version")}{" "}
+                {session.consent.version ?? t("organization default")}.
               </span>
             </span>
           </label>
           <div className="flex items-center justify-between gap-4 border-t border-border pt-5">
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
-              Consent is recorded in the audit trail
+              {t("Consent is recorded in the audit trail")}
             </p>
             <Button
               disabled={!consented || busy}
@@ -694,7 +695,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
       {step === "document_capture" ? (
         <StepCard
           eyebrow={t("Step 2 of 5")}
-          title={`${t("Capture your")} ${selectedDocument.label}`}
+          title={`${t("Capture your")} ${t(selectedDocument.label)}`}
           description={
             captureRequirements.length > 1
               ? t(
@@ -737,7 +738,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
                     key={country.country_code}
                     value={country.country_code}
                   >
-                    {country.country_name}
+                    {countryLabel(session.locale, country.country_code, country.country_name)}
                   </option>
                 ))}
               </select>
@@ -769,7 +770,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
                     key={document.document_type}
                     value={document.document_type}
                   >
-                    {document.label}
+                    {t(document.label)}
                   </option>
                 ))}
               </select>
@@ -785,14 +786,14 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
                 aria-pressed={
                   requirement.side === activeCaptureRequirement.side
                 }
-                className={`rounded-2xl border px-4 py-3 text-left transition ${
+                className={`rounded-2xl border px-4 py-3 text-start transition ${
                   requirement.side === activeCaptureRequirement.side
                     ? "border-info bg-info/10 ring-2 ring-info/20"
                     : "border-border bg-card hover:border-info/40"
                 }`}
               >
                 <span className="block text-sm font-semibold text-foreground">
-                  {requirement.label}
+                  {t(requirement.label)}
                 </span>
                 <span className="mt-1 block text-xs text-foreground">
                   {documentFiles[requirement.side]
@@ -804,7 +805,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
           </div>
           <div>
             <p className="mb-3 text-sm font-semibold text-foreground">
-              {t("Capture")} {activeCaptureRequirement.label.toLowerCase()}
+              {t("Capture")} {t(activeCaptureRequirement.label)}
             </p>
             {activeDocumentFile ? (
               <EvidenceReview
@@ -827,7 +828,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
               <CameraCapture
                 locale={session.locale}
                 facingMode="environment"
-                label={`${selectedDocument.label} ${activeCaptureRequirement.label} camera`}
+                label={`${t(selectedDocument.label)} ${t(activeCaptureRequirement.label)} ${t("camera")}`}
                 onCapture={(nextFile) =>
                   selectDocumentEvidence(
                     activeCaptureRequirement.side,
@@ -896,7 +897,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
               }
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {busy ? "Uploading document…" : "Submit document"}
+              {busy ? t("Uploading document…") : t("Submit document")}
             </Button>
           </div>
         </StepCard>
@@ -941,7 +942,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
             <CameraCapture
               locale={session.locale}
               facingMode="user"
-              label="Live selfie camera"
+              label={t("Live selfie camera")}
               onCapture={selectEvidence}
             />
           )}
@@ -1059,7 +1060,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
                 </Button>
                 {activeLivenessFile ? (
                   <div className="space-y-3">
-                    <p className="text-sm font-medium text-success">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-300">
                       {t("Live recording ready to submit.")}
                     </p>
                     <div className="flex flex-wrap justify-center gap-3">
@@ -1112,7 +1113,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
                             resetActiveLivenessAttempt(undefined, false);
                         }}
                       >
-                        Submit live check
+                        {t("Submit live check")}
                       </Button>
                     </div>
                   </div>
@@ -1139,7 +1140,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         <StepCard
           eyebrow={t("Step 5 of 5")}
           title={t("Completing your verification")}
-          description="The submitted evidence is being evaluated against the requesting organization’s verification policy."
+          description={t("The submitted evidence is being evaluated against the requesting organization’s verification policy.")}
         >
           <ProcessingPanel
             locale={session.locale}
@@ -1288,7 +1289,7 @@ function MobileHandoff({
             <Smartphone className="h-6 w-6" aria-hidden="true" />
           </span>
           <CardTitle className="mt-4 text-2xl tracking-tight">
-            Continue securely on your phone
+            {localizeText(locale, "Continue securely on your phone")}
           </CardTitle>
           <p className="text-sm leading-6 text-muted-foreground">
             {organizationName}{" "}
@@ -1315,7 +1316,7 @@ function MobileHandoff({
                   aria-label={localizeText(locale, "Mobile handoff QR code")}
                   className="rounded-2xl"
                 >
-                  <QRCodeSVG value={handoffUrl} size={220} level="M" />
+                  <QRCodeSVG value={handoffUrl} size={220} level="M" aria-hidden="true" focusable="false" />
                 </div>
               </div>
               <div>
@@ -1370,10 +1371,12 @@ function OpeningState({
   title,
   message,
   locale,
+  onRetry,
 }: {
   title: string;
   message?: string;
   locale: string;
+  onRetry?: () => void;
 }) {
   return (
     <main
@@ -1402,6 +1405,11 @@ function OpeningState({
               )}
             </p>
           )}
+          {onRetry ? (
+            <Button onClick={onRetry}>
+              {localizeText(locale, "Retry secure session")}
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     </main>

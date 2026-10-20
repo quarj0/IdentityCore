@@ -22,3 +22,18 @@ The SDK provides policies, verification creation/list/detail/result/cancel/resen
 Use `WebhookVerifier.verifyV1` with the raw body, `X-IdentityCore-Signature-V1`, timestamp, event ID, and the current/temporarily previous signing secrets; the five-argument overload applies the default five-minute tolerance and current time. For replay protection, use the full overload with a `Predicate<String>` that atomically inserts the event ID only if absent and returns whether it succeeded. IdentityCore emits v1 signatures for both secrets during the rotation overlap and retains the original signature header for staged migration. Canonical behavior is tested from `sdk/fixtures/webhook-signature-v1.json`.
 
 Run `mvn test package` from this directory.
+
+## Creation date filters
+
+List and cursor iteration accept inclusive `created_from`/`created_to` dates in
+`YYYY-MM-DD` format (camelCase options in JavaScript, Java and .NET). The API uses
+the deployment's configured time zone, rejects impossible dates and reversed
+ranges with HTTP 400, and binds cursors to the unchanged filters. Iterators retain
+both dates on every page. Existing calls without dates keep their behavior.
+
+```java
+for (var verification : client.verifications.iterate(
+    null, null, 100, "2026-01-01", "2026-01-31")) {
+    // handle verification
+}
+```

@@ -1,10 +1,11 @@
 # Django control plane
 
 The Django service owns the public REST API, internal GraphQL API, persistence, and
-Celery jobs. Docker is the supported copy/paste setup:
+Celery jobs. Docker is the supported setup. First complete the
+[backend configuration and real-model bootstrap](../README.md) from the repository
+root. The AI service must be ready before the dependent workers can start:
 
 ```bash
-cp .env.example .env
 docker compose up --build -d postgres redis ai-service django celery-worker celery-worker-ai celery-worker-retention celery-worker-webhooks celery-worker-notifications celery-beat
 docker compose exec django python manage.py migrate
 curl http://localhost:8000/api/v1/health
@@ -16,7 +17,7 @@ Run its checks from the repository root:
 docker compose run --rm -e DJANGO_SETTINGS_MODULE=config.settings.testing django python manage.py test
 docker compose run --rm django ruff check .
 docker compose run --rm django black --check .
-docker compose run --rm django mypy backend
+docker compose run --rm django mypy .
 ```
 
 The application listens on `8000`; PostgreSQL and Redis are reached inside Compose at

@@ -41,6 +41,7 @@ class VerificationDecisionNode:
     contract_version: str
     reason_codes: list[str]
     approval_status: str
+    can_approve: bool
     decided_at: str
 
 

@@ -21,6 +21,10 @@ export function NavFlyout({ group, activePath }: NavFlyoutProps) {
       className="group relative"
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={() => setIsOpen(false)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          setIsOpen(false);
+      }}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           setIsOpen(false);

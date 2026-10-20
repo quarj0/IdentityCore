@@ -1,9 +1,27 @@
 import { cookies } from "next/headers.js";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 const production = process.env.NODE_ENV === "production";
 export const SESSION_COOKIE = `${production ? "__Host-" : ""}identitycore_verify`;
 export const SESSION_ID_COOKIE = `${production ? "__Host-" : ""}identitycore_verify_id`;
+
+export function validSessionId(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+}
+
+export function validSessionToken(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^[\x21-\x7e]{1,4096}$/.test(value) &&
+    encodeURIComponent(value).length <= 3500
+  );
+}
+
+export function sessionCookieName(sessionId: string) {
+  if (!validSessionId(sessionId))
+    throw new Error("Invalid verification session identifier.");
+  return `${SESSION_COOKIE}_${createHash("sha256").update(sessionId).digest("hex").slice(0, 32)}`;
+}
 
 export const sessionCookieOptions = {
   httpOnly: true,
@@ -12,10 +30,10 @@ export const sessionCookieOptions = {
   path: "/",
 };
 
-export async function readBffSession() {
+export async function readBffSession(sessionId: string | null) {
+  if (!validSessionId(sessionId)) return null;
   const store = await cookies();
-  const sessionToken = store.get(SESSION_COOKIE)?.value;
-  const sessionId = store.get(SESSION_ID_COOKIE)?.value;
+  const sessionToken = store.get(sessionCookieName(sessionId))?.value;
   return sessionToken && sessionId ? { sessionToken, sessionId } : null;
 }
 
@@ -23,6 +41,14 @@ export function runtimeConfiguration() {
   const configuredOrigin = process.env.API_ORIGIN;
   const errors: string[] = [];
 
+  if (
+    production &&
+    (process.env.VERIFICATION_METADATA_SECRET ?? "").length < 32
+  ) {
+    errors.push(
+      "VERIFICATION_METADATA_SECRET must contain at least 32 characters.",
+    );
+  }
   if (production && !process.env.API_ORIGIN) {
     errors.push("API_ORIGIN is required in production.");
   }

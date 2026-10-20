@@ -83,10 +83,10 @@ test-all:
 	@./scripts/test_all.sh
 
 generate-sdk-models:
-	uv run --project backend python scripts/generate_sdk_models.py
+	uv run --frozen --project backend --group django python scripts/generate_sdk_models.py
 
 check-sdk-models:
-	uv run --project backend python scripts/generate_sdk_models.py --check
+	uv run --frozen --project backend --group django python scripts/generate_sdk_models.py --check
 
 lint:
 	$(COMPOSE) run --rm django ruff check .

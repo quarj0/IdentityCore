@@ -12,7 +12,7 @@ exist.
 
 1. Work in milestone order. Within a milestone, take `P0` before `P1`, then `P2`.
 2. Confirm every listed dependency is complete before assigning an issue.
-3. Copy the row's outcome and acceptance checks into the matching GitHub issue form.
+3. Copy the row's outcome and acceptance checks into the matching bug, feature, security-hardening, test or documentation form. Security-hardening forms are for preventive work; report possible or confirmed vulnerabilities through [private reporting](../../SECURITY.md). Only maintainers should transfer sanitized remediation tasks into public planning.
 4. Keep one issue focused on one independently reviewable outcome; split it if its pull
    request grows across unrelated subsystems.
 5. Close an issue only when its acceptance checks, automated tests, documentation, and
@@ -67,6 +67,13 @@ or create a focused reconciliation issue rather than adding a second status list
 | IC-016 | P1  | security | Centralize object-level authorization in explicit permission policies.                                      | REST, GraphQL, tasks, and service calls use the same policy decisions; deny-by-default tests cover every role.                 | IC-009, IC-010 |
 | IC-017 | P1  | security | Add session/device management for dashboard users.                                                          | Users can inspect and revoke sessions; sensitive account changes revoke other sessions; IP/user-agent display is privacy-safe. | IC-012         |
 | IC-018 | P1  | bug      | Prevent user and organization enumeration in login, password reset, invitations, and public session lookup. | Equivalent responses and rate limits are verified by tests; logs retain actionable internal reasons without exposing them.     | IC-012         |
+
+The IC-011 item remains open for protected review/merge of retrieval-denial auditing. The
+prepared implementation records same-tenant wrong-environment policy/verification
+lookups, including detail/result/evidence and rejected actions, after failed mutation
+transactions unwind. Responses retain the same complete error payload as unknown
+identifiers. Unknown or foreign-tenant identifiers do not create environment-denial
+events. This does not claim deployment acceptance or close issue #95.
 
 ## Milestone 2 — Verification workflow correctness
 
@@ -198,3 +205,9 @@ or create a focused reconciliation issue rather than adding a second status list
 - Security-sensitive changes include abuse cases and deny/failure-path tests.
 - The pull request links the stable backlog ID and records the commands used to verify
   the change.
+
+Backlog validation rejects every malformed candidate `IC-` row, unsupported priority
+or type, missing column delimiter and duplicate ID. A malformed row cannot silently
+disappear from issue synchronization. Run `python scripts/test_backlog_parser.py`
+when editing the table/parser; a valid table alone does not authorize publishing
+issues or comments.

@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.accounts.models import PlatformUser
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain
 from apps.platform_settings.services import get_platform_setting_value
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.evidence import (
@@ -31,7 +31,10 @@ from apps.verifications.decision_contract import (
     DECISION_CONTRACT_VERSION,
     build_decision_input_snapshot,
 )
-from apps.verifications.review_access import PLATFORM_REVIEW_WORKFLOWS
+from apps.verifications.review_access import (
+    PLATFORM_REVIEW_WORKFLOWS,
+    can_approve_review,
+)
 from common.pagination import MAX_PAGE_SIZE
 
 
@@ -187,6 +190,9 @@ def serialize_verification(verification: Verification, request=None) -> dict:
                 "contract_version": decision_record.contract_version,
                 "reason_codes": decision_record.reason_codes_json,
                 "approval_status": decision_record.approval_status,
+                "can_approve": can_approve_review(
+                    getattr(request, "user", None), verification, decision_record
+                ),
                 "decided_at": decision_record.decided_at.isoformat(),
             }
             if decision_record is not None
@@ -341,9 +347,14 @@ class VerificationCreateSerializer(serializers.Serializer):
             attrs["resolved_project"] = project
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         request = self.context["request"]
         tenant = get_request_tenant(request)
+        # Deletion takes the audit lock before capturing its case snapshot.
+        # Serialize lookup and insertion with that snapshot, then lock only a
+        # live subject; otherwise an invisible new case can escape erasure.
+        lock_audit_chain(tenant.pk)
         subject_data = validated_data["verification_subject"]
         external_reference = validated_data.get("external_reference", "")
         policy = validated_data.get("policy")
@@ -351,9 +362,8 @@ class VerificationCreateSerializer(serializers.Serializer):
         verification_subject = None
         if external_reference:
             verification_subject = (
-                tenant.verification_subjects.filter(
-                    external_reference=external_reference
-                )
+                tenant.verification_subjects.select_for_update(no_key=True)
+                .filter(external_reference=external_reference, deleted_at__isnull=True)
                 .order_by("created_at")
                 .first()
             )
@@ -501,6 +511,19 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             .select_related("verification_subject")
             .get(pk=verification.pk)
         )
+        from apps.accounts.models import PlatformUser
+        from apps.verifications.review_access import can_review_verification
+
+        actor = (
+            PlatformUser.objects.filter(pk=decided_by.pk).first()
+            if isinstance(decided_by, PlatformUser)
+            else None
+        )
+        if actor is None or not can_review_verification(actor, verification):
+            raise serializers.ValidationError(
+                {"decision": "Current reviewer authority is required."}
+            )
+        decided_by = actor
         terminal_statuses = {
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,

@@ -50,7 +50,8 @@ def _default_transport(
         with urlopen(request, timeout=timeout) as response:
             return response.status, response.read()
     except HTTPError as exc:
-        return exc.code, exc.read()
+        with exc:
+            return exc.code, exc.read()
 
 
 def _query(params: dict[str, Any]) -> str:
@@ -110,6 +111,8 @@ class _VerificationsClient:
         *,
         status: str = "",
         external_reference: str = "",
+        created_from: str = "",
+        created_to: str = "",
         cursor: str = "",
         limit: int | None = None,
         page: int | None = None,
@@ -119,6 +122,8 @@ class _VerificationsClient:
             {
                 "status": status,
                 "external_reference": external_reference,
+                "created_from": created_from,
+                "created_to": created_to,
                 "cursor": cursor,
                 "limit": limit,
                 "page": page,
@@ -128,13 +133,21 @@ class _VerificationsClient:
         return self.client.request("GET", f"/verifications/{query}")
 
     def iter(
-        self, *, status: str = "", external_reference: str = "", page_size: int = 100
+        self,
+        *,
+        status: str = "",
+        external_reference: str = "",
+        page_size: int = 100,
+        created_from: str = "",
+        created_to: str = "",
     ) -> Iterator[dict[str, Any]]:
         cursor = ""
         while True:
             response = self.list(
                 status=status,
                 external_reference=external_reference,
+                created_from=created_from,
+                created_to=created_to,
                 cursor=cursor,
                 limit=page_size,
             )

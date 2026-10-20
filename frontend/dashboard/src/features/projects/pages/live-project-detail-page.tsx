@@ -105,6 +105,9 @@ export function LiveProjectDetailPage({
               <div>
                 <p className="text-xs uppercase text-slate-500">Environment</p>
                 <p className="mt-1 capitalize">{project.environment}</p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Set at creation. Create a separate project for another environment.
+                </p>
               </div>
               <div>
                 <p className="text-xs uppercase text-slate-500">Status</p>

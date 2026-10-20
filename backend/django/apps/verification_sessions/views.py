@@ -1,3 +1,4 @@
+from common.subject_metadata import subject_metadata
 from datetime import timedelta
 from urllib.parse import urlsplit
 
@@ -75,8 +76,8 @@ class VerificationSessionBaseView(APIView):
         ]
 
         verification_session.last_seen_at = now
-        verification_session.ip_address = request.META.get("REMOTE_ADDR")
-        verification_session.user_agent = request.headers.get("User-Agent", "")
+        verification_session.ip_address = subject_metadata(request).ip_address
+        verification_session.user_agent = subject_metadata(request).user_agent
         verification_session.device_fingerprint = request.headers.get(
             "X-Device-Fingerprint", ""
         )

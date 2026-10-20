@@ -7,6 +7,11 @@ export function proxy(request: NextRequest) {
   const headers = securityHeaders(nonce, {
     apiOrigin: process.env.NEXT_PUBLIC_API_ORIGIN,
     camera: false,
+    assetOrigins: [
+      process.env.PUBLIC_ASSET_URL_BASE ?? "",
+      ...(process.env.FRONTEND_ASSET_ORIGINS ?? "").split(","),
+    ],
+    uploadOrigins: (process.env.FRONTEND_UPLOAD_ORIGINS ?? "").split(","),
     development: process.env.NODE_ENV === "development",
   });
   const requestHeaders = new Headers(request.headers);

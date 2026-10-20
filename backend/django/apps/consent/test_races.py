@@ -21,52 +21,73 @@ from apps.verifications.models import ProcessingJob, Verification
 
 @skipUnless(connection.vendor == "postgresql", "Consent races require real row locks")
 class ConsentWithdrawalRaceTests(TransactionTestCase):
-    def test_upload_storage_write_serializes_with_consent_withdrawal(self):
+    def test_upload_storage_write_rechecks_consent_after_withdrawal(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
         from django.urls import reverse
         from rest_framework.test import APIClient
         from apps.uploads.services import create_upload
-        from apps.verifications.models import VerificationSession, VERIFICATION_SESSION_ACTIONS
+        from apps.verifications.models import (
+            VerificationSession,
+            VERIFICATION_SESSION_ACTIONS,
+        )
 
         organization = Organization.objects.create(name="Synthetic", slug="upload-race")
-        tenant = Tenant.objects.create(organization=organization, name="Synthetic", slug="upload-race", status="active")
+        tenant = Tenant.objects.create(
+            organization=organization,
+            name="Synthetic",
+            slug="upload-race",
+            status="active",
+        )
         subject = VerificationSubject.objects.create(tenant=tenant)
-        case = Verification.objects.create(tenant=tenant, organization=organization,
-            verification_subject=subject, status="pending_consent", purpose="Synthetic race",
-            expires_at=timezone.now() + timedelta(hours=1))
+        case = Verification.objects.create(
+            tenant=tenant,
+            organization=organization,
+            verification_subject=subject,
+            status="pending_consent",
+            purpose="Synthetic race",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
         record = accept_test_consent(case)
-        session = VerificationSession(tenant=tenant, verification=case,
-            expires_at=case.expires_at, allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS))
+        session = VerificationSession(
+            tenant=tenant,
+            verification=case,
+            expires_at=case.expires_at,
+            allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
+        )
         session.set_session_token("synthetic-upload-race")
         session.save()
-        upload = create_upload(verification_session=session, purpose="document_capture",
-            mime_type="image/jpeg", file_size_bytes=4, expires_at=case.expires_at)
+        upload = create_upload(
+            verification_session=session,
+            purpose="document_capture",
+            mime_type="image/jpeg",
+            file_size_bytes=4,
+            expires_at=case.expires_at,
+        )
         writing = Event()
-        withdrawal_attempted = Event()
-        withdrawal_locked = Event()
+        withdrawal_committed = Event()
 
         def storage_write(**kwargs):
+            self.assertFalse(connection.in_atomic_block)
             writing.set()
-            if not withdrawal_attempted.wait(5):
-                raise AssertionError("Withdrawal never attempted its lock")
-            self.assertFalse(withdrawal_locked.wait(0.2))
-
-        def withdrawal_audit(tenant_id):
-            if not writing.is_set():
-                return lock_audit_chain(tenant_id)
-            withdrawal_attempted.set()
-            lock_audit_chain(tenant_id)
-            withdrawal_locked.set()
+            if not withdrawal_committed.wait(5):
+                raise AssertionError("Withdrawal could not commit during storage I/O")
 
         def transfer():
             close_old_connections()
             try:
                 with connection.cursor() as cursor:
                     cursor.execute("SET statement_timeout = '5s'")
-                return APIClient().post(reverse("upload-transfer", kwargs={"upload_id": upload.public_id}),
-                    {"file": SimpleUploadedFile("document.jpg", b"test", content_type="image/jpeg")},
-                    format="multipart", HTTP_AUTHORIZATION="Bearer synthetic-upload-race",
-                    HTTP_X_SESSION_ID=session.public_id)
+                return APIClient().post(
+                    reverse("upload-transfer", kwargs={"upload_id": upload.public_id}),
+                    {
+                        "file": SimpleUploadedFile(
+                            "document.jpg", b"test", content_type="image/jpeg"
+                        )
+                    },
+                    format="multipart",
+                    HTTP_AUTHORIZATION="Bearer synthetic-upload-race",
+                    HTTP_X_SESSION_ID=session.public_id,
+                )
             finally:
                 close_old_connections()
 
@@ -77,21 +98,41 @@ class ConsentWithdrawalRaceTests(TransactionTestCase):
                     raise AssertionError("Upload never reached storage")
                 with connection.cursor() as cursor:
                     cursor.execute("SET statement_timeout = '5s'")
-                return withdraw(record)
+                result = withdraw(record)
+                withdrawal_committed.set()
+                return result
             finally:
                 close_old_connections()
 
-        with patch("apps.uploads.views.put_object_bytes", side_effect=storage_write), patch(
+        with patch(
+            "apps.uploads.views.put_object_bytes", side_effect=storage_write
+        ), patch(
             "apps.uploads.views.inspect_upload_content", return_value=(True, "")
-        ), patch("apps.consent.services.lock_audit_chain", side_effect=withdrawal_audit):
+        ), patch(
+            "apps.uploads.views.delete_object"
+        ) as cleanup:
             with ThreadPoolExecutor(max_workers=2) as pool:
                 transferred = pool.submit(transfer)
                 revoked = pool.submit(revoke)
-                self.assertEqual(transferred.result(timeout=15).status_code, 200)
+                self.assertEqual(transferred.result(timeout=15).status_code, 400)
                 revoked.result(timeout=15)
         upload.refresh_from_db()
         record.refresh_from_db()
-        self.assertEqual(upload.status, "uploaded")
+        self.assertEqual(upload.status, "initiated")
+        self.assertFalse(upload.capture_receipt)
+        cleanup.assert_called_once()
+        self.assertIn(".validated.", cleanup.call_args.kwargs["key"])
+        from apps.audit.models import AuditEvent
+
+        actions = list(
+            AuditEvent.objects.filter(tenant=tenant)
+            .order_by("created_at")
+            .values_list("action", flat=True)
+        )
+        self.assertLess(
+            actions.index("upload.transfer_admitted"),
+            actions.index("consent.withdrawn"),
+        )
         self.assertIsNotNone(record.withdrawn_at)
         self.assertEqual(verify_audit_chain(tenant_id=tenant.pk), (True, ""))
 

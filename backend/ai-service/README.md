@@ -1,5 +1,10 @@
 # Internal AI service
 
+Use Python 3.12 for the current frozen AI dependency set. PaddlePaddle 3.3.1
+has no CPython 3.14 wheel or source distribution, so the SDK's Python 3.14
+compatibility does not establish AI-runtime compatibility. Validate native model
+dependencies separately before upgrading the AI interpreter.
+
 FastAPI performs document quality/classification/OCR and biometric checks. It is an
 internal service, not a browser-facing API, and requires `X-Internal-Token`.
 
@@ -11,7 +16,8 @@ docker compose run --rm ai-service pytest
 ```
 
 The service listens on `8001`. `AI_SERVICE_SHARED_TOKEN`, `AI_SERVICE_MODE`, and
-`AI_MODEL_ROOT` are required runtime settings. `INSIGHTFACE_MODEL_NAME`,
+`AI_MODEL_ROOT` are runtime settings. Real inference also requires the approved
+`AI_MODEL_MANIFEST_SHA256` trust anchor. `INSIGHTFACE_MODEL_NAME`,
 `INSIGHTFACE_ALLOW_DOWNLOAD`, `PADDLE_OCR_ALLOW_DOWNLOAD`, and the `PAD_*`
 settings control model loading. The PAD model is a separately approved ONNX
 asset at `AI_MODEL_ROOT/liveness/pad.onnx`; its SHA-256 digest must be included
@@ -61,13 +67,22 @@ when downloads are intended:
 docker compose --profile model-bootstrap run --rm ai-model-bootstrap
 ```
 
-The bootstrap command writes `AI_MODEL_ROOT/manifest.json` with the SHA-256 digest of
-every model artifact. `AI_MODEL_MANIFEST` may point to a different manifest. In `real`
-mode, readiness returns `503` and processing fails closed when the manifest is missing,
-invalid, or lists a missing/altered file. Re-run the bootstrap command only after
-obtaining trusted replacement assets; inspect the new inventory before restarting the
-service. `hybrid` is intended for non-production use because it permits mock fallback.
+The bootstrap command writes `AI_MODEL_ROOT/manifest.json` and prints its candidate
+SHA-256. Independently review that inventory and pin its approved digest in
+`AI_MODEL_MANIFEST_SHA256` outside the model volume before starting real inference.
+`AI_MODEL_MANIFEST` may select another manifest path. Compose mounts the inference
+volume read-only; stop inference before running the writable bootstrap profile.
+Runtime downloads must stay disabled. Readiness and processing reject untrusted,
+missing, altered or unlisted assets and a mismatched configured model. Startup hashes
+in bounded chunks; warm checks cache digests with inventory/metadata invalidation.
+Restart all workers for an approved model replacement. See
+[model trust and provisioning](../../docs/operations/ai-models.md) for trust boundaries,
+startup timing and limitations. `hybrid` permits mock fallback and is non-production.
 
 Storage and encryption variables are shared with Django and documented in
 [`.env.example`](../../.env.example). Never expose this port publicly or log media,
 extracted identity attributes, embeddings, or the shared token.
+
+Active liveness requires the `ordered_motion_v1` challenge ID and eight ordered
+actions; legacy active requests are rejected. Results bind the ID/protocol and
+retain the full observed order. See [active-liveness operations](../../docs/operations/active-liveness.md).

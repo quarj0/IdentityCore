@@ -131,6 +131,8 @@ def run_liveness_check(
     selfie_storage_bucket: str = "",
     selfie_mime_type: str = "",
     challenge_actions: list[str] | None = None,
+    challenge_id: str = "",
+    challenge_protocol: str = "",
 ) -> dict:
     payload = {
         "verification_id": verification_id,
@@ -143,6 +145,9 @@ def run_liveness_check(
         payload["selfie_mime_type"] = selfie_mime_type
     if challenge_actions:
         payload["challenge_actions"] = challenge_actions
+    if challenge_id:
+        payload["challenge_id"] = challenge_id
+        payload["challenge_protocol"] = challenge_protocol
     return _post_json("/v1/liveness/check", payload)
 
 

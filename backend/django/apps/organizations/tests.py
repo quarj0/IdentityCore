@@ -345,6 +345,54 @@ class OrganizationSupportingDocumentTests(APITestCase):
             content_type="application/pdf",
         )
 
+    @patch("apps.organizations.views.put_object_bytes")
+    def test_pdf_larger_than_default_request_body_limit_uses_bounded_stream(
+        self, store
+    ):
+        self.client.force_authenticate(self.user)
+        content = b"%PDF-1.7\n" + b"x" * (3 * 1024 * 1024)
+        document = OrganizationSupportingDocument.objects.create(
+            organization=self.organization,
+            tenant=self.tenant,
+            uploaded_by=self.user,
+            filename="large.pdf",
+            storage_key="synthetic/large.pdf",
+            file_size_bytes=len(content),
+            status="initiated",
+        )
+        response = self.client.put(
+            reverse("organization-document-content-upload", args=[document.public_id]),
+            content,
+            content_type="application/pdf",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(store.call_args.kwargs["content"], content)
+
+    @patch("apps.organizations.views.put_object_bytes")
+    def test_transfer_rejects_oversized_declared_record_and_extra_bytes(self, store):
+        self.client.force_authenticate(self.user)
+        for expected in (10, 10 * 1024 * 1024 + 1):
+            with self.subTest(expected=expected):
+                document = OrganizationSupportingDocument.objects.create(
+                    organization=self.organization,
+                    tenant=self.tenant,
+                    uploaded_by=self.user,
+                    filename="bounded.pdf",
+                    storage_key=f"synthetic/bounded-{expected}.pdf",
+                    file_size_bytes=expected,
+                    status="initiated",
+                )
+                response = self.client.put(
+                    reverse(
+                        "organization-document-content-upload",
+                        args=[document.public_id],
+                    ),
+                    b"x" * 100,
+                    content_type="application/pdf",
+                )
+                self.assertEqual(response.status_code, 400)
+        store.assert_not_called()
+
 
 class OrganizationOnboardingEmailTests(APITestCase):
     def setUp(self):

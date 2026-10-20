@@ -428,6 +428,9 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(custom_reverification["action"], "reverify")
 
     def test_record_manual_decision_mutation_updates_verification(self):
+        from apps.access_control.test_helpers import grant_review_permission
+
+        grant_review_permission(self.user)
         subject = VerificationSubject.objects.create(
             tenant=self.tenant,
             full_name="Manual Review Subject",

@@ -108,6 +108,7 @@ class VerificationSessionAuthentication(BaseAuthentication):
         if (
             verification_session.tenant.deleted_at is not None
             or verification_session.tenant.status in {"suspended", "closed"}
+            or verification_session.verification.verification_subject.deleted_at is not None
             or verification_session.verification.deleted_at is not None
             or verification_session.verification.organization.deleted_at is not None
             or verification_session.tenant_id

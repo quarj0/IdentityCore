@@ -60,8 +60,8 @@ export function WorkflowPublishDialog({
         <DialogHeader>
           <DialogTitle>Publish {workflowName}?</DialogTitle>
           <DialogDescription>
-            Publishing makes this workflow available in the official workflow
-            library.
+            Publishing creates an immutable version and policy for this
+            workflow&apos;s project.
           </DialogDescription>
         </DialogHeader>
 

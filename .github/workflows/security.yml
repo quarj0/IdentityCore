@@ -55,7 +55,6 @@ jobs:
           format: json
           output: security-results/dependencies.json
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
-          ignore-unfixed: true
           exit-code: 0
 
       - name: Record secret findings
@@ -78,6 +77,7 @@ jobs:
           retention-days: 30
 
       - name: Block high and critical dependency findings
+        if: ${{ !cancelled() }}
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: fs
@@ -89,6 +89,7 @@ jobs:
           exit-code: 1
 
       - name: Block detected secrets
+        if: ${{ !cancelled() }}
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: fs
@@ -129,7 +130,6 @@ jobs:
           format: json
           output: security-results/${{ matrix.name }}.json
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
-          ignore-unfixed: true
           exit-code: 0
 
       - name: Upload container scan artifact

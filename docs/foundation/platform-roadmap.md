@@ -1,505 +1,73 @@
 # IdentityCore Platform Roadmap
 
-Last reviewed: 2026-08-09
-
-> IdentityCore is vendor-neutral identity infrastructure. Identity verification is the first workload built on the platform.
-
-This roadmap is organized by platform capability rather than by the order in which repository folders were created.
-
-Maturity labels describe repository capabilities, not deployment certification. The
-[implementation backlog](../planning/implementation-backlog.md) defines acceptance
-boundaries, while live GitHub issues and merged pull requests determine current work and
-completion state.
-
-## Maturity labels
-
-- **Implemented** — present with meaningful automated coverage and an established execution path.
-- **Implemented foundation** — substantial working support exists, but production hardening or broader coverage remains.
-- **Partial** — some components exist, but the capability is not complete end to end.
-- **Planned** — accepted platform direction without a complete implementation.
-- **Exploratory** — research direction, not a product commitment.
-
-## 1. Platform kernel
-
-### Tenant and organization model — Implemented foundation
-
-Current foundations:
-
-- organizations and tenants;
-- tenant-scoped domain records;
-- organization memberships and roles;
-- REST and GraphQL isolation regression coverage;
-- platform administration surfaces.
-
-Next outcomes:
-
-- deeper authorization assurance;
-- enterprise organizational hierarchy where required;
-- clearer delegated-administration controls;
-- production isolation testing and operational runbooks.
-
-### Projects and environments — Implemented foundation
-
-Current foundations:
-
-- project and environment concepts;
-- API credentials scoped to sandbox or production;
-- environment isolation for API workflows;
-- environment-aware webhooks and resources.
-
-Next outcomes:
-
-- controlled promotion between environments;
-- environment-specific provider routes;
-- approval requirements for production activation;
-- environment configuration comparison and drift reporting.
-
-### API, SDK and CLI surfaces — Implemented foundation
-
-Current foundations:
-
-- public REST API;
-- internal GraphQL API;
-- interactive OpenAPI explorer;
-- Python, JavaScript/TypeScript, Java and .NET SDKs;
-- production-oriented Python CLI;
-- API clients, scopes and secret rotation.
-
-Next outcomes:
-
-- stable versioning policy;
-- broader contract tests across SDKs;
-- generated examples for all supported workflows;
-- provider SDK packaging and conformance tooling.
-
-## 2. Workflow, policy and decision platform
-
-### Workflow Engine — Implemented foundation
-
-Current foundations:
-
-- workflow definitions and versions;
-- workflow summaries in SDKs;
-- immutable workflow snapshots for running verifications;
-- hosted verification journey;
-- background task coordination.
-
-Next outcomes:
-
-- a more general node and transition model;
-- capability-driven workflow steps;
-- conditional branching based on evidence and claims;
-- explicit retries, fallbacks and compensation;
-- reusable workflow templates beyond verification.
-
-### Policy Engine — Implemented foundation
-
-Current foundations:
-
-- verification policies;
-- versioned policy snapshots;
-- configurable thresholds and requirements;
-- retention-related policy data;
-- policy-driven automatic and manual outcomes.
-
-Next outcomes:
-
-- provider-neutral policy expressions;
-- policy simulation and explainability;
-- jurisdiction and residency constraints;
-- promotion and approval controls;
-- policy reuse across future workloads.
-
-### Decision Engine — Implemented foundation
-
-Current foundations:
-
-- persisted decision records;
-- versioned decision input snapshots;
-- reason codes and evidence summaries;
-- automatic and manual decisions;
-- maker-checker approval support;
-- atomic state transitions.
-
-Next outcomes:
-
-- generalized decision contracts beyond verification;
-- signed decision attestations;
-- richer explanation graphs;
-- decision revocation and supersession;
-- configurable external decision/risk providers.
-
-## 3. Provider platform
-
-### Provider registry and assignments — Implemented foundation
-
-Current foundations:
-
-- provider records;
-- tenant-owned and platform-managed providers;
-- encrypted provider configuration;
-- capability assignment concepts;
-- platform administration views.
-
-Next outcomes:
-
-- machine-readable manifests;
-- organization self-service onboarding;
-- capability/country/document discovery;
-- residency, commercial and certification metadata;
-- provider lifecycle and deprecation controls.
-
-### Provider Runtime — Implemented foundation
-
-Current foundations:
-
-- provider adapter protocol and registry;
-- built-in AI capabilities routed through adapters;
-- centralized invocation and ProviderCheck lifecycle;
-- normalized and versioned results;
-- secure custom HTTP provider calls;
-- message signing and replay resistance;
-- duration tracking and redacted telemetry.
-
-Next outcomes:
-
-- ordered fallback chains;
-- richer conditional routing;
-- circuit breakers and health-aware selection;
-- asynchronous provider callback contracts;
-- evidence-grant service;
-- complete conformance suite;
-- provider route simulation and promotion.
-
-### Provider SDK — Partial
-
-Current foundations:
-
-- adapter and invocation contracts in code;
-- deterministic signing fixture;
-- secure HTTP adapter behavior;
-- capability result versioning.
-
-Next outcomes:
-
-- published Provider SDK specification;
-- machine-readable provider manifest;
-- reference implementations;
-- local provider test harness;
-- conformance certification workflow;
-- provider developer portal experience.
-
-### IdentityCore Managed Providers — Implemented foundation
-
-Current foundations:
-
-- document quality;
-- document classification;
-- OCR;
-- face comparison;
-- liveness and PAD-related processing;
-- mock, hybrid and real runtime modes;
-- model metadata and Manual Review fallback.
-
-Next outcomes:
-
-- stronger model evaluation and calibration;
-- expanded country/document support;
-- authenticity signals;
-- operational monitoring and drift analysis;
-- capability-level deployment and scaling;
-- published limitations and evaluation reports.
-
-## 4. Evidence and claims
-
-### Evidence Model — Implemented foundation
-
-Current foundations:
-
-- document and biometric records;
-- provider checks and normalized results;
-- evidence reports;
-- workflow and decision snapshots;
-- model/provider version metadata;
-- retention cleanup and legal holds;
-- tamper-evident audit facts.
-
-Next outcomes:
-
-- canonical cross-capability evidence envelope;
-- explicit evidence lineage graph;
-- storage-reference abstraction;
-- integrity attestations for evidence objects;
-- evidence access grants;
-- provider-neutral evidence query APIs.
-
-### Claims Engine — Partial
-
-Current foundations:
-
-- OCR extracted fields;
-- normalized provider results;
-- policy evaluation;
-- evidence-backed decisions;
-- redacted subject export.
-
-Next outcomes:
-
-- canonical claim schema;
-- provenance and confidence per claim;
-- conflict resolution;
-- corroboration rules;
-- reusable claims across workloads;
-- selective disclosure;
-- expiry, revocation and supersession;
-- claim issuance and consumption APIs.
-
-## 5. Privacy, audit and compliance
-
-### Consent and purpose — Implemented foundation
-
-Current foundations:
-
-- consent records and versions;
-- verification purpose;
-- subject-facing consent flow;
-- audit events.
-
-Next outcomes:
-
-- purpose-bound evidence grants;
-- consent withdrawal handling;
-- reusable consent receipts;
-- policy enforcement across providers and workloads.
-
-### Retention and deletion — Implemented foundation
-
-Current foundations:
-
-- retention cleanup workers;
-- object deletion controls;
-- legal holds;
-- subject deletion and pseudonymization;
-- redacted, expiring subject exports;
-- deletion and export audit events.
-
-Next outcomes:
-
-- deletion propagation to all external providers;
-- tenant-configurable retention classes;
-- verification of object deletion;
-- KMS-backed crypto-erasure where applicable;
-- privacy request operator workflows and reporting.
-
-### Audit — Implemented foundation
-
-Current foundations:
-
-- append-only audit events;
-- per-tenant hash chaining;
-- audit verification service;
-- authentication, provider, review, privacy and verification events.
-
-Next outcomes:
-
-- concurrency-safe chain construction at scale;
-- export to WORM/SIEM systems;
-- signed audit checkpoints;
-- richer actor and delegation context;
-- compliance reporting and anomaly detection.
-
-### Key and storage control — Partial
-
-Current foundations:
-
-- encrypted sensitive fields;
-- S3-compatible object storage;
-- purpose-specific buckets and signed URLs;
-- secret validation and rotation foundations.
-
-Next outcomes:
-
-- tenant-routed storage providers;
-- BYOK with KMS/HSM providers;
-- per-environment key lifecycle;
-- evidence-reference-only execution;
-- residency and deletion assurance.
-
-## 6. Manual Review and operations
-
-### Manual Review — Implemented foundation
-
-Current foundations:
-
-- reviewer assignment and scope enforcement;
-- evidence inspection;
-- approve, reject and further-review actions;
-- decision history;
-- maker-checker approval;
-- audit records and atomic transitions.
-
-Next outcomes:
-
-- configurable review queues and service levels;
-- quality assurance sampling;
-- reviewer calibration;
-- escalations and specialist routing;
-- workload-neutral review tasks;
-- advanced redaction and least-privilege evidence views.
-
-### Observability and incident operations — Partial
-
-Current foundations:
-
-- structured application and task logs;
-- provider duration and status;
-- health/readiness endpoints;
-- webhook attempts;
-- audit events;
-- container monitoring foundations.
-
-Next outcomes:
-
-- end-to-end tracing;
-- capability and provider SLOs;
-- route health dashboards;
-- incident workflows;
-- privacy-safe metrics;
-- production runbooks and failure exercises.
-
-## 7. Identity verification workload
-
-### Hosted subject journey — Implemented foundation
-
-Current foundations:
-
-- secure session links;
-- consent;
-- country and document selection;
-- upload/capture;
-- mobile handoff;
-- selfie and liveness journey;
-- progress and completion states.
-
-Next outcomes:
-
-- accessibility hardening;
-- broader browser/device validation;
-- stronger replay/media-injection controls;
-- configurable workload steps;
-- localization and regional customization.
-
-### Document evidence — Implemented foundation
-
-Current foundations:
-
-- capture and upload lifecycle;
-- quality analysis;
-- document classification;
-- OCR;
-- MRZ-related logic;
-- country/document definitions;
-- unknown/unsupported routing to Manual Review.
-
-Next outcomes:
-
-- document authenticity as a first-class capability;
-- broader issuer-backed validation;
-- barcode/NFC/signature integrations;
-- expanded document coverage;
-- calibrated fraud signals and reviewer localization.
-
-### Biometrics and liveness — Implemented foundation
-
-Current foundations:
-
-- selfie capture;
-- face comparison;
-- active/passive liveness records;
-- PAD model integration;
-- thresholds, evidence and Manual Review fallback.
-
-Next outcomes:
-
-- representative evaluation;
-- attack coverage reporting;
-- accessibility alternatives;
-- provider replacement and fallback;
-- device/capture integrity improvements.
-
-### Result delivery — Implemented foundation
-
-Current foundations:
-
-- verification result API;
-- signed webhooks;
-- retry attempts;
-- idempotency and request IDs;
-- SDK and CLI access.
-
-Next outcomes:
-
-- signed result attestations;
-- richer evidence/claim disclosure controls;
-- end-to-end customer certification;
-- stable event versioning.
-
-## 8. Production readiness
-
-Before representing IdentityCore as production-ready for sensitive deployments, complete and verify:
-
-- independent security assessment;
-- tenant isolation and authorization testing;
-- provider egress and SSRF review;
-- model evaluation and fairness analysis;
-- backup and restore exercises;
-- incident response and breach procedures;
-- monitoring and alerting;
-- key management and secret rotation;
-- retention/deletion verification;
-- provider and subprocessor governance;
-- deployment-specific legal and compliance review;
-- load, failure and recovery tests;
-- pilot operating procedures.
-
-## 9. Future workloads
-
-### Planned platform directions
-
-- reusable verified claims;
-- age and eligibility assertions;
-- registry-backed identity resolution;
-- step-up and repeat identity checks;
-- account recovery;
-- deduplication;
-- organizational identity;
-- credential issuance and validation;
-- employee, student, vendor and program eligibility workflows.
-
-### Exploratory directions
-
-- selective-disclosure credentials;
-- identity wallet integration;
-- cross-organization trust exchange;
-- federated evidence and claim networks;
-- privacy-preserving matching;
-- national-scale identity infrastructure deployments.
-
-These directions require separate product, security, legal and architectural decisions before becoming commitments.
-
-## 10. Roadmap discipline
-
-A roadmap item should advance at least one of these platform goals:
-
-- provider neutrality;
-- interoperability;
-- security;
-- privacy;
-- auditability;
-- tenant isolation;
-- evidence quality and lineage;
-- developer experience;
-- operational resilience;
-- workload reuse.
-
-Features that reinforce a single hard-coded provider or workload at the expense of platform abstractions should be redesigned before implementation.
+Last reviewed: 2026-10-19
+
+IdentityCore is vendor-neutral identity infrastructure. Identity verification is its
+first workload. This roadmap separates repository foundations, immediate engineering
+closure, future platform work and deployment assurance. The
+[implementation backlog](../planning/implementation-backlog.md) defines stable work IDs;
+GitHub issues and merged pull requests determine their completion state.
+
+## Implemented foundations
+
+| Area | Current execution paths | Implementation references |
+| --- | --- | --- |
+| Platform kernel | Tenant/project/environment isolation, API credentials, MFA and sessions, invitations, quotas and administration | [Architecture](../../ARCHITECTURE.md), [quota operations](../operations/api-usage-quotas.md) |
+| Provider platform | Manifest v1, organization setup, environment credentials, connection probes and independent production activation | [Manifests](../architecture/provider-manifests.md), [setup](../operations/provider-setup.md) |
+| Provider execution | Conditional routes, ordered fallback, bounded attempts/timeouts, circuit recovery, health inspection, normalized versioned results and Contract v1 fixtures | [Runtime](../architecture/provider-runtime.md), [resilience](../operations/provider-route-resilience.md) |
+| Workflow/policy/decision | Published versions and templates, immutable snapshots, idempotent instantiation, controlled outcomes and maker-checker review | [Instantiation](../operations/workflow-template-instantiation.md) |
+| Evidence/privacy | Captures, provider evidence, reports, purpose-bound consent/withdrawal, retention, legal holds, subject exports and deletion | [Evidence](../architecture/evidence-model.md), [consent](../operations/purpose-consent.md) |
+| Manual review | Verification assignment/maker-checker, policy-bound reasons, tenant queues, skills/SLA routing and quality sampling; separate organization onboarding escalation | [Queues](../operations/review-queues.md), [quality](../operations/review-quality.md) |
+| Storage/keys | Immutable approved-bucket routing, tenant data envelopes, resumable rotation and environment-scoped AWS KMS customer keys | [Storage](../operations/tenant-storage.md), [keys](../operations/customer-kms.md) |
+| Developer surfaces | REST/OpenAPI, internal GraphQL, Python/JS/Java/.NET SDKs, CLI, generated models and live contract checks | [API](../architecture/api-spec.md), [Provider SDK](../providers/provider-sdk.md) |
+| Hosted verification | Consent, camera/document/selfie/liveness, handoff, locale negotiation, retry/review/final states, browser fixtures and real BFF transport checks | [Portal](../../frontend/verification-portal/README.md) |
+| Operations | Durable processing jobs, redacted telemetry, SLO rules, synthetic load/restore drills, incident records and release-evidence integrity gates | [Recovery](../operations/processing-job-recovery.md), [release gates](../operations/release-evidence-gate.md) |
+| Billing | GHS Paystack invoice checkout/reconciliation, subscription intervals, refunds/disputes and bounded recovery | [Billing](../operations/billing-foundation.md) |
+
+These paths have repository implementations and automated coverage. They do not imply
+that every historical finding is resolved or that any deployment/provider is certified.
+
+## Immediate engineering closure
+
+1. Complete the signed BYOP transport review and protected merge, including authenticated
+   error responses and cross-worker replay protection.
+2. Complete trusted hosted applicant metadata propagation and its review/rollout contract.
+3. Individually assess the remaining historical review inventory in
+   [audit #281](https://github.com/quarj0/IdentityCore/issues/281). Reproduce confirmed
+   defects, add meaningful regressions and preserve protected merge evidence.
+4. Keep architecture, public claims, SDK/API documentation and operating instructions
+   synchronized. The owner selected proprietary, all-rights-reserved licensing;
+   [LICENSE](../../LICENSE) records that decision.
+
+Use the [disposition register](../reviews/historical-review-dispositions.json) for audit
+counts and evidence. Pending review is not a confirmed defect, and a resolved thread
+is not implementation evidence. Do not close the audit based on a clean test suite alone.
+
+## Next platform capabilities
+
+- **Generalized evidence:** a cross-workload resource, bounded lineage API, supersession,
+  retention/deletion propagation and purpose-scoped access.
+- **Reusable claims:** versioned schemas, encrypted values, source evidence, explicit
+  conflicts/corroboration, freshness/expiry, revocation, selective disclosure and reuse.
+- **Provider ecosystem:** packaged reference SDKs, wider capability/retention/deletion
+  conformance, certification levels and general asynchronous callback/polling contracts.
+- **Workflow generalization:** cross-workload branching, compensation and policy expressions.
+- **Infrastructure expansion:** additional storage/KMS vendors, independently integrated
+  HSMs, WORM/SIEM exports, signed checkpoints and attestations.
+- **Future workloads:** authorized registry identity resolution, age/eligibility assertions,
+  credential validation/issuance, account recovery and organization identity.
+
+These are future capabilities. Published designs and sample envelopes do not establish
+implemented public contracts. Country/document expansion requires supported provider
+contracts and representative evaluation; a provider marketplace is not implemented.
+
+## Deployment and assurance gates
+
+Complete independent security/privacy/accessibility review, representative model and
+attack evaluation, physical-device acceptance, deployed inference capacity, provider
+agreements/residency, restoration, pager delivery, incident exercises and accountable
+pilot approval. Commercial release additionally needs payment and legal/terms evidence.
+
+The [release-evidence gate](../operations/release-evidence-gate.md) checks evidence
+integrity, freshness and release-head binding. It cannot create or authenticate the
+underlying human/provider assurances. Synthetic fixtures are not production evidence.

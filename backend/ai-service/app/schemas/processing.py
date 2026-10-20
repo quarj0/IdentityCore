@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class HealthResponse(BaseModel):
@@ -32,7 +32,21 @@ class LivenessCheckRequest(BaseModel):
     selfie_storage_bucket: str | None = None
     selfie_mime_type: str | None = None
     liveness_type: str
-    challenge_actions: list[str] = Field(default_factory=list)
+    challenge_actions: list[str] = Field(default_factory=list, max_length=8)
+    challenge_id: str = Field(default="", max_length=64)
+    challenge_protocol: str = Field(default="", max_length=40)
+
+    @model_validator(mode="after")
+    def require_ordered_active_challenge(self):
+        from shared.liveness_challenge import PROTOCOL, valid_actions
+
+        if self.liveness_type == "active" and (
+            not self.challenge_id
+            or self.challenge_protocol != PROTOCOL
+            or not valid_actions(self.challenge_actions)
+        ):
+            raise ValueError("Active liveness requires a current ordered challenge.")
+        return self
 
 
 class DocumentOCRRequest(BaseModel):

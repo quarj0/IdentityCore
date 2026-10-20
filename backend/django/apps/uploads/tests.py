@@ -3,12 +3,12 @@ from datetime import timedelta
 from unittest.mock import ANY, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 from rest_framework import serializers, status
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APITransactionTestCase
 
 from apps.audit.models import AuditEvent
 from apps.accounts.models import PlatformUser, PlatformUserStatus
@@ -1107,6 +1107,7 @@ class UploadVideoInspectionTests(TestCase):
         )
 
 
+@override_settings(OBJECT_STORAGE_TEMP_BUCKET="temporary")
 class UploadCreateTests(APITestCase):
     def setUp(self):
         self.organization = Organization.objects.create(
@@ -1590,7 +1591,7 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(upload.quarantine_reason, "video_container_unrecognized")
         put_object_bytes.assert_not_called()
 
-    @patch("apps.uploads.views.delete_object")
+    @patch("apps.uploads.original_cleanup.delete_object")
     @patch("apps.uploads.views.put_object_bytes")
     @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
     @patch(
@@ -2069,3 +2070,172 @@ class UploadRetentionTaskTests(TestCase):
         self.assertEqual(cleanup_expired_uploads_task(limit=10), 0)
         upload.refresh_from_db()
         self.assertIsNone(upload.deleted_at)
+
+
+@override_settings(OBJECT_STORAGE_TEMP_BUCKET="temporary")
+class UploadTransferTransactionTests(APITransactionTestCase):
+    setUp = UploadCreateTests.setUp
+    auth_headers = UploadCreateTests.auth_headers
+
+    def _upload(self):
+        from apps.uploads.services import create_upload
+
+        return create_upload(
+            verification_session=self.session,
+            purpose="document_capture",
+            mime_type="image/jpeg",
+            file_size_bytes=4,
+            expires_at=self.verification.expires_at,
+        )
+
+    def _outside_transaction(self, result):
+        from django.db import connection
+
+        def check(**kwargs):
+            self.assertFalse(connection.in_atomic_block)
+            return result
+
+        return check
+
+    def test_multipart_parse_scan_and_storage_do_not_hold_database_transactions(self):
+        from rest_framework.parsers import MultiPartParser
+
+        original_parse = MultiPartParser.parse
+        from django.db import connection
+
+        def parse(parser, *args, **kwargs):
+            self.assertFalse(connection.in_atomic_block)
+            return original_parse(parser, *args, **kwargs)
+
+        upload = self._upload()
+        with patch.object(MultiPartParser, "parse", parse), patch(
+            "apps.uploads.views.inspect_upload_content",
+            side_effect=self._outside_transaction((True, "")),
+        ), patch(
+            "apps.uploads.views.put_object_bytes",
+            side_effect=self._outside_transaction(None),
+        ):
+            response = self.client.post(
+                reverse("upload-transfer", kwargs={"upload_id": upload.public_id}),
+                {
+                    "file": SimpleUploadedFile(
+                        "document.jpg", b"test", content_type="image/jpeg"
+                    )
+                },
+                format="multipart",
+                **self.auth_headers(),
+            )
+        self.assertEqual(response.status_code, 200, response.data)
+        upload.refresh_from_db()
+        self.assertTrue(upload.capture_receipt)
+
+    def test_legacy_read_write_and_cleanup_do_not_hold_database_transactions(self):
+        upload = self._upload()
+        with patch(
+            "apps.uploads.views.get_object_bytes",
+            side_effect=self._outside_transaction((b"test", "image/jpeg")),
+        ), patch(
+            "apps.uploads.views.inspect_upload_content",
+            side_effect=self._outside_transaction((True, "")),
+        ), patch(
+            "apps.uploads.views.put_object_bytes",
+            side_effect=self._outside_transaction(None),
+        ), patch(
+            "apps.uploads.original_cleanup.delete_object",
+            side_effect=self._outside_transaction(None),
+        ) as cleanup:
+            response = self.client.post(
+                reverse("upload-complete", kwargs={"upload_id": upload.public_id}),
+                {},
+                format="json",
+                **self.auth_headers(),
+            )
+        self.assertEqual(response.status_code, 200, response.data)
+        cleanup.assert_called_once()
+
+    def test_expiry_during_storage_does_not_issue_a_receipt(self):
+        upload = self._upload()
+
+        def expire(**kwargs):
+            Upload.objects.filter(pk=upload.pk).update(
+                expires_at=timezone.now() - timedelta(seconds=1)
+            )
+
+        with patch(
+            "apps.uploads.views.inspect_upload_content", return_value=(True, "")
+        ), patch("apps.uploads.views.put_object_bytes", side_effect=expire), patch(
+            "apps.uploads.views.delete_object"
+        ) as cleanup:
+            response = self.client.post(
+                reverse("upload-transfer", kwargs={"upload_id": upload.public_id}),
+                {
+                    "file": SimpleUploadedFile(
+                        "document.jpg", b"test", content_type="image/jpeg"
+                    )
+                },
+                format="multipart",
+                **self.auth_headers(),
+            )
+        self.assertEqual(response.status_code, 400)
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, UploadStatus.INITIATED)
+        self.assertFalse(upload.capture_receipt)
+        cleanup.assert_called_once()
+        self.assertNotEqual(cleanup.call_args.kwargs["key"], upload.storage_key)
+
+    def test_concurrent_identical_transfers_clean_only_the_losing_candidate(self):
+        from django.db import close_old_connections, connection
+
+        if connection.vendor != "postgresql":
+            self.skipTest("Requires real row locks")
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        from rest_framework.test import APIClient
+
+        barrier = Barrier(2)
+        upload = self._upload()
+
+        def write(**kwargs):
+            self.assertFalse(connection.in_atomic_block)
+            barrier.wait(timeout=5)
+
+        def transfer():
+            close_old_connections()
+            try:
+                return APIClient().post(
+                    reverse("upload-transfer", kwargs={"upload_id": upload.public_id}),
+                    {
+                        "file": SimpleUploadedFile(
+                            "document.jpg", b"test", content_type="image/jpeg"
+                        )
+                    },
+                    format="multipart",
+                    **self.auth_headers(),
+                )
+            finally:
+                close_old_connections()
+
+        with patch(
+            "apps.uploads.views.inspect_upload_content", return_value=(True, "")
+        ), patch(
+            "apps.uploads.views.put_object_bytes", side_effect=write
+        ) as put, patch(
+            "apps.uploads.views.delete_object"
+        ) as cleanup, patch(
+            "apps.uploads.original_cleanup.delete_object"
+        ) as original_cleanup:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures = [pool.submit(transfer) for _ in range(2)]
+                responses = [future.result(timeout=15) for future in futures]
+        self.assertEqual([response.status_code for response in responses], [200, 200])
+        upload.refresh_from_db()
+        self.assertTrue(upload.capture_receipt)
+        keys = {call.kwargs["key"] for call in put.call_args_list}
+        self.assertEqual(len(keys), 2)
+        self.assertIn(upload.storage_key, keys)
+        original_cleanup.assert_called_once_with(
+            bucket_name="temporary", key=upload.original_storage_key
+        )
+        self.assertTrue(upload.original_storage_key)
+        cleanup.assert_called_once()
+        self.assertEqual({cleanup.call_args.kwargs["key"]}, keys - {upload.storage_key})

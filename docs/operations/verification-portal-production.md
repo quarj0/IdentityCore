@@ -1,9 +1,9 @@
 # Verification portal production operations
 
-Last reviewed: 2026-08-09
+Last reviewed: 2026-10-19
 
-The repository-owned portal is a working vertical slice with acceptance work tracked in
-IC-081 through IC-086 and summarized in
+The repository-owned portal has a working vertical slice and closed IC-081 through
+IC-086 acceptance issues. Later historical review findings remain tracked in #281; see
 `frontend/verification-portal/COMPLETION.md`. The gates in this document are additional
 deployment- and human-owned release evidence; completing repository issues does not satisfy
 them automatically.
@@ -11,6 +11,19 @@ them automatically.
 The verification portal is releasable only when every gate below has an owner,
 dated evidence, and approval. Repository tests are necessary but do not replace
 independent assessment or a physical-device pilot.
+
+## Subject attribution
+
+Configure the dedicated server-only metadata key on Django and the portal. Establish
+the trusted ingress boundary before enabling a client-IP header; otherwise keep
+subject IP unavailable. Verify synthetic session, consent and audit provenance using
+[Hosted subject metadata attribution](subject-metadata.md).
+
+## Session isolation and cutover
+
+Use the [per-session BFF cookie and retry guide](portal-sessions.md) when upgrading
+the portal. Check two tabs and transient exchange recovery before promotion; old
+portal-wide credentials are retired and require reopening the original secure link.
 
 ## Service-level objectives
 
@@ -48,3 +61,8 @@ severity, role assignment, evidence custody, containment, notification
 decisions, recovery, exercises, and post-incident review. Its scenario playbooks
 cover credential exposure, biometric/provider incidents, tenant isolation,
 availability/data integrity, and consent mismatch.
+
+Follow [accessibility validation](accessibility-validation.md) for automated mounted-state,
+keyboard/touch and nonce-compatible axe coverage. Keep those repository checks with
+manual screen-reader and physical-device evidence; an automated scan does not close
+independent accessibility assurance.

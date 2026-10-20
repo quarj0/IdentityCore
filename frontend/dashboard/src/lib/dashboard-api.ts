@@ -113,6 +113,7 @@ export type VerificationDetail = {
     reason_code: string;
     reason_detail: string;
     approval_status: "not_required" | "pending" | "approved" | "rejected";
+    can_approve: boolean;
     decided_at: string;
   } | null;
   evidence_report: { download_url: string; pdf_download_url: string } | null;

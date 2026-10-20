@@ -12,7 +12,9 @@ def active_retention_holds(now):
 def has_active_retention_hold(*, tenant_id, verification_id, now):
     return (
         active_retention_holds(now)
-        .filter(tenant_id=tenant_id)
-        .filter(Q(verification_id__isnull=True) | Q(verification_id=verification_id))
+        .filter(
+            Q(tenant_id=tenant_id, verification_id__isnull=True)
+            | Q(verification_id=verification_id)
+        )
         .exists()
     )

@@ -4,6 +4,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.audit.services import lock_audit_chain
+from apps.notifications.privacy import delivery_snapshot, persist_delivery_result
 from apps.notifications.models import (
     Notification,
     NotificationChannel,
@@ -17,6 +19,7 @@ from apps.notifications.providers import (
 )
 
 
+@transaction.atomic
 def create_notification(
     *,
     tenant=None,
@@ -27,18 +30,31 @@ def create_notification(
     template_code: str,
     subject: str = "",
     body_preview: str = "",
+    verification_subject=None,
 ) -> Notification:
     if tenant_id is None:
         tenant_id = getattr(tenant, "pk", None)
+    delivery_status = NotificationStatus.PENDING
+    if verification_subject is not None:
+        from apps.verification_subjects.models import VerificationSubject
+
+        lock_audit_chain(tenant_id)
+        verification_subject = VerificationSubject.objects.select_for_update(
+            no_key=True
+        ).get(pk=verification_subject.pk, tenant_id=tenant_id)
+        if verification_subject.deleted_at is not None:
+            recipient, subject, body_preview = "deleted", "", ""
+            delivery_status = NotificationStatus.CANCELLED
     return Notification.objects.create(
         tenant_id=tenant_id,
+        verification_subject=verification_subject,
         recipient_type=recipient_type,
         recipient=recipient,
         channel=channel,
         template_code=template_code,
         subject=subject,
         body_preview=body_preview,
-        status=NotificationStatus.PENDING,
+        status=delivery_status,
     )
 
 
@@ -50,7 +66,7 @@ def dispatch_notification_delivery(
     *,
     mode: NotificationDeliveryMode = "immediate",
 ) -> None:
-    if mode == "batch":
+    if mode == "batch" or notification.status != NotificationStatus.PENDING:
         return
 
     from apps.notifications.tasks import deliver_notification_task
@@ -83,6 +99,7 @@ def queue_verification_created_notifications(
             create_notification(
                 tenant_id=verification.tenant_id,
                 recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
+                verification_subject=subject,
                 recipient=subject.email,
                 channel=NotificationChannel.EMAIL,
                 template_code="verification.created",
@@ -123,6 +140,7 @@ def queue_verification_status_notifications(
             create_notification(
                 tenant_id=verification.tenant_id,
                 recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
+                verification_subject=subject,
                 recipient=subject.email,
                 channel=NotificationChannel.EMAIL,
                 template_code=f"verification.{decision}",
@@ -157,10 +175,36 @@ def queue_verification_status_notifications(
 
 
 def deliver_notification(notification: Notification) -> Notification:
-    if notification.status != NotificationStatus.PENDING:
+    current, admitted = delivery_snapshot(notification)
+    notification.__dict__.update(current.__dict__)
+    notification._state.fields_cache.clear()
+    if not admitted:
         return notification
 
     delivery = notification.delivery_json or {}
+    if delivery.get("platform_invitation"):
+        from apps.reviewers.models import PlatformAdminInvitation
+
+        live = PlatformAdminInvitation.objects.filter(
+            public_id=delivery["platform_invitation"],
+            status="pending",
+            expires_at__gt=timezone.now(),
+            token_hash=PlatformAdminInvitation.digest_token(delivery.get("token", "")),
+            invited_by__is_platform_admin=True,
+            invited_by__status="active",
+            invited_by__deleted_at__isnull=True,
+            role__scope="platform",
+            role__status="active",
+            role__deleted_at__isnull=True,
+            role__name="Platform Admin",
+        ).exists()
+        if not live:
+            notification.status = NotificationStatus.CANCELLED
+            notification.delivery_json = {}
+            persist_delivery_result(
+                notification, update_fields=["status", "delivery_json", "updated_at"]
+            )
+            return notification
     if delivery.get("team_invitation"):
         import hashlib
         from apps.accounts.models import TeamInvitation
@@ -181,7 +225,9 @@ def deliver_notification(notification: Notification) -> Notification:
         if not live:
             notification.status = NotificationStatus.CANCELLED
             notification.delivery_json = {}
-            notification.save(update_fields=["status", "delivery_json", "updated_at"])
+            persist_delivery_result(
+                notification, update_fields=["status", "delivery_json", "updated_at"]
+            )
             return notification
 
     try:
@@ -191,39 +237,42 @@ def deliver_notification(notification: Notification) -> Notification:
         notification.status = NotificationStatus.FAILED
         notification.delivery_json = {}
         notification.provider_reference = f"{notification.channel}:not_configured"
-        notification.save(
+        persist_delivery_result(
+            notification,
             update_fields=[
                 "status",
                 "provider_reference",
                 "delivery_json",
                 "updated_at",
-            ]
+            ],
         )
         return notification
     except NotificationDeliveryError:
         notification.status = NotificationStatus.FAILED
         notification.delivery_json = {}
         notification.provider_reference = f"{notification.channel}:delivery_failed"
-        notification.save(
+        persist_delivery_result(
+            notification,
             update_fields=[
                 "status",
                 "provider_reference",
                 "delivery_json",
                 "updated_at",
-            ]
+            ],
         )
         return notification
     except Exception:
         notification.status = NotificationStatus.FAILED
         notification.delivery_json = {}
         notification.provider_reference = f"{notification.channel}:unexpected_error"
-        notification.save(
+        persist_delivery_result(
+            notification,
             update_fields=[
                 "status",
                 "provider_reference",
                 "delivery_json",
                 "updated_at",
-            ]
+            ],
         )
         return notification
 
@@ -231,14 +280,15 @@ def deliver_notification(notification: Notification) -> Notification:
     notification.delivery_json = {}
     notification.sent_at = result.sent_at or timezone.now()
     notification.provider_reference = result.provider_reference
-    notification.save(
+    persist_delivery_result(
+        notification,
         update_fields=[
             "status",
             "sent_at",
             "provider_reference",
             "delivery_json",
             "updated_at",
-        ]
+        ],
     )
     return notification
 

@@ -131,7 +131,16 @@ class HistoricalSessionRecoveryTests(APITestCase):
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
-            actions=["blink", "turn_left"],
+            actions=[
+                "turn_left",
+                "look_up",
+                "turn_right",
+                "look_down",
+                "turn_left",
+                "look_up",
+                "turn_right",
+                "look_down",
+            ],
             expires_at=timezone.now() + timedelta(minutes=2),
         )
         with self.captureOnCommitCallbacks(execute=True):

@@ -1,5 +1,7 @@
 # Independent review quality
 
+Access requires an active tenant role granting `review_verification`; management actions additionally require `manage_team`. See [reviewer permission rollout](reviewer-permissions.md).
+
 Set `sampling_percent` (0–100, default 0) when creating or editing a tenant review queue. Sampling applies to future completed manual decisions in that queue's environment. A server-keyed hash of verification and decision revision selects samples deterministically. A maker-checker proposal is sampled only after approval. Each sampled revision freezes the sampling percentage, original final outcome/codes, required skills and original reviewers.
 
 The service assigns available qualified reviewers by pending QA workload, oldest assignment timestamp and stable user ID. The maker, checker, applicant and case creator are excluded. If no reviewer qualifies, the sample stays unassigned. Add available qualified queue members, then an independent queue manager can allocate it. Keep at least one qualified reviewer separate from the maker and checker.

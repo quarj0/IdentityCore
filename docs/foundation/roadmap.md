@@ -1,6 +1,6 @@
 # Roadmap
 
-Last reviewed: 2026-08-09
+Last reviewed: 2026-10-18
 
 > For independently assignable work items, priorities, dependencies, and acceptance
 > checks, use the [implementation backlog](../planning/implementation-backlog.md).
@@ -9,6 +9,11 @@ Last reviewed: 2026-08-09
 > completion state comes from GitHub issues and merged pull requests; repository maturity
 > is summarized in the [platform roadmap](platform-roadmap.md) and
 > [product alignment assessment](../architecture/product-alignment.md).
+
+The phase narrative below preserves the initial workload scope. Later accepted work
+includes GHS Paystack invoice payments; the former payment exclusion is superseded by
+[billing operations](../operations/billing-foundation.md). Current platform maturity and
+remaining engineering work are listed in the platform roadmap linked above.
 
 ## IdentityCore
 
@@ -452,7 +457,6 @@ Version 1.0 will not include:
 - Fully autonomous high-impact decisions
 - Offline verification
 - Mobile app
-- Payment processing
 
 ---
 

@@ -37,3 +37,18 @@ To validate recovery safely in a staging environment:
    attempt and no duplicate final decision.
 4. Repeat until the configured attempt limit and confirm the verification moves
    to Manual Review with the exhaustion audit event.
+
+Document recovery recognizes a committed provider-route exhaustion only when its
+system decision identifies the exact document and a document capability in the
+same tenant/case. It reconciles the unfinished document to manual review and
+completes the owned job without redispatching providers, even at the attempt limit.
+An unrelated document/biometric decision does not establish document completion.
+Terminal cases stop new document provider work; unfinished resources become failed
+without changing the case outcome or overwriting already-terminal document evidence.
+An in-flight provider failure after cancellation/expiry commits its owned failure
+state without trying to reopen the case. Stale generations still cannot finalize.
+
+Legacy manual-review decisions without an exact resource reference are not inferred
+as document route exhaustion. Inspect their retained provider/audit evidence using
+the approved tenant-scoped procedure; do not fabricate resource attribution or
+blindly replay providers. Drain old workers when deploying this recovery change.

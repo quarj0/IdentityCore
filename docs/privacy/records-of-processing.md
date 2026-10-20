@@ -19,6 +19,10 @@ repository paths; deployment personnel are assigned in the controlled register.
    Django/PostgreSQL.
 2. A subject opens the verification portal, exchanges a fragment credential for a
    secure portal session, reviews the immutable consent artifact, and uploads evidence.
+   A server-signed metadata envelope carries reported User-Agent and, only with an
+   explicitly trusted ingress header, client IP to Django. Session, consent proof
+   and audit records label attribution; absent trusted IP remains unknown. The
+   envelope is not logged and does not change the transport peer used for throttling.
 3. New media enters the temporary object-storage bucket. Django finalizes it into the
    protected media bucket and queues only the required checks.
 4. The internal AI service or a tenant-selected provider returns normalized evidence;
@@ -26,6 +30,24 @@ repository paths; deployment personnel are assigned in the controlled register.
 5. Authorized users receive results through the dashboard/API/webhook. Retention jobs
    delete media and records according to tenant policy; compliance exports use the
    evidence bucket.
+
+Notification delivery has its own inventory activity covering persisted recipients,
+subject/body previews (including link content where a flow stores it), channel/status,
+provider references and encrypted pending invitation payloads. Notification rows have
+no scheduled purge; subject deletion scrubs linked/current-contact-matched applicant
+messages and cancels pending delivery, while sent facts and opaque linkage remain.
+Other messages and unmatched historical contacts require controlled reconciliation;
+delivery or capability expiry alone does not erase those rows. Define
+and implement the deployment's approved deletion schedule before release. Email
+verification/password-reset token hashes also have no scheduled purge: expiry or
+use revokes capability, while rows remain until user deletion or controlled maintenance.
+Refresh/session history uses its separate scheduled expiry cleanup.
+
+Platform administrator invitation emails are a separate platform-scoped outbox use.
+Their single-use links are encrypted in notification delivery data, excluded from
+previews, delivered through deployment email configuration and cleared after terminal
+delivery. They never use tenant notification credentials. See
+[platform invitations](../operations/platform-invitations.md).
 
 ## Operating procedure
 
@@ -55,3 +77,13 @@ repository paths; deployment personnel are assigned in the controlled register.
 This inventory describes repository-controlled processing, not a claim of legal
 completeness for every deployment. Each controller must add lawful bases, local
 statutory periods, contacts, regions, and vendor agreements to its controlled ROPA.
+
+
+Subject privacy requests require an explicit privileged tenant grant. Deletion
+revokes processing, scrubs provider-result copies and invalidates stored subject
+exports while retaining required audit/outcome facts and tracked report pointers.
+Raw report objects follow their media deadline, with retryable pointers, indexed
+cleanup progress and legal-hold checks; retained metadata/outcomes follow separate
+schedules. Storage crash/uncertain-I/O reconciliation and subject notification
+legacy mapping limits are described in the
+[privacy procedure](../operations/subject-privacy.md) before claiming erasure coverage.

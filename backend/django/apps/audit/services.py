@@ -1,3 +1,4 @@
+from common.subject_metadata import subject_metadata
 import hashlib
 import hmac
 import json
@@ -74,14 +75,24 @@ def record_audit_event(
         action=action,
         target_type=target_type,
         target_id=target_id,
-        ip_address=request.META.get("REMOTE_ADDR") if request is not None else None,
-        user_agent=request.headers.get("User-Agent", "") if request is not None else "",
+        ip_address=(
+            subject_metadata(request).ip_address if request is not None else None
+        ),
+        user_agent=subject_metadata(request).user_agent if request is not None else "",
         device_fingerprint=(
             request.headers.get("X-Device-Fingerprint", "")
             if request is not None
             else ""
         ),
-        metadata_json=metadata or {},
+        metadata_json={
+            **(metadata or {}),
+            **(
+                {"request_provenance": subject_metadata(request).attribution}
+                if request is not None
+                and getattr(request, "subject_metadata", None) is not None
+                else {}
+            ),
+        },
         sensitive_metadata_hash=sensitive_hash,
     )
 

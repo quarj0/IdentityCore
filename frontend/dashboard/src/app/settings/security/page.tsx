@@ -1,6 +1,7 @@
 import { OwnedSessions } from "@/components/auth/owned-sessions";
 import Link from "next/link";
 import { Button, Card, CardContent } from "@identitycore/ui";
+import { SettingsNavigation } from "@/components/shared/settings-navigation";
 import { PageHeading } from "@/components/shared/page-heading";
 export default function Page() {
   const home =
@@ -11,6 +12,7 @@ export default function Page() {
         title="Security settings"
         description="Manage account credentials and review workspace security controls."
       />
+      <SettingsNavigation />
       <Card>
         <CardContent className="space-y-4 p-6">
           <h2 className="font-semibold">Password</h2>

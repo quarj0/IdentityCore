@@ -1,4 +1,5 @@
-from datetime import timedelta
+from apps.access_control.test_helpers import grant_review_permission
+from datetime import datetime, timedelta, timezone as datetime_timezone
 from importlib import import_module
 from io import StringIO
 from unittest.mock import Mock, patch
@@ -155,6 +156,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(self.user)
         self.api_client = APIClient(
             tenant=self.tenant,
             created_by=self.user,
@@ -714,6 +716,49 @@ class VerificationWorkflowTests(APITestCase):
             response.data["data"]["results"][0]["id"], verification.public_id
         )
         self.assertEqual(invalid_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @override_settings(TIME_ZONE="America/New_York")
+    def test_created_date_range_respects_local_dst_boundaries(self):
+        # March 8 has 23 hours in New York: 05:00 UTC through 03:59:59.999999 UTC.
+        cases = []
+        for instant in (
+            datetime(2026, 3, 8, 4, 59, 59, 999999, tzinfo=datetime_timezone.utc),
+            datetime(2026, 3, 8, 5, tzinfo=datetime_timezone.utc),
+            datetime(2026, 3, 9, 3, 59, 59, 999999, tzinfo=datetime_timezone.utc),
+            datetime(2026, 3, 9, 4, tzinfo=datetime_timezone.utc),
+        ):
+            case = Verification.objects.create(
+                tenant=self.tenant,
+                organization=self.organization,
+                verification_subject=self.tenant.verification_subjects.create(
+                    full_name="Date boundary"
+                ),
+                purpose="Date boundary",
+                expires_at=timezone.now() + timedelta(hours=1),
+            )
+            Verification.objects.filter(pk=case.pk).update(created_at=instant)
+            cases.append(case)
+        response = self.client.get(
+            reverse("verification-list-create")
+            + "?created_from=2026-03-08&created_to=2026-03-08",
+            **self.auth_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            {item["id"] for item in response.data["data"]["results"]},
+            {cases[1].public_id, cases[2].public_id},
+        )
+
+    def test_list_rejects_impossible_and_non_contract_dates(self):
+        for field in ("created_from", "created_to"):
+            for value in ("2026-02-30", "2026-13-01", "not-a-date", "20260101"):
+                with self.subTest(field=field, value=value):
+                    response = self.client.get(
+                        reverse("verification-list-create") + f"?{field}={value}",
+                        **self.auth_headers(),
+                    )
+                    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                    self.assertIn(field, response.data["error"]["details"])
 
     def test_detail_requires_read_scope(self):
         self.api_client.scopes_json = ["verifications:create"]
@@ -1351,6 +1396,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(other_reviewer)
         self.client.force_authenticate(other_reviewer)
 
         response = self.client.post(
@@ -1396,6 +1442,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(checker)
         webhook = WebhookEndpoint(
             tenant=self.tenant,
             url="https://example.com/verification-events",
@@ -1462,6 +1509,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(checker)
         outcomes = (
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,
@@ -1517,6 +1565,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(checker)
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
@@ -1563,6 +1612,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(checker)
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
@@ -2149,7 +2199,11 @@ class VerificationOperationsTaskTests(TestCase):
         self.assertEqual(due_session.status, VerificationSessionStatus.EXPIRED)
         self.assertEqual(future_session.status, VerificationSessionStatus.ACTIVE)
 
-    def test_cleanup_retained_media_task_deletes_raw_media_and_preserves_metadata(self):
+    @override_settings(OBJECT_STORAGE_MEDIA_BUCKET="audit-media")
+    @patch("apps.verifications.tasks.delete_object")
+    def test_cleanup_retained_media_task_deletes_raw_media_and_preserves_metadata(
+        self, storage_delete
+    ):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
@@ -2221,9 +2275,15 @@ class VerificationOperationsTaskTests(TestCase):
             ).exists()
         )
 
+        self.assertEqual(storage_delete.call_count, 2)
         self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        self.assertEqual(storage_delete.call_count, 2)
 
-    def test_cleanup_retained_media_task_respects_active_legal_hold(self):
+    @override_settings(OBJECT_STORAGE_MEDIA_BUCKET="audit-media")
+    @patch("apps.verifications.tasks.delete_object")
+    def test_cleanup_retained_media_task_respects_active_legal_hold(
+        self, storage_delete
+    ):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
@@ -2427,6 +2487,7 @@ class ManualReviewOwnershipTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(self.tenant_reviewer)
         self.platform_reviewer = PlatformUser.objects.create_user(
             email="platform-reviewer@example.com",
             password="StrongPassword123!",

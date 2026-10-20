@@ -149,3 +149,40 @@ class ProviderSigningTests(TestCase):
         self.verify(claim_nonce=claim, replay_namespace="provider-one")
         self.verify(claim_nonce=claim, replay_namespace="provider-two")
         self.assertEqual(len(claimed), 2)
+
+    def test_wire_fixtures_accept_numeric_and_unicode_runtime_variations(self):
+        from common.provider_signing import derive_provider_signing_secret
+
+        fixture = json.loads(
+            (
+                Path(__file__).resolve().parents[3]
+                / "docs/fixtures/provider-signing-wire-v1.json"
+            ).read_text()
+        )
+        secret = derive_provider_signing_secret(fixture["api_credential"])
+        self.assertEqual(secret, fixture["derived_signing_secret"])
+        for item in fixture["cases"]:
+            with self.subTest(case=item["name"]):
+                body = item["raw_body"].encode("utf-8")
+                json.loads(body)
+                signed = sign_message(
+                    method=item["method"],
+                    path=item["path"],
+                    body=body,
+                    key_id=item["key_id"],
+                    secret=secret,
+                    timestamp=item["timestamp"],
+                    nonce=item["nonce"],
+                )
+                self.assertEqual(signed.signature, item["signature"])
+                verified = verify_message(
+                    method=item["method"],
+                    path=item["path"],
+                    body=body,
+                    headers=signed.headers(),
+                    keys={item["key_id"]: secret},
+                    now=item["timestamp"] + 1,
+                    expected_nonce=item["nonce"],
+                    claim_nonce=lambda _key, _ttl: True,
+                )
+                self.assertEqual(verified.signature, item["signature"])

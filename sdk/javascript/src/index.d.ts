@@ -64,6 +64,8 @@ export class IdentityCoreClient {
     list(options?: {
       status?: string;
       externalReference?: string;
+      createdFrom?: string;
+      createdTo?: string;
       cursor?: string;
       limit?: number;
       page?: number;
@@ -72,6 +74,8 @@ export class IdentityCoreClient {
     iterate(options?: {
       status?: string;
       externalReference?: string;
+      createdFrom?: string;
+      createdTo?: string;
       limit?: number;
       pageSize?: number;
     }): AsyncIterable<Record<string, unknown>>;

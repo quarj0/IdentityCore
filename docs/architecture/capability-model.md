@@ -177,13 +177,15 @@ providers may inform policy but do not own the final organizational decision.
 #### `storage.object`
 
 Stores or retrieves evidence objects under retention, residency, encryption, and access
-requirements. Tenant-routed storage remains an architectural direction until fully
-implemented.
+requirements. Immutable tenant/environment routes to operator-approved buckets on the
+existing deployment endpoint/identity are implemented; see [tenant storage](../operations/tenant-storage.md). Arbitrary customer endpoints and credentials are not a general capability yet.
 
 #### `key-management`
 
 Performs key wrapping, signing, encryption, or key lifecycle operations through managed
-KMS or HSM systems. Customer-managed key routing remains planned where not implemented.
+KMS or HSM systems. Environment-scoped AWS KMS customer-key wrapping and resumable tenant
+rotation are implemented; see [customer KMS](../operations/customer-kms.md). CloudHSM-backed
+KMS keys use that contract; independent HSM and additional KMS vendors remain future work.
 
 #### `notification.delivery`
 

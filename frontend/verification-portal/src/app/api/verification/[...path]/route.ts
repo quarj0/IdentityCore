@@ -1,3 +1,4 @@
+import { subjectMetadataHeaders } from "@/lib/bff-subject-metadata";
 import { NextResponse } from "next/server";
 import {
   apiUrl,
@@ -19,7 +20,7 @@ async function proxy(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const id = requestId(request);
-  const session = await readBffSession();
+  const session = await readBffSession(request.headers.get("x-session-id"));
   if (!session)
     return NextResponse.json(
       { error: { message: "Verification session is not authenticated." } },
@@ -69,7 +70,18 @@ async function proxy(
   try {
     const query = new URL(request.url).search;
     const body = await readBoundedProxyBody(request, controller.signal);
-    upstream = await fetch(`${apiUrl(upstreamPath)}${query}`, {
+    const upstreamUrl = `${apiUrl(upstreamPath)}${query}`;
+    for (const [name, value] of Object.entries(
+      subjectMetadataHeaders(
+        request,
+        upstreamUrl,
+        request.method,
+        `Bearer ${session.sessionToken}`,
+        id,
+      ),
+    ))
+      headers.set(name, value);
+    upstream = await fetch(upstreamUrl, {
       method: request.method,
       headers,
       body,

@@ -126,7 +126,7 @@ const MAX_ORGANIZATION_DOCUMENT_BYTES = 10 * 1024 * 1024;
 
 export async function createOrganizationDocumentUpload(file: File) {
   if (
-    file.type.toLowerCase() !== "application/pdf" ||
+    (file.type && file.type.toLowerCase() !== "application/pdf") ||
     !file.name.toLowerCase().endsWith(".pdf")
   ) {
     throw new Error("Choose a PDF document.");
@@ -146,7 +146,7 @@ export async function createOrganizationDocumentUpload(file: File) {
     method: "POST",
     body: JSON.stringify({
       filename: file.name,
-      mime_type: file.type,
+      mime_type: "application/pdf",
       file_size_bytes: file.size,
     }),
   });
@@ -155,11 +155,15 @@ export async function createOrganizationDocumentUpload(file: File) {
       "Secure document storage is not configured. Contact support.",
     );
   try {
-    await restRequest(upload.upload_url, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
+    await restRequest(
+      upload.upload_url,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/pdf" },
+        body: file,
+      },
+      { timeoutMs: 60_000 },
+    );
   } catch (error) {
     try {
       await deleteOrganizationDocument(upload.document_id);

@@ -266,6 +266,11 @@ Example:
 GET /verifications?status=verified&created_from=2026-01-01&created_to=2026-01-31
 ```
 
+Verification creation-date filters accept calendar dates in `YYYY-MM-DD` format.
+Both bounds are inclusive in the active Django timezone, including daylight-saving
+transitions. Queries compare timestamp bounds against the raw `created_at` column
+to preserve use of the tenant/creation-time index.
+
 Sorting:
 
 ```http
@@ -577,6 +582,14 @@ Implementation note:
 
 ---
 
+## Project environment boundary
+
+Project environment is fixed at project creation. API-client credentials derive
+scope from that bound environment; changing an existing project to another
+environment returns HTTP 400 even before the first verification. Create a separate
+project and credentials for production. Names, slugs and allowed origins remain
+editable. See [ADR 056](../decisions/ADR-056-immutable-project-environment.md).
+
 ## GET /verifications/{verification_id}/result
 
 Returns the stable public verification-result contract. The response is scoped to
@@ -646,7 +659,11 @@ Example:
 
 ## POST /verifications/{verification_id}/cancel
 
-Cancels a Verification.
+Cancels a Verification. Repeating cancellation returns the current cancelled state
+without duplicating cancellation audit, webhook or notification records. Missing
+legacy cancellation/completion timestamps are repaired under the row lock using an
+existing terminal timestamp. If neither timestamp survived, the repair time is used;
+it does not establish the original historical cancellation time.
 
 Required scope:
 
@@ -1753,3 +1770,12 @@ Version 1.0 excludes:
 The API should make identity verification simple for organizations while keeping privacy, security, auditability, and tenant isolation strict by default.
 
 External clients should not need to understand IdentityCore's internal architecture to create verifications, receive results, or integrate securely.
+
+
+### Raw evidence report retention
+
+The per-verification evidence-report URL, JSON download and PDF download operations
+return 404 after the raw-report deadline/retirement. Reports contain profile/contact/
+OCR data and follow the snapshotted media retention window with legal holds. Ordinary
+requests cannot regenerate retired objects. Verification outcomes and audit/metadata
+retention remain separate. See [retirement operations](../operations/evidence-report-retention.md).

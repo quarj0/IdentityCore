@@ -189,6 +189,16 @@ information.
 
 Provider checks form part of evidence lineage and decision reproducibility.
 
+### Document invocation chronology
+
+Document finalization preserves the orchestrator's recorded invocation completion
+rather than replacing it with task-start time. If a local failure has no recorded
+completion, it receives a fresh timestamp. Each front/back quality invocation has
+its own provider check/attempt, capture metadata and duration; aggregate workflow
+results do not replace the individual provider contract. Regression coverage checks
+start <= completion <= recorded attempt completion for all document capabilities,
+including a workflow persistence failure after a provider response.
+
 ### 7. Continue
 
 The workflow receives a normalized result or deterministic failure. Policy determines

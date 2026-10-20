@@ -1,6 +1,6 @@
 # IdentityCore Python SDK
 
-Typed, server-side Python client for IdentityCore. Requires Python 3.9+ and has no runtime dependencies.
+Typed, server-side Python client for IdentityCore. Requires Python 3.12+ and has no runtime dependencies.
 
 > Never place an API client secret in browser, desktop, or mobile application code.
 
@@ -94,3 +94,23 @@ Always verify the unmodified webhook body before parsing JSON. The default times
 Required scopes are `policies:read`, `verifications:create`, and `verifications:read` for their corresponding resources.
 
 CLI options require their full names (for example, `--profile`); abbreviated long options are rejected so parsing stays consistent with shell completion.
+
+## Creation date filters
+
+List and cursor iteration accept inclusive `created_from`/`created_to` dates in
+`YYYY-MM-DD` format (camelCase options in JavaScript, Java and .NET). The API uses
+the deployment's configured time zone, rejects impossible dates and reversed
+ranges with HTTP 400, and binds cursors to the unchanged filters. Iterators retain
+both dates on every page. Existing calls without dates keep their behavior.
+
+```python
+for verification in client.verifications.iter(
+    created_from="2026-01-01", created_to="2026-01-31"
+):
+    pass  # handle verification
+```
+
+Python 3.12 is the minimum supported version. Compatibility CI targets Python 3.12
+and 3.14; Python 3.9–3.11 are no longer supported. The SDK has no runtime
+dependencies. Backend/AI runtime versions are maintained separately and currently
+require Python 3.12 or newer.

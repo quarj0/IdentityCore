@@ -43,7 +43,8 @@ function safeRequestId(value: string | null | undefined) {
 
 function safeMessage(status: number) {
   if (status === 401) return "Your session has expired. Sign in and try again.";
-  if (status === 403) return "You do not have permission to complete this action.";
+  if (status === 403)
+    return "You do not have permission to complete this action.";
   if (status === 404) return "The requested item could not be found.";
   if (status === 408 || status === 504)
     return "The request took too long. Check your connection and try again.";
@@ -104,12 +105,10 @@ function buildHeaders(
 async function fetchWithTimeout(
   input: RequestInfo | URL,
   init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS,
 ) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(
-    () => controller.abort(),
-    REQUEST_TIMEOUT_MS,
-  );
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   const abort = () => controller.abort();
   if (init.signal?.aborted) controller.abort();
   else init.signal?.addEventListener("abort", abort, { once: true });
@@ -143,7 +142,11 @@ async function fetchWithTimeout(
   }
 }
 
-async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}) {
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS,
+) {
   const method = (init.method ?? "GET").toUpperCase();
   const retrySafe =
     ["GET", "HEAD", "OPTIONS"].includes(method) ||
@@ -152,7 +155,7 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}) 
   for (let attempt = 0; ; attempt += 1) {
     let response: Response;
     try {
-      response = await fetchWithTimeout(input, init);
+      response = await fetchWithTimeout(input, init, timeoutMs);
     } catch (error) {
       if (init.signal?.aborted || !retrySafe || attempt >= 1) throw error;
       await new Promise((resolve) => window.setTimeout(resolve, 250));
@@ -175,7 +178,10 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}) 
 }
 
 async function parseJson<T>(response: Response, fallbackRequestId = "") {
-  const payload = await readJsonResponse<ApiEnvelope<T>>(response, fallbackRequestId);
+  const payload = await readJsonResponse<ApiEnvelope<T>>(
+    response,
+    fallbackRequestId,
+  );
 
   if (!response.ok || !payload || payload.success !== true) {
     const code =
@@ -225,6 +231,7 @@ export async function restRequest<T>(
   options: {
     token?: string | null;
     useAuth?: boolean;
+    timeoutMs?: number;
   } = {},
 ) {
   const token =
@@ -235,11 +242,15 @@ export async function restRequest<T>(
         : getAccessToken();
 
   const send = (access: string | null) =>
-    fetchWithRetry(`${getRestApiBaseUrl()}${path}`, {
-      ...init,
-      credentials: "include",
-      headers: buildHeaders(init.headers, access, init.body),
-    });
+    fetchWithRetry(
+      `${getRestApiBaseUrl()}${path}`,
+      {
+        ...init,
+        credentials: "include",
+        headers: buildHeaders(init.headers, access, init.body),
+      },
+      options.timeoutMs,
+    );
   let response = await send(token);
   if (
     response.status === 401 &&
@@ -325,11 +336,14 @@ export async function graphqlRequest<T>(
   }
 
   if (payload.errors?.length) {
-    throw new ApiError("We could not complete your request. Please try again.", {
-      code: "graphql_error",
-      status: response.status,
-      requestId: safeRequestId(response.headers.get("X-Request-Id")),
-    });
+    throw new ApiError(
+      "We could not complete your request. Please try again.",
+      {
+        code: "graphql_error",
+        status: response.status,
+        requestId: safeRequestId(response.headers.get("X-Request-Id")),
+      },
+    );
   }
 
   if (!payload.data) {

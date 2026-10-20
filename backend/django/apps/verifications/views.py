@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
+import re
 
 from django.conf import settings
 from django.db import transaction
@@ -66,6 +67,8 @@ from apps.verifications.review_access import manual_review_queryset_for_user
 from common.authentication import APIClientAuthentication
 from common.permissions import HasAPIClientScopes, IsManualReviewUser, IsTenantUser
 from common.responses import success_response
+from apps.verifications.report_retention import require_report_access
+from common.environment_access import EnvironmentDenialAuditMixin
 
 
 class VerificationTransitionConflict(APIException):
@@ -74,7 +77,8 @@ class VerificationTransitionConflict(APIException):
     default_code = "verification_transition_conflict"
 
 
-class VerificationAccessMixin:
+class VerificationAccessMixin(EnvironmentDenialAuditMixin):
+    environment_audit_target = "verification"
     authentication_classes = [
         APIClientAuthentication,
         *api_settings.DEFAULT_AUTHENTICATION_CLASSES,
@@ -106,7 +110,9 @@ class VerificationAccessMixin:
         environment_filter = Q(project__environment=environment)
         if environment == "sandbox":
             environment_filter |= Q(project__isnull=True)
-        return queryset.filter(environment_filter)
+        return self._remember_environment_lookup(
+            request, queryset, queryset.filter(environment_filter)
+        )
 
     def get_permissions(self):
         if self._is_api_client_request(self.request):
@@ -143,7 +149,14 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
         for name, value in (("created_from", created_from), ("created_to", created_to)):
             if not value:
                 continue
-            parsed = parse_date(value)
+            try:
+                parsed = (
+                    parse_date(value)
+                    if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value)
+                    else None
+                )
+            except ValueError:
+                parsed = None
             if parsed is None:
                 raise ValidationError(
                     {name: "Must be a valid date in YYYY-MM-DD format."}
@@ -156,11 +169,15 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
                 )
         if "created_from" in date_filters:
             verifications = verifications.filter(
-                created_at__date__gte=date_filters["created_from"]
+                created_at__gte=timezone.make_aware(
+                    datetime.combine(date_filters["created_from"], time.min)
+                )
             )
         if "created_to" in date_filters:
             verifications = verifications.filter(
-                created_at__date__lte=date_filters["created_to"]
+                created_at__lte=timezone.make_aware(
+                    datetime.combine(date_filters["created_to"], time.max)
+                )
             )
 
         if "page" in request.query_params or "page_size" in request.query_params:
@@ -339,13 +356,18 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
         serializer.is_valid(raise_exception=True)
         lock_audit_chain(verification.tenant_id)
         try:
-            verification, _ = transition_verification(
+            verification, changed = transition_verification(
                 verification,
                 VerificationStatus.CANCELLED,
                 completed_at=timezone.now(),
             )
         except VerificationTransitionError as exc:
             raise VerificationTransitionConflict() from exc
+        if not changed:
+            return success_response(
+                {"id": verification.public_id, "status": verification.status},
+                request=request,
+            )
         record_audit_event(
             tenant=self._get_tenant(request),
             actor=self._get_actor(request),
@@ -466,6 +488,7 @@ class VerificationEvidenceReportView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        require_report_access(verification)
         ensure_verification_evidence_report(verification)
         verification.refresh_from_db()
         return success_response(
@@ -504,6 +527,7 @@ class VerificationEvidenceReportDownloadView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        require_report_access(verification)
         ensure_verification_evidence_report(verification)
         content, content_type, filename = download_verification_evidence_object(
             verification,
@@ -528,6 +552,7 @@ class VerificationEvidenceReportPDFDownloadView(VerificationAccessMixin, APIView
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        require_report_access(verification)
         ensure_verification_evidence_report(verification)
         content, content_type, filename = download_verification_evidence_object(
             verification,
@@ -630,6 +655,7 @@ class ManualReviewDecisionView(APIView):
         if decision_record.decision in {
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,
+            VerificationStatus.FAILED,
             VerificationStatus.MANUAL_REVIEW_REQUIRED,
         }:
             queue_webhook_events(

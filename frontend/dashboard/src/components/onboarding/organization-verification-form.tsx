@@ -50,7 +50,7 @@ export function OrganizationVerificationForm() {
       download_url?: string;
     }>
   >([]);
-  const [savedDocumentCount, setSavedDocumentCount] = useState(0);
+  const [savedDocumentKeys, setSavedDocumentKeys] = useState<string[]>([]);
   const [readOnly, setReadOnly] = useState(false);
 
   useEffect(() => {
@@ -65,7 +65,11 @@ export function OrganizationVerificationForm() {
           officialWebsite: state.officialWebsite || state.website || "",
         }));
         setDocuments(state.supportingDocuments || []);
-        setSavedDocumentCount(state.supportingDocuments?.length || 0);
+        setSavedDocumentKeys(
+          (state.supportingDocuments || []).map(
+            (document) => document.storage_key,
+          ),
+        );
         setReadOnly(!state.organizationVerificationEditable);
         if (nextRoute !== "/onboarding/organization-verification") {
           router.replace(nextRoute);
@@ -100,7 +104,7 @@ export function OrganizationVerificationForm() {
           "Your onboarding record has been updated and the next step is ready.",
       });
       setReadOnly(true);
-      setSavedDocumentCount(documents.length);
+      setSavedDocumentKeys(documents.map((document) => document.storage_key));
       router.replace(
         result.nextAction === "submit_administrator_identity_verification"
           ? "/onboarding/admin-identity"
@@ -258,7 +262,8 @@ export function OrganizationVerificationForm() {
                     }
                     const invalid = files.find(
                       (file) =>
-                        file.type.toLowerCase() !== "application/pdf" ||
+                        (file.type &&
+                          file.type.toLowerCase() !== "application/pdf") ||
                         !file.name.toLowerCase().endsWith(".pdf") ||
                         file.size <= 0 ||
                         file.size > 10 * 1024 * 1024,
@@ -353,7 +358,11 @@ export function OrganizationVerificationForm() {
               </div>
             </div>
 
-            {!readOnly || documents.length > savedDocumentCount ? (
+            {!readOnly ||
+            documents.length !== savedDocumentKeys.length ||
+            documents.some(
+              (document) => !savedDocumentKeys.includes(document.storage_key),
+            ) ? (
               <div className="sm:col-span-2">
                 <Button
                   type="submit"

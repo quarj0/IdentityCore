@@ -426,6 +426,19 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                         else None
                     ),
                 }
+                if liveness_check.liveness_type == "active":
+                    from shared.liveness_challenge import PROTOCOL, valid_actions
+
+                    if not liveness_check.challenge_id or not valid_actions(
+                        liveness_check.challenge.actions
+                    ):
+                        raise ProviderContractError(
+                            "A current ordered active challenge is required."
+                        )
+                    liveness_operation_kwargs.update(
+                        challenge_id=liveness_check.challenge.public_id,
+                        challenge_protocol=PROTOCOL,
+                    )
                 liveness_execution = execute_provider_route(
                     verification=verification,
                     check_type=ProviderCheckType.LIVENESS,
@@ -450,6 +463,25 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 liveness_check.provider_check_id = liveness_provider_check.public_id
 
             validate_liveness_evidence(liveness_result)
+            if liveness_check.liveness_type == "active":
+                from shared.liveness_challenge import validate_result
+
+                try:
+                    validate_result(
+                        liveness_result,
+                        challenge_id=(
+                            liveness_check.challenge.public_id
+                            if liveness_check.challenge_id
+                            else ""
+                        ),
+                        actions=(
+                            liveness_check.challenge.actions
+                            if liveness_check.challenge_id
+                            else None
+                        ),
+                    )
+                except ValueError as exc:
+                    raise ProviderContractError(str(exc)) from exc
             metrics = liveness_result["metrics"]
             face_count = metrics["face_count"]
             detection_confidence = metrics["avg_detection_confidence"]
@@ -693,9 +725,8 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 # The provider boundary commits classified attempt evidence before
                 # raising. Reload it rather than overwriting it with a stale model.
                 failed_check.refresh_from_db()
-                if (
-                    failed_check.status != ProviderCheckStatus.COMPLETED
-                    or isinstance(exc, ProviderContractError)
+                if failed_check.status != ProviderCheckStatus.COMPLETED or isinstance(
+                    exc, ProviderContractError
                 ):
                     if (
                         failed_check.status

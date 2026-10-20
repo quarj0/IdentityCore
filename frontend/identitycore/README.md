@@ -17,15 +17,15 @@ From `frontend/`, run `corepack pnpm install --frozen-lockfile` and then
 
 Use `pnpm --filter identitycore-web lint` and `pnpm --filter identitycore-web build` for validation.
 
-See [COMPLETION.md](COMPLETION.md) for the audited completion boundary, missing API
-contracts, prioritized frontend work, and production release gates.
+See [COMPLETION.md](COMPLETION.md) for current application ownership, validation and
+release boundaries.
 
 ## Production requirements
 
 - Set every public URL explicitly; `NEXT_PUBLIC_API_ORIGIN` must be an HTTPS origin in production.
 - Legacy account and onboarding paths redirect to `NEXT_PUBLIC_DASHBOARD_URL`.
 - Set `NEXT_PUBLIC_ALLOW_INDEXING=true` only for the canonical production deployment.
-- Configure the backend refresh cookie, CORS allowlist, and object-storage CORS for the deployed web origin.
-- Do not place API-client secrets in this application. It authenticates platform users only.
-- Verify password-reset and email-verification links use the deployed IdentityCore origin.
+- Configure CORS for public catalog/contact calls. Dashboard account cookies and evidence uploads use the dashboard origin.
+- Do not place API-client or server secrets in this public application.
+- Verify account and onboarding redirects reach the configured dashboard origin.
 - Run `pnpm --filter identitycore-web lint` and `pnpm --filter identitycore-web build` before deployment.

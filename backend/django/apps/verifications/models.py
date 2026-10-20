@@ -114,6 +114,19 @@ class RetentionLegalHold(PublicIdModel, BaseModel):
     class Meta:
         ordering = ["-created_at"]
 
+    def clean(self):
+        super().clean()
+        if self.verification_id and self.verification.tenant_id != self.tenant_id:
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError(
+                {"verification": "The verification must belong to the hold tenant."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
+
     @property
     def is_active(self) -> bool:
         return self.released_at is None and (
@@ -124,6 +137,25 @@ class RetentionLegalHold(PublicIdModel, BaseModel):
 class Verification(PublicIdModel, BaseModel):
     public_id_prefix = "ver"
     decision_revision = models.PositiveIntegerField(default=0, db_default=0)
+    media_cleanup_due_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    media_cleanup_completed_at = models.DateTimeField(
+        null=True, blank=True, db_index=True
+    )
+    media_cleanup_attempted_at = models.DateTimeField(
+        null=True, blank=True, db_index=True
+    )
+
+    def save(self, *args, **kwargs):
+        from apps.verifications.report_retention import report_due_at
+
+        due = report_due_at(self)
+        if due != self.media_cleanup_due_at:
+            self.media_cleanup_due_at = due
+            if kwargs.get("update_fields") is not None:
+                kwargs["update_fields"] = set(kwargs["update_fields"]) | {
+                    "media_cleanup_due_at"
+                }
+        return super().save(*args, **kwargs)
 
     tenant = models.ForeignKey(
         "tenants.Tenant",

@@ -169,6 +169,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "common.observability.ObservabilityMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "common.subject_metadata.SubjectMetadataMiddleware",
     "common.tenant_crypto_middleware.TenantKeyReadCacheMiddleware",
     "common.cors.LocalCorsMiddleware",
     "common.usage_headers.APIUsageHeadersMiddleware",
@@ -265,6 +266,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.PlatformUser"
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+# Signature nonce claims must be shared and atomic across API/worker processes.
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "provider_signatures": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+        "KEY_PREFIX": "identitycore-provider-signatures-v1",
+        "OPTIONS": {"socket_connect_timeout": 1, "socket_timeout": 1},
+    },
+}
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 DEPLOYMENT_DRAIN_FILE = os.getenv("DEPLOYMENT_DRAIN_FILE", "/tmp/identitycore-draining")
@@ -528,3 +539,8 @@ LOGGING = {
 # Deployment-approved bucket -> residency region. No tenant-supplied endpoints.
 TENANT_STORAGE_DESTINATIONS = json.loads(os.getenv("TENANT_STORAGE_DESTINATIONS", "{}"))
 TENANT_STORAGE_BUCKET_REMAP = json.loads(os.getenv("TENANT_STORAGE_BUCKET_REMAP", "{}"))
+
+# Shared only between the hosted verification BFF and Django; never a browser variable.
+VERIFICATION_METADATA_SECRET = os.getenv("VERIFICATION_METADATA_SECRET", "")
+
+PLATFORM_INVITATION_BASE_URL = os.getenv("PLATFORM_INVITATION_BASE_URL", "http://localhost:3004/accept-invitation")

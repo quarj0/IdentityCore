@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Button, Input } from "@identitycore/ui";
+import { downloadCsv } from "@/lib/export-csv";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { AdminRecordTable } from "@/components/admin-module/admin-record-table";
@@ -53,7 +54,19 @@ export function AdminListPage({ config }: AdminListPageProps) {
         eyebrow={config.moduleLabel}
         title={config.listTitle}
         description={config.listDescription}
-        actions={config.headerActions}
+        actions={
+          config.headerActions ?? (
+            <Button
+              variant="outline"
+              disabled={!filteredRecords.length}
+              onClick={() =>
+                downloadCsv("platform-loaded-results.csv", filteredRecords)
+              }
+            >
+              {config.exportLabel || "Export"} loaded results
+            </Button>
+          )
+        }
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

@@ -39,10 +39,16 @@ export default defineConfig({
     },
   ],
   webServer: {
+    env: {
+      VERIFICATION_METADATA_SECRET:
+        "synthetic-playwright-metadata-secret-at-least-32-characters",
+    },
     command:
       "API_ORIGIN=https://api.example.test DEPLOYMENT_VERSION=e2e pnpm build && API_ORIGIN=https://api.example.test DEPLOYMENT_VERSION=e2e pnpm start:standalone",
     url: "http://127.0.0.1:3002",
-    reuseExistingServer: !process.env.CI,
+    // These checks assert production headers and the configured release version.
+    // A reused development server cannot satisfy that contract.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

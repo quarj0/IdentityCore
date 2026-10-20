@@ -19,7 +19,7 @@ export function PlatformAdminAuthGate({
   );
 
   useEffect(() => {
-    if (pathname === "/login") {
+    if (["/login", "/accept-invitation"].includes(pathname)) {
       return;
     }
 
@@ -42,7 +42,11 @@ export function PlatformAdminAuthGate({
     };
   }, [pathname, router]);
 
-  if (pathname === "/login" || state === "authorized") return <>{children}</>;
+  if (
+    ["/login", "/accept-invitation"].includes(pathname) ||
+    state === "authorized"
+  )
+    return <>{children}</>;
 
   if (state === "denied") {
     return (

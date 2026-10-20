@@ -9,7 +9,7 @@ export function securityHeaders(nonce: string): Record<string, string> {
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob:",
     "object-src 'none'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
     `style-src 'self' 'nonce-${nonce}'`,
     "style-src-attr 'none'",
     "worker-src 'self' blob:",

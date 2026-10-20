@@ -24,7 +24,8 @@ export function PlatformAdminShell({ children }: PlatformAdminShellProps) {
   useEffect(() => {
     if (!mobileNavigationOpen) triggerRef.current?.focus();
   }, [mobileNavigationOpen]);
-  if (pathname === "/login") return <>{children}</>;
+  if (["/login", "/accept-invitation"].includes(pathname))
+    return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">

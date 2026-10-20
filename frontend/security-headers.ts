@@ -2,6 +2,8 @@ export type CspOptions = {
   apiOrigin?: string;
   camera?: boolean;
   development?: boolean;
+  assetOrigins?: readonly string[];
+  uploadOrigins?: readonly string[];
 };
 
 function sourceOrigin(value?: string) {
@@ -16,11 +18,34 @@ function sourceOrigin(value?: string) {
   }
 }
 
+function resourceOrigins(values: readonly string[] = [], development = false) {
+  return [
+    ...new Set(
+      values.flatMap((value) => {
+        try {
+          const url = new URL(value);
+          if (url.username || url.password || url.hostname.includes("*"))
+            return [];
+          if (
+            url.protocol !== "https:" &&
+            !(development && url.protocol === "http:")
+          )
+            return [];
+          return [url.origin];
+        } catch {
+          return [];
+        }
+      }),
+    ),
+  ];
+}
+
 export function contentSecurityPolicy(nonce: string, options: CspOptions = {}) {
   const apiOrigin = sourceOrigin(options.apiOrigin);
   const connectSources = [
     "'self'",
     ...(apiOrigin ? [apiOrigin] : []),
+    ...resourceOrigins(options.uploadOrigins, options.development),
     ...(options.development ? ["ws:", "wss:"] : []),
   ];
 
@@ -31,7 +56,7 @@ export function contentSecurityPolicy(nonce: string, options: CspOptions = {}) {
     "font-src 'self' data:",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob: ${resourceOrigins(options.assetOrigins, options.development).join(" ")}`.trim(),
     "media-src 'self' blob:",
     "object-src 'none'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${options.development ? " 'unsafe-eval'" : ""}`,

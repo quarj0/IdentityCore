@@ -4,8 +4,12 @@ from types import SimpleNamespace
 from app import bootstrap_models
 
 
+import pytest
+
+
+@pytest.mark.parametrize("aliased", [False, True])
 def test_bootstrap_creates_paddle_directories_before_initialization(
-    monkeypatch, tmp_path
+    monkeypatch, tmp_path, aliased
 ):
     settings = SimpleNamespace(
         ai_model_root=tmp_path,
@@ -16,6 +20,11 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
         insightface_model_name="buffalo_l",
         paddle_pdx_cache_home=str(tmp_path / "paddlex"),
     )
+    if aliased:
+        alias = tmp_path.parent / (tmp_path.name + "-alias")
+        alias.symlink_to(tmp_path, target_is_directory=True)
+        settings.ai_model_root = alias
+        settings.model_manifest_path = tmp_path / "manifest.json"
     settings.paddle_model_is_complete = lambda path: (
         (path / "inference.yml").is_file() and (path / "inference.json").is_file()
     )

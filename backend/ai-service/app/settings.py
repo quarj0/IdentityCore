@@ -1,5 +1,4 @@
 import hashlib
-import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -34,6 +33,7 @@ class Settings(BaseSettings):
         default=Path("/opt/identitycore/models"), alias="AI_MODEL_ROOT"
     )
     ai_model_manifest: Path | None = Field(default=None, alias="AI_MODEL_MANIFEST")
+    ai_model_manifest_sha256: str = Field(default="", alias="AI_MODEL_MANIFEST_SHA256")
     object_storage_bucket: str = Field(
         default="",
         validation_alias=AliasChoices("OBJECT_STORAGE_BUCKET"),
@@ -227,53 +227,9 @@ class Settings(BaseSettings):
         return self.ai_model_manifest or self.ai_model_root / "manifest.json"
 
     def model_asset_integrity_errors(self) -> list[str]:
-        """Return fail-closed, human-readable model manifest errors."""
-        manifest_path = self.model_manifest_path
-        if not manifest_path.is_file():
-            return [f"models.manifest_missing:{manifest_path}"]
-        try:
-            payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-            return [f"models.manifest_invalid:{manifest_path}"]
-        files = payload.get("files") if isinstance(payload, dict) else None
-        if not isinstance(files, list) or not files:
-            return [f"models.manifest_invalid:{manifest_path}"]
+        from app.model_integrity import integrity_errors
 
-        errors: list[str] = []
-        listed_paths: set[str] = set()
-        model_root = self.ai_model_root.resolve()
-        for entry in files:
-            if not isinstance(entry, dict):
-                errors.append("models.manifest_entry_invalid")
-                continue
-            relative_path = entry.get("path")
-            expected_digest = entry.get("sha256")
-            if not isinstance(relative_path, str) or not isinstance(
-                expected_digest, str
-            ):
-                errors.append("models.manifest_entry_invalid")
-                continue
-            listed_paths.add(Path(relative_path).as_posix())
-            try:
-                asset_path = (model_root / relative_path).resolve()
-                asset_path.relative_to(model_root)
-            except (OSError, ValueError):
-                errors.append(f"models.asset_path_invalid:{relative_path}")
-                continue
-            if not asset_path.is_file():
-                errors.append(f"models.asset_missing:{relative_path}")
-                continue
-            try:
-                actual_digest = hashlib.sha256(asset_path.read_bytes()).hexdigest()
-            except OSError:
-                errors.append(f"models.asset_unreadable:{relative_path}")
-                continue
-            if len(expected_digest) != 64 or actual_digest != expected_digest.lower():
-                errors.append(f"models.asset_checksum_mismatch:{relative_path}")
-        required_pad_path = Path(self.pad_model_relative_path).as_posix()
-        if required_pad_path not in listed_paths:
-            errors.append(f"models.manifest_required_asset_missing:{required_pad_path}")
-        return errors
+        return integrity_errors(self)
 
     @property
     def paddle_text_detection_model_dir(self) -> Path:

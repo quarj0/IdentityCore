@@ -2,8 +2,12 @@ import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { Button } from "@identitycore/ui";
 import { VerificationShell } from "@/components/layout/verification-shell";
+import { headers } from "next/headers";
+import { localizeText, resolveLocale } from "@/lib/i18n";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const locale = resolveLocale((await headers()).get("accept-language"));
+  const t = (text: string) => localizeText(locale, text);
   return (
     <VerificationShell>
       <div className="mx-auto max-w-xl rounded-4xl border border-border bg-card p-8 text-center shadow-sm">
@@ -12,15 +16,16 @@ export default function NotFound() {
         </div>
 
         <h1 className="mt-6 text-3xl font-semibold tracking-tight">
-          Verification page not found
+          {t("Verification page not found")}
         </h1>
         <p className="mt-3 text-sm leading-7 text-muted-foreground">
-          The verification page you are looking for does not exist or may have
-          been removed.
+          {t(
+            "The verification page you are looking for does not exist or may have been removed.",
+          )}
         </p>
 
         <Button asChild className="mt-6 rounded-xl">
-          <Link href="/">Back home</Link>
+          <Link href="/">{t("Back home")}</Link>
         </Button>
       </div>
     </VerificationShell>

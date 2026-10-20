@@ -71,6 +71,8 @@ SAFE_PROVIDER_ERROR_CODES = frozenset(
         "provider_invalid_json",
         "provider_invalid_response",
         "provider_network_error",
+        "provider_signature_invalid",
+        "provider_replay_store_unavailable",
         "provider_redirect_blocked",
         "provider_response_too_large",
         "provider_route_exhausted",

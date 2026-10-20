@@ -1,4 +1,4 @@
-import { Button } from "@identitycore/ui";
+import { EditWorkflowDialog } from "@/features/workflows/forms/edit-workflow-dialog";
 import { WorkflowArchiveDialog } from "@/features/workflows/components/workflow-archive-dialog";
 import { WorkflowPublishDialog } from "@/features/workflows/components/workflow-publish-dialog";
 import { WorkflowStatusPill } from "@/features/workflows/components/workflow-status-pill";
@@ -63,7 +63,7 @@ export function WorkflowHeader({ workflow, onChanged }: WorkflowHeaderProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline">Edit draft</Button>
+          <EditWorkflowDialog workflow={workflow} onChanged={onChanged} />
           <CloneWorkflowDialog
             workflowName={workflow.name}
             workflowId={workflow.id}

@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.verification_subjects.models import (
     VerificationSubject,
     VerificationSubjectExport,
@@ -13,14 +13,49 @@ from apps.verification_subjects.models import (
 from apps.verifications.models import RetentionLegalHold
 
 
+def _privacy_actor(subject, actor):
+    if actor is None:
+        return (
+            None  # Trusted internal maintenance; HTTP callers always supply an actor.
+        )
+    from apps.accounts.models import PlatformUser
+    from common.authorization import AuthorizationAction, decide_user_access
+    from rest_framework.exceptions import PermissionDenied
+
+    actor = (
+        PlatformUser.objects.select_for_update(no_key=True).filter(pk=actor.pk).first()
+    )
+    if (
+        actor is None
+        or not decide_user_access(
+            actor,
+            action=AuthorizationAction.TENANT_ACCESS,
+            tenant=subject,
+            permission_code="manage_subject_privacy",
+        ).allowed
+    ):
+        raise PermissionDenied("Subject privacy permission is required.")
+    return actor
+
+
 def request_subject_deletion(
     *, subject: VerificationSubject, actor=None, request=None
 ) -> dict:
     now = timezone.now()
     with transaction.atomic():
+        lock_audit_chain(subject.tenant_id)
+        actor = _privacy_actor(subject, actor)
+        # Match processing finalizers: audit -> cases -> sessions/jobs -> subject.
+        cases = list(
+            subject.verifications.select_for_update(of=("self",), no_key=True).order_by(
+                "pk"
+            )
+        )
+        subject = VerificationSubject.objects.select_for_update(no_key=True).get(
+            pk=subject.pk
+        )
         active_holds = list(
             RetentionLegalHold.objects.filter(
-                tenant_id=subject.tenant_id,
                 verification__verification_subject_id=subject.id,
                 released_at__isnull=True,
             ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
@@ -53,6 +88,102 @@ def request_subject_deletion(
                 metadata={"hold_count": len(active_holds)},
             )
             return report
+
+        from apps.verifications.models import (
+            ProcessingJob,
+            ProcessingJobStatus,
+            VerificationSessionStatus,
+            VerificationStatus,
+        )
+        from apps.verifications.transitions import (
+            TERMINAL_STATUSES,
+            transition_verification,
+        )
+
+        for case in cases:
+            case.sessions.update(
+                status=VerificationSessionStatus.REVOKED, updated_at=now
+            )
+            ProcessingJob.objects.filter(
+                verification=case,
+                status__in=[ProcessingJobStatus.QUEUED, ProcessingJobStatus.PROCESSING],
+            ).update(
+                status=ProcessingJobStatus.EXHAUSTED,
+                error_code="subject_deleted",
+                completed_at=now,
+                heartbeat_at=now,
+                lease_expires_at=now,
+                updated_at=now,
+            )
+            cancelled = case.status not in TERMINAL_STATUSES
+            if cancelled:
+                transition_verification(
+                    case, VerificationStatus.CANCELLED, completed_at=now
+                )
+            # Opaque report references remain tracked until retention removes them.
+            metadata = (
+                case.metadata_json if isinstance(case.metadata_json, dict) else {}
+            )
+            case.metadata_json = {
+                key: value
+                for key, value in metadata.items()
+                if key
+                in {
+                    "evidence_report_storage_key",
+                    "evidence_report_pdf_storage_key",
+                    "evidence_report_encrypted",
+                    "evidence_report_pdf_encrypted",
+                    "evidence_reports_retired_at",
+                    "evidence_report_pending_cleanup_keys",
+                }
+            }
+            case.external_reference = ""
+            case.save(
+                update_fields=["metadata_json", "external_reference", "updated_at"]
+            )
+            if cancelled:
+                from apps.webhooks.services import queue_webhook_events
+
+                queue_webhook_events(
+                    tenant=case.tenant,
+                    event_type="verification.cancelled",
+                    payload={
+                        "verification_id": case.public_id,
+                        "external_reference": "",
+                        "status": "cancelled",
+                    },
+                )
+            for check in case.provider_checks.select_related("tenant", "verification"):
+                check.response_metadata_json = {}
+                check.normalized_result_json = {}
+                check.error_message = ""
+                check.save(
+                    update_fields=[
+                        "response_metadata_json",
+                        "normalized_result_json",
+                        "error_message",
+                        "updated_at",
+                    ]
+                )
+        # Previously generated subject exports contain their own profile copies.
+        for export in VerificationSubjectExport.objects.filter(
+            subject=subject
+        ).select_related("tenant"):
+            export.payload_json = {}
+            export.download_token_hash = ""
+            export.expires_at = now
+            export.save(
+                update_fields=[
+                    "payload_json",
+                    "download_token_hash",
+                    "expires_at",
+                    "updated_at",
+                ]
+            )
+
+        from apps.notifications.privacy import scrub_subject_notifications
+
+        notifications_anonymized = scrub_subject_notifications(subject)
 
         subject.full_name = "Deleted subject"
         subject.external_reference = ""
@@ -90,11 +221,7 @@ def request_subject_deletion(
                 ]
             )
             document_count += 1
-        verification_count = 0
-        for verification in subject.verifications.select_related("tenant").all():
-            verification.metadata_json = {}
-            verification.save(update_fields=["metadata_json", "updated_at"])
-            verification_count += 1
+        verification_count = len(cases)
         decision_count = 0
         for decision in subject.verifications.select_related("decision_record").all():
             if hasattr(decision, "decision_record"):
@@ -120,6 +247,9 @@ def request_subject_deletion(
                 "document_metadata",
                 "verification_metadata",
                 "decision_inputs",
+                "provider_result_copies",
+                "subject_exports",
+                "subject_notifications",
             ],
             "retained_categories": [
                 "audit_facts",
@@ -134,6 +264,7 @@ def request_subject_deletion(
             "documents_anonymized": document_count,
             "verifications_anonymized": verification_count,
             "decision_inputs_anonymized": decision_count,
+            "notifications_anonymized": notifications_anonymized,
         }
         record_audit_event(
             tenant=subject.tenant,
@@ -151,9 +282,19 @@ def request_subject_deletion(
         return report
 
 
+@transaction.atomic
 def create_subject_export(
     *, subject: VerificationSubject, actor=None, request=None
 ) -> dict:
+    lock_audit_chain(subject.tenant_id)
+    actor = _privacy_actor(subject, actor)
+    subject = VerificationSubject.objects.select_for_update(no_key=True).get(
+        pk=subject.pk
+    )
+    if subject.deleted_at is not None:
+        from rest_framework.exceptions import NotFound
+
+        raise NotFound("This subject is no longer available.")
     raw_token = secrets.token_urlsafe(32)
     verifications = []
     for verification in subject.verifications.order_by("created_at"):

@@ -10,9 +10,11 @@ const image = Buffer.from(
 );
 
 test("verification pages send hardened browser security headers", async ({
-  request,
+  page,
 }) => {
-  const response = await request.get("/");
+  const response = await page.goto("/");
+  expect(response).not.toBeNull();
+  if (!response) throw new Error("Missing page response");
 
   expect(response.headers()["cache-control"]).toContain("no-store");
   const csp = response.headers()["content-security-policy"];
@@ -30,6 +32,18 @@ test("verification pages send hardened browser security headers", async ({
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
   expect(response.headers()["x-frame-options"]).toBe("DENY");
   expect(response.headers()["x-powered-by"]).toBeUndefined();
+  const nonce = csp.match(/'nonce-([^']+)'/)?.[1];
+  expect(nonce).toBeTruthy();
+  const scripts =
+    (await response.text()).match(
+      /<script\b[^>]*\bsrc="[^"]*\/_next\/[^"]*"[^>]*>/g,
+    ) ?? [];
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const script of scripts) expect(script).toContain(`nonce="${nonce}"`);
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(
+    page.getByRole("button", { name: "Switch to light theme" }),
+  ).toBeVisible();
 });
 
 test("health and readiness endpoints expose safe orchestration state", async ({
@@ -92,6 +106,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   let uploadCreateRequests = 0;
   let failBackUploadOnce = true;
   let failLivenessSubmissionOnce = true;
+  let failSessionExchangeOnce = true;
   let livenessUploadMimeType = "";
   let documentPayload: {
     captures?: Array<{ side: string; upload_id: string }>;
@@ -142,6 +157,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     const method = request.method();
 
     if (path === "/api/verification/session" && method === "POST") {
+      if (failSessionExchangeOnce) {
+        failSessionExchangeOnce = false;
+        return route.fulfill({ status: 502, json: { error: "Unavailable" } });
+      }
       return route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -313,7 +332,16 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     ) {
       return json(route, {
         challenge_id: "lch_1",
-        actions: ["turn_left", "look_up"],
+        actions: [
+          "turn_left",
+          "look_up",
+          "turn_right",
+          "look_down",
+          "turn_left",
+          "look_up",
+          "turn_right",
+          "look_down",
+        ],
         expires_in: 60,
         expires_at: new Date(Date.now() + 60_000).toISOString(),
       });
@@ -350,6 +378,12 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   });
 
   await page.goto(`/verify/${sessionId}#token=browser-secret`);
+  await expect(
+    page.getByRole("heading", { name: "Verification unavailable" }),
+  ).toBeVisible();
+  expect(new URL(page.url()).hash).toBe("#token=browser-secret");
+  await page.getByRole("button", { name: "Retry secure session" }).click();
+  await expect.poll(() => new URL(page.url()).hash).toBe("");
   if (!isMobile) {
     await page
       .getByRole("button", { name: "Continue on this computer" })
@@ -426,7 +460,22 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   ).toBeVisible();
   await page.getByRole("button", { name: "Enable camera" }).click();
   await page.getByRole("button", { name: "Start live challenge" }).click();
-  await page.getByRole("button", { name: "Finish recording" }).click();
+  const instruction = page.getByRole("status", {
+    name: "Live challenge instruction",
+  });
+  await expect(instruction).toHaveText("Face forward and hold still");
+  for (const direction of [
+    "Turn your head left",
+    "Look up",
+    "Turn your head right",
+    "Look down",
+    "Turn your head left",
+    "Look up",
+    "Turn your head right",
+    "Look down",
+  ]) {
+    await expect(instruction).toHaveText(direction);
+  }
   await expect(
     page.getByRole("button", { name: "Submit live check" }),
   ).toBeVisible();

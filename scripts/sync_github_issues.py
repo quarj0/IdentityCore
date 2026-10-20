@@ -87,7 +87,11 @@ def parse_backlog(path: Path) -> list[BacklogIssue]:
             milestone = f"Milestone {milestone_match['number']} — {milestone_match['title']}"
             continue
         row = ROW.match(line)
+        if re.match(r"^\s*\|?\s*IC-", line) and not row:
+            raise ValueError("Malformed backlog issue row")
         if row:
+            if row["kind"].strip() not in {"bug", "feature", "security", "test", "docs"}:
+                raise ValueError(f"Invalid backlog type for {row['id']}")
             if not milestone:
                 raise ValueError(f"{row['id']} appears before a milestone heading")
             issues.append(

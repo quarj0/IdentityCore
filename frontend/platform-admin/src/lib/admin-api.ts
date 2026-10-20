@@ -60,6 +60,7 @@ function buildHeaders(token: string | null) {
   const headers = new Headers({
     Accept: "application/json",
     "Content-Type": "application/json",
+    "X-IdentityCore-Session-Scope": "platform_admin",
   });
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
@@ -91,6 +92,7 @@ export async function restRequest<T>(path: string, init: RequestInit = {}) {
 export async function graphqlRequest<T>(
   query: string,
   variables?: Record<string, unknown>,
+  anonymous = false,
 ) {
   const send = (token: string | null) =>
     fetch(getGraphqlApiUrl(), {
@@ -100,8 +102,8 @@ export async function graphqlRequest<T>(
       credentials: "include",
     });
 
-  let response = await send(getAccessToken());
-  if (response.status === 401) {
+  let response = await send(anonymous ? null : getAccessToken());
+  if (response.status === 401 && !anonymous) {
     try {
       const refreshed = await refreshAccessToken();
       response = await send(refreshed);

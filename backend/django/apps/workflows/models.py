@@ -1,3 +1,4 @@
+from copy import deepcopy
 from django.db import models
 from apps.core.models import BaseModel, PublicIdModel
 
@@ -94,7 +95,7 @@ class WorkflowVersion(PublicIdModel):
             "workflow_id": self.workflow.public_id,
             "workflow_name": self.workflow_name,
             "version": self.version,
-            "steps": list(self.steps_json),
-            "settings": dict(self.settings_json),
+            "steps": deepcopy(self.steps_json),
+            "settings": deepcopy(self.settings_json),
             "published_at": self.published_at.isoformat(),
         }

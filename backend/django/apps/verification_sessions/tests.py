@@ -1043,7 +1043,7 @@ class VerificationSessionPortalTests(APITestCase):
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
-            actions=["turn_left", "look_up"],
+            actions=["turn_left", "look_up", "turn_right", "look_down", "turn_left", "look_up", "turn_right", "look_down"],
             expires_at=timezone.now() + timedelta(minutes=3),
         )
         with self.captureOnCommitCallbacks(execute=True):
@@ -1453,7 +1453,7 @@ class VerificationSessionPortalTests(APITestCase):
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
-            actions=["turn_left", "look_up"],
+            actions=["turn_left", "look_up", "turn_right", "look_down", "turn_left", "look_up", "turn_right", "look_down"],
             expires_at=timezone.now() + timedelta(minutes=3),
         )
         with self.captureOnCommitCallbacks(execute=True):
@@ -1474,6 +1474,9 @@ class VerificationSessionPortalTests(APITestCase):
             )
         self.assertEqual(liveness_response.status_code, status.HTTP_200_OK)
         mock_liveness.return_value = {
+            "challenge_id": challenge.public_id,
+            "challenge_protocol": "ordered_motion_v1",
+            "challenge_passed": True,
             "status": "completed",
             "passed": True,
             "score": 0.97,
@@ -1481,6 +1484,8 @@ class VerificationSessionPortalTests(APITestCase):
             "model_name": "mediapipe-liveness",
             "model_version": "v1",
             "metrics": {
+                "challenge_actions": challenge.actions,
+                "detected_actions": challenge.actions,
                 "face_count": 1,
                 "avg_detection_confidence": 0.98,
             },

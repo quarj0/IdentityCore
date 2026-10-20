@@ -11,7 +11,7 @@ class NotificationPostCommitDispatchTests(TestCase):
         side_effect=RuntimeError("broker unavailable"),
     )
     def test_broker_failure_does_not_escape_post_commit_callback(self, mock_delay):
-        notification = Mock(public_id="ntf_POST_COMMIT")
+        notification = Mock(public_id="ntf_POST_COMMIT", status="pending")
 
         with self.captureOnCommitCallbacks(execute=True):
             dispatch_notification_delivery(notification)

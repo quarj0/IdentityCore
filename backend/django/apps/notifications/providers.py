@@ -140,6 +140,8 @@ def _get_active_provider_configuration(channel: str) -> tuple[str, dict]:
     for provider in Provider.objects.filter(
         provider_type=ProviderType.NOTIFICATION,
         status=ProviderStatus.ACTIVE,
+        tenant__isnull=True,
+        deleted_at__isnull=True,
     ).order_by("name"):
         configuration = provider.configuration_json or {}
         if configuration.get("channel") == channel:
@@ -148,10 +150,29 @@ def _get_active_provider_configuration(channel: str) -> tuple[str, dict]:
 
 
 def get_notification_provider(notification: Notification) -> BaseNotificationProvider:
+    if notification.tenant_id is None:
+        if (
+            notification.template_code != "platform_admin.invitation"
+            or notification.channel != "email"
+        ):
+            raise NotificationProviderNotConfigured(
+                "Unsupported platform notification."
+            )
+        return DjangoEmailNotificationProvider(provider_code="platform_email")
     assignment = get_notification_provider_assignment(
         notification.tenant, notification.channel
     )
     if assignment is not None:
+        provider = assignment.provider
+        if (
+            provider.tenant_id not in {None, notification.tenant_id}
+            or provider.status != ProviderStatus.ACTIVE
+            or provider.deleted_at is not None
+            or provider.provider_type != ProviderType.NOTIFICATION
+        ):
+            raise NotificationProviderNotConfigured(
+                "The assigned notification provider is unavailable."
+            )
         provider_code = assignment.provider.code
         configuration = assignment.provider.configuration_json or {}
     else:

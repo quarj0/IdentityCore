@@ -41,6 +41,28 @@ class SeedLocalCommandTests(TestCase):
             ).exists()
         )
         self.assertIn("Development-only password", output.getvalue())
+        self.assertIn("Dashboard: http://localhost:3000", output.getvalue())
+        for case in Verification.objects.select_related("decision_record"):
+            if case.completed_at:
+                self.assertGreaterEqual(case.completed_at, case.created_at)
+            if hasattr(case, "decision_record"):
+                decision = case.decision_record
+                self.assertGreaterEqual(decision.decided_at, decision.created_at)
+                self.assertGreaterEqual(decision.decided_at, case.created_at)
+            if case.assigned_reviewer_id:
+                self.assertIsNotNone(case.assigned_at)
+                self.assertGreaterEqual(case.assigned_at, case.created_at)
+            else:
+                self.assertIsNone(case.assigned_at)
+        stale = Verification.objects.exclude(
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
+        ).first()
+        from django.utils import timezone
+
+        Verification.objects.filter(pk=stale.pk).update(assigned_at=timezone.now())
+        call_command("seed_local", stdout=output)
+        stale.refresh_from_db()
+        self.assertIsNone(stale.assigned_at)
 
     @staticmethod
     def _counts():

@@ -23,13 +23,16 @@ run_suite() {
 
 cd "$ROOT_DIR"
 
-run_suite "generated SDK model drift" uv run --project backend python scripts/generate_sdk_models.py --check
+run_suite "generated SDK model drift" uv run --frozen --project backend --group django python scripts/generate_sdk_models.py --check
 run_suite "public OpenAPI parity" env DJANGO_SETTINGS_MODULE=config.settings.testing \
-  uv run --project backend python scripts/check_openapi_contract.py
+  uv run --frozen --project backend --group django python scripts/check_openapi_contract.py
 
 run_suite "Django backend" env DJANGO_SETTINGS_MODULE=config.settings.testing \
-  uv run --project backend python backend/django/manage.py test apps common config
-run_suite "AI service" uv run --project backend pytest backend/ai-service/tests
+  uv run --frozen --project backend --group django python backend/django/manage.py test apps common config
+run_suite "AI OpenCV runtime" uv run --frozen --project backend --group ai-service \
+  python backend/shared/opencv_runtime.py
+run_suite "AI service" uv run --frozen --project "$ROOT_DIR/backend" \
+  --directory "$ROOT_DIR/backend/ai-service" --group ai-service pytest tests
 run_suite "frontend unit" pnpm --dir frontend --recursive --if-present test
 run_suite "verification portal end-to-end" \
   pnpm --dir frontend --filter verification-portal test:e2e

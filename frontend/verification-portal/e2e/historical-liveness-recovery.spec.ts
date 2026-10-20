@@ -63,7 +63,16 @@ for (const { mode, clockOffset, pendingPermission } of [
         issued += 1;
         return reply({
           challenge_id: `lch_${issued}`,
-          actions: ["turn_left", "look_up"],
+          actions: [
+            "turn_left",
+            "look_up",
+            "turn_right",
+            "look_down",
+            "turn_left",
+            "look_up",
+            "turn_right",
+            "look_down",
+          ],
           expires_in: issued === 1 ? 8 : 60,
           expires_at: new Date(
             Date.now() + (issued === 1 ? 8000 : 60_000),

@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
@@ -103,11 +104,7 @@ class ProjectStatusView(ProjectDetailView):
             "suspend": ProjectStatus.SUSPENDED,
         }
         if action not in statuses:
-            return success_response(
-                {"detail": "Unsupported action."},
-                request=request,
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError({"action": "Unsupported action."})
         project.status = statuses[action]
         project.save(update_fields=["status", "updated_at"])
         record_audit_event(

@@ -117,6 +117,11 @@ def build_proof(
         "content_hash": sha256(record.consent_text_snapshot.encode()).hexdigest(),
         "evidence_scope": sorted(scopes),
         "binding_source": source,
+        **(
+            {"request_provenance": record._request_provenance}
+            if hasattr(record, "_request_provenance")
+            else {}
+        ),
     }
 
 
@@ -230,7 +235,7 @@ def lock_session_consent(request, *, scope, action):
     request.verification_session = session
     require_verification_session_action(request, action)
     try:
-        require_active_consent(case, scope)
+        return require_active_consent(case, scope)
     except ValidationError:
         raise APIValidationError("Active consent for this evidence scope is required.") from None
 

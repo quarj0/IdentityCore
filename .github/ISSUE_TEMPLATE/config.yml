@@ -1,1 +1,5 @@
 blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/quarj0/IdentityCore/security/advisories/new
+    about: Use this private channel for any possible or confirmed vulnerability. Do not disclose details in public issues.
