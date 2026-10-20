@@ -123,9 +123,10 @@ organization-facing provider setup and independently approved production activat
 tenant/environment storage routes, customer-managed AWS KMS keys, review queues and
 quality sampling, and GHS Paystack invoice payment/recovery.
 
-Engineering closure still requires completing the individual historical review audit
-([#281](https://github.com/quarj0/IdentityCore/issues/281)) and its protected remediation
-merges. Reusable claims, a generalized evidence/lineage API, broader provider certification
+The four immediate remediation items are merged in
+[PR #433](https://github.com/quarj0/IdentityCore/pull/433). The
+[historical audit reconciliation](docs/reviews/README.md) records all findings against
+merged main; publishing that receipt is the remaining closure step for #281. Reusable claims, a generalized evidence/lineage API, broader provider certification
 and general asynchronous provider completion remain platform expansion work. Production
 model validation, independent assurance and deployed operational evidence remain separate
 release requirements.

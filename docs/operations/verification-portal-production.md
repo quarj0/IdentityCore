@@ -1,9 +1,11 @@
 # Verification portal production operations
 
-Last reviewed: 2026-10-19
+Last reviewed: 2026-10-20
 
 The repository-owned portal has a working vertical slice and closed IC-081 through
-IC-086 acceptance issues. Later historical review findings remain tracked in #281; see
+IC-086 acceptance issues. Historical remediation is merged in #433, and the
+[reconciliation](../reviews/README.md) records no actionable or pending findings
+in its snapshot. #281 awaits publication of that receipt. See also
 `frontend/verification-portal/COMPLETION.md`. The gates in this document are additional
 deployment- and human-owned release evidence; completing repository issues does not satisfy
 them automatically.

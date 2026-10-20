@@ -97,7 +97,8 @@ pnpm test:e2e:verify
 The browser matrix runs desktop Chromium and WebKit plus Pixel and iPhone device
 profiles. Current tests cover subject journeys, keyboard/axe checks, camera recovery, locales,
 expiry and security headers. The original IC-081 through IC-086 issues are closed;
-ongoing historical review findings remain tracked separately in #281. Real standalone
+historical remediation is merged in #433 with per-finding
+[audit reconciliation](../../docs/reviews/README.md). Real standalone
 HTTP/browser transport checks exercise the BFF with a strict TLS upstream fixture. Physical-device certification remains a
 release evidence gate because an emulator cannot certify camera hardware.
 Provider, storage, worker, and Django integration tests live in their owning
@@ -145,7 +146,8 @@ so a provider or Django incident does not create a container restart loop.
 ## Maturity status
 
 The portal is a working repository vertical slice; IC-081 through IC-086 are closed.
-Later historical findings remain open in #281. `COMPLETION.md` distinguishes those repository-owned gaps from the
+Historical remediation is merged in #433; #281 awaits the completed audit receipt.
+`COMPLETION.md` distinguishes repository implementation from the
 additional deployment, independent-assurance, provider, physical-device, pilot, and
 approval gates.
 

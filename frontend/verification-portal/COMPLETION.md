@@ -1,10 +1,12 @@
 # Verification portal maturity and release boundary
 
-Last reviewed: 2026-10-19
+Last reviewed: 2026-10-20
 
 The hosted applicant journey is implemented with repository acceptance coverage.
-Historical review audit [#281](https://github.com/quarj0/IdentityCore/issues/281) remains
-open; repository completion does not establish deployment or biometric certification.
+Historical remediation is merged in #433; the
+[audit reconciliation](../../docs/reviews/README.md) has no pending/actionable
+findings in its snapshot. #281 awaits the published reconciliation receipt.
+Repository completion does not establish deployment or biometric certification.
 
 ## Implemented paths
 
@@ -48,8 +50,8 @@ Read [production operations](../../docs/operations/verification-portal-productio
 Synthetic browser fixtures do not certify physical cameras, provider accuracy or a
 particular deployment.
 
-The prepared historical accessibility remediation consolidates duplicate applicant
+The merged historical accessibility remediation consolidates duplicate applicant
 coverage, scans captured and live-camera states, exercises QR/terminal paths and
 uses sequential keyboard navigation. See the [validation procedure](../../docs/operations/accessibility-validation.md).
-Its implementation and automated evidence remain subject to protected review/merge;
+Its implementation and automated evidence were reviewed and merged in #433;
 independent WCAG and assistive-technology validation remain release gates.

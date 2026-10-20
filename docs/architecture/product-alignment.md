@@ -1,18 +1,20 @@
 # Product Alignment and Gap Assessment
 
-Last reviewed: 2026-10-18
+Last reviewed: 2026-10-20
 
 IdentityCore is a vendor-neutral identity infrastructure platform with a working
 identity verification workload. Repository implementation, historical review closure,
 and deployment assurance are separate milestones. The live
 [issue tracker](https://github.com/quarj0/IdentityCore/issues) and merged pull requests
-remain authoritative for issue completion. In particular, audit #281 is still open.
+remain authoritative for issue completion. PR #433 is merged. Audit #281 awaits
+publication of the [completed reconciliation](../reviews/README.md); no actionable
+or pending finding remains in that snapshot.
 
 ## Current capability assessment
 
 | Capability | Repository implementation | Remaining boundary |
 | --- | --- | --- |
-| Control plane | Tenant/project/environment isolation, roles, API clients, versioned workflows/policies and administration | Complete outstanding historical reviews; broader enterprise hierarchy and delegated operations remain future scope |
+| Control plane | Tenant/project/environment isolation, roles, API clients, versioned workflows/policies and administration | Publish the completed historical audit receipt; broader enterprise hierarchy and delegated operations remain future scope |
 | Provider routing | Immutable conditional routes by capability, country, document type and workflow; ordered fallback, bounded retries, timeouts and single-probe circuit recovery | Cost/tier optimization, arbitrary policy expressions and general asynchronous callbacks are not implemented |
 | Provider setup | Versioned machine-readable manifests, encrypted environment credentials, organization-facing connection tests, production configuration diffs and independent activation approval | A connection test is not capability, deletion, retention or security certification |
 | Signed custom providers | HMAC wire contracts, request/response verification, provider/environment-scoped shared replay claims and cross-runtime fixtures | Existing bearer configurations require explicit migration and re-testing; do not imply all providers use signed mode |
@@ -20,7 +22,7 @@ remain authoritative for issue completion. In particular, audit #281 is still op
 | Workflows/policies/decisions | Published versions, immutable running snapshots, template instantiation idempotency, policy-driven decisions and maker-checker review | General cross-workload branching, compensation, policy language and signed attestations remain future work |
 | Evidence | Captures, normalized provider checks, model provenance, immutable decision inputs, evidence reports and protected access | No generalized cross-workload evidence resource or public lineage API |
 | Claims | Extracted fields and evidence-backed policy decisions | No reusable claims API; expiry, revocation, conflict resolution, selective disclosure and descendant propagation require a dedicated implementation |
-| Manual review | Verification assignment, maker-checker, policy-bound reasons, tenant queues, skills/SLA routing and independent quality sampling; organization onboarding has its own escalation flow | Explicit `review_verification` role enforcement and migration are implemented on the remediation branch; protected review/merge remains tracked by #281. General verification-case escalation is not implemented; reviewer calibration/staffing assurance remain deployment responsibilities |
+| Manual review | Verification assignment, maker-checker, policy-bound reasons, tenant queues, skills/SLA routing and independent quality sampling; organization onboarding has its own escalation flow | Explicit `review_verification` enforcement and the narrow system-role migration are merged in #433. General verification-case escalation is not implemented; reviewer calibration/staffing assurance remain deployment responsibilities |
 | Consent/privacy | Purpose-bound immutable consent, withdrawal, retention, legal holds and permission-controlled subject export/deletion with processing revocation | Historical unbound notification contacts and reports with lost references need controlled reconciliation; external processor deletion and legal assurance require accountable evidence |
 | Tenant keys | Tenant data envelopes, resumable rotation, environment-scoped AWS KMS customer bindings and fail-closed key availability | Other KMS vendors and independent HSM integrations are not general plug-in capabilities |
 | Tenant storage | Immutable tenant/environment routes to operator-approved buckets and residency regions; retained routes support old objects and restores | Routes share the approved deployment endpoint/identity; arbitrary tenant endpoints/credentials and automatic legacy relocation are not implemented |
@@ -34,9 +36,11 @@ remain authoritative for issue completion. In particular, audit #281 is still op
 
 The historical review inventory is tracked individually in
 [the disposition register](../reviews/historical-review-dispositions.json). A closed or
-resolved GitHub thread does not establish a fixed defect. Each pending finding needs
-inspection against current code; confirmed defects need regressions and protected
-remediation merges. Counts belong to the register rather than this document.
+resolved GitHub thread does not establish a fixed defect. The 2026-10-20
+reconciliation inspected all closed/merged PR feedback against main and records
+merge receipts and regression evidence. No actionable or pending finding remains
+in that snapshot. New feedback still requires individual assessment and protected
+remediation. Counts belong to the register rather than this document.
 
 Hosted applicant attribution uses [signed subject metadata](../operations/subject-metadata.md).
 Trusted ingress configuration is required before claiming applicant IP attribution;
