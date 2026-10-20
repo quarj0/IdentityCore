@@ -79,3 +79,11 @@ codes without raw responses, tokens or model paths. All 96 AI tests passed,
 including real HTTP tests of authentication, unready exit status and redaction.
 `make up` preserves startup failure and attempts this probe; `make check-ai` runs it
 explicitly. Real mode and model integrity requirements remain enforced.
+
+The follow-up configured review of `71867ce` completed without new findings. The
+next Security run detected CVE-2026-111755 and CVE-2026-111756 in the frontend's
+transitive `follow-redirects` 1.16.0. The lockfile now selects patched 1.16.1 with
+its registry integrity hash; unrelated dependency versions remain unchanged.
+Frozen-lockfile installation, the five existing dependency security regressions,
+workspace lint (zero errors) and verification-portal TypeScript checks passed.
+Current-head Security and fresh independent review remain required before merge.
