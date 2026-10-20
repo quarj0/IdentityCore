@@ -19,16 +19,18 @@ import java.util.UUID;
 
 public final class IdentityCoreClient {
 
-    public static final String VERSION = "0.2.0";
+    public static final String VERSION = "0.3.0";
     private static final List<Integer> RETRYABLE = List.of(408, 429, 500, 502, 503, 504);
     private final URI apiOrigin;
     private final String clientId;
     private final String clientSecret;
+    private final String accessToken;
     private final Duration timeout;
     private final int maxRetries;
     private final Duration retryBackoff;
     private final ObjectMapper json;
     private final Transport transport;
+    public final GovernedResources governed = new GovernedResources(this);
     public final Policies policies = new Policies();
     public final Verifications verifications = new Verifications();
 
@@ -40,8 +42,8 @@ public final class IdentityCoreClient {
         if (b.apiOrigin == null || !b.apiOrigin.isAbsolute() || b.apiOrigin.getHost() == null || !List.of("http", "https").contains(b.apiOrigin.getScheme())) {
             throw new IdentityCoreException("apiOrigin must be an absolute HTTP(S) URL.");
         }
-        if (b.clientId == null || b.clientId.isBlank() || b.clientSecret == null || b.clientSecret.isBlank()) {
-            throw new IdentityCoreException("clientId and clientSecret are required.");
+        if ((b.accessToken == null || b.accessToken.isBlank()) && (b.clientId == null || b.clientId.isBlank() || b.clientSecret == null || b.clientSecret.isBlank())) {
+            throw new IdentityCoreException("accessToken or clientId and clientSecret are required.");
         }
         if (b.timeout.isZero() || b.timeout.isNegative() || b.maxRetries < 0 || b.retryBackoff.isNegative()) {
             throw new IdentityCoreException("Retry and timeout settings are invalid.");
@@ -49,6 +51,7 @@ public final class IdentityCoreClient {
         this.apiOrigin = URI.create(b.apiOrigin.toString().replaceAll("/$", ""));
         this.clientId = b.clientId;
         this.clientSecret = b.clientSecret;
+        this.accessToken = b.accessToken;
         this.timeout = b.timeout;
         this.maxRetries = b.maxRetries;
         this.retryBackoff = b.retryBackoff;
@@ -61,13 +64,18 @@ public final class IdentityCoreClient {
     }
 
     public JsonNode request(String method, String path, JsonNode body, String idempotencyKey) {
+        return request(method, path, body, idempotencyKey, Map.of());
+    }
+
+    public JsonNode request(String method, String path, JsonNode body, String idempotencyKey, Map<String, String> extraHeaders) {
         method = method.toUpperCase();
         boolean retryableMethod = List.of("GET", "HEAD", "OPTIONS").contains(method) || (idempotencyKey != null && !idempotencyKey.isBlank());
         String requestId = "req_" + UUID.randomUUID().toString().replace("-", "");
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put("Accept", "application/json");
-        headers.put("Authorization", "Bearer " + clientSecret);
-        headers.put("X-Client-Id", clientId);
+        headers.put("Authorization", "Bearer " + (accessToken != null && !accessToken.isBlank() ? accessToken : clientSecret));
+        if (accessToken == null || accessToken.isBlank()) headers.put("X-Client-Id", clientId);
+        headers.putAll(extraHeaders);
         headers.put("X-Request-Id", requestId);
         headers.put("User-Agent", "identitycore-java/" + VERSION);
         if (body != null) {
@@ -275,6 +283,7 @@ public final class IdentityCoreClient {
         private URI apiOrigin;
         private String clientId;
         private String clientSecret;
+        private String accessToken;
         private Duration timeout = Duration.ofSeconds(30);
         private int maxRetries = 2;
         private Duration retryBackoff = Duration.ofMillis(250);
@@ -295,6 +304,8 @@ public final class IdentityCoreClient {
             this.clientSecret = value;
             return this;
         }
+
+        public Builder accessToken(String value) { this.accessToken = value; return this; }
 
         public Builder timeout(Duration value) {
             this.timeout = value;

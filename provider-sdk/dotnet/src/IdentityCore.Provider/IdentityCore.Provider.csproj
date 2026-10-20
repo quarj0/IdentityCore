@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <PackageId>IdentityCore.Provider</PackageId><Version>0.1.0</Version><Authors>IdentityCore</Authors>
+    <Description>Signed provider contracts and durable provider operations for IdentityCore.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile><PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+  <ItemGroup><PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" /></ItemGroup>
+  <ItemGroup><None Include="../../README.md" Pack="true" PackagePath="" /><None Include="../../LICENSE" Pack="true" PackagePath="" /></ItemGroup>
+</Project>

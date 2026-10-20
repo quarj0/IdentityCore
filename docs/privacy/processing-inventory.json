@@ -319,6 +319,63 @@
         "security",
         "privacy"
       ]
+    },
+    {
+      "id": "governed-evidence-claims-and-disclosure",
+      "fields": [
+        "Versioned schema definitions and permitted disclosure fields; no subject data belongs in schemas.",
+        "Tenant/project/subject/purpose links, legal-basis justification and current consent reference; independent approval and explicit secondary-purpose reuse edges.",
+        "Encrypted evidence payload/provenance and claim values/rule parameters; content hashes, source-check links and immutable bounded lineage.",
+        "Conflict review member references, encrypted decision reasons and maker/checker snapshots.",
+        "Recipient API-client references, hash-only short-lived disclosure capabilities, field/policy selections and metadata-only redemption receipts.",
+        "Legal-hold reasons, restriction tombstones and bounded retention scheduler progress; preserved content cannot continue to be used after deletion request."
+      ],
+      "purpose": "Process and reuse purpose-authorized evidence and claims, preserve provenance, independently resolve conflicts and disclose only approved fields to authenticated recipients.",
+      "locations": [
+        "backend/django/apps/evidence/models.py",
+        "backend/django/apps/claims/models.py"
+      ],
+      "retention": "Evidence, claims, authorizations and review reasons have explicit delete_after deadlines. Disclosure selections are scrubbed on capability expiry. Scheduled bounded cleanup runs every five minutes; expiry denies use immediately. Subject deletion scrubs encrypted content, justifications, purpose text, rule parameters and hold/review reasons when no applicable hold exists. Holds defer destruction while the deletion request permanently restricts the profile from new governed use. Pseudonymous lineage, recipient/actor references, lifecycle timestamps, hashes of random capabilities and redemption/audit identities are retained for audit; deployments must define an approved final audit retention period. Immutable schema and reuse-policy definitions are configuration metadata and must never contain subject values.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "Celery retention worker",
+        "Authenticated tenant/project API recipients"
+      ],
+      "transfers": "Selected fields or derived predicates leave IdentityCore only for the explicitly bound authenticated API client, under a current approved policy and purpose authorization. Issuance returns a random token once; shared replay storage excludes raw disclosure tokens and redeemed values. Real recipients, regions, legal basis and safeguards remain deployment-specific.",
+      "owners": [
+        "privacy",
+        "identity",
+        "security",
+        "platform"
+      ]
+    },
+    {
+      "id": "governed-provider-operations-and-assurance",
+      "fields": [
+        "Tenant/project/verification/provider-check/job links; immutable operation scope, request/configuration digests and generation/deadline.",
+        "Encrypted temporary provider results and random operation lease; signed callback and poll state.",
+        "Durable remote cancel/delete action, acknowledgement status and bounded reconciliation timestamps.",
+        "Versioned capability/configuration/manifest/suite-scoped assurance reports, encrypted artifact references, independent officer approval, expiry and revocation."
+      ],
+      "purpose": "Bind asynchronous provider completion to admitted authorized work, reconcile remote cancellation/deletion and record scoped provider conformance and assurance reviews.",
+      "locations": [
+        "backend/django/apps/providers/models.py"
+      ],
+      "retention": "Operation result copies expire one day after the bounded operation deadline and are scrubbed by scheduled cleanup, or immediately on subject erasure. Applicable subject/project or verification/tenant holds preserve values but do not authorize continued use. Local erasure queues remote deletion; encrypted random leases with no subject values remain for at most 30 days from the latest control request to reconcile a signed acknowledgement, then are cleared with an explicit expired status if acknowledgement is unavailable. Cancel acknowledgements retain the lease for subsequent deletion, including release of a long legal hold. Assurance reports have explicit delete_after deadlines and are retired on schedule; immutable pseudonymous bindings, artifact hashes, expiry/revocation metadata and audit identities remain subject to deployment audit retention.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "Celery retention/reconciliation worker",
+        "The exact tenant/environment approved provider endpoint"
+      ],
+      "transfers": "Only admitted inputs are transferred to the configured signed provider endpoint. Poll/cancel/delete reuse that endpoint and exact operation scope; provider-returned URLs are never followed. Callbacks authenticate the exact wire body, current consent and current scoped assurance. Local deletion is never represented as provider deletion until a matching signed remote receipt is acknowledged. Deployment owners retain real conformance artifacts and independent assurance evidence; uploading a report does not create third-party certification.",
+      "owners": [
+        "privacy",
+        "platform",
+        "security",
+        "identity"
+      ]
     }
   ],
   "owner_register": "docs/privacy/processing-owners.json",
@@ -6192,6 +6249,1241 @@
       "source": "backend/django/apps/billing/models.py",
       "field": "BillingWebhookEvent.error_code",
       "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.authorization",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.claim_class",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.confidence",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.created_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.delete_after",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.invalidated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.invalidation_reason",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.observed_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.project",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.purpose",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.rule_name",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.rule_parameters_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.rule_version",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.schema",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.source_claims",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.source_evidence",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.status",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.subject",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.supersedes",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.valid_from",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.valid_until",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.value_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "Claim.value_sha256",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.audience",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.authorization",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.created_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.expires_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.max_redemptions",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.project",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.purpose",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.redemption_count",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.revoked_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.selections_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.subject",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.token_sha256",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosure.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.audience_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.disclosure",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.request_key_sha256",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimDisclosureRedemption.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimEvidence.claim",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimEvidence.evidence",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimEvidence.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.decided_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.delete_after",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.member_ids_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.outcome",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.project",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.purpose",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.reason_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.schema",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.selected_claim",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.subject",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimResolution.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.accepted_classes_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.approved_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.approved_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.disclosure_fields_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.max_age_seconds",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.minimum_confidence",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.name",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.project",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.proposed_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.purposes_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.retired_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.schema",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimReusePolicy.version",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimSource.claim",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimSource.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/claims/models.py",
+      "field": "ClaimSource.source",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "AuthorizationReuse.authorization",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "AuthorizationReuse.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "AuthorizationReuse.source_authorization",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.authorization",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.created_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.delete_after",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.evidence_type",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.invalidated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.invalidation_reason",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.observed_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.operation_reference",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.payload_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.payload_sha256",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.project",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.provenance_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.provenance_sha256",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.purpose",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.schema",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.source_check",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.sources",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.status",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.subject",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.supersedes",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.valid_until",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "Evidence.verification",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "EvidenceSource.evidence",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "EvidenceSource.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "EvidenceSource.source",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.allowed_operations_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.approved_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.approved_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.consent_record",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.delete_after",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.justification_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.legal_basis",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.project",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.proposed_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.purpose",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.revocation_reason",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.revoked_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.subject",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.valid_from",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "PurposeAuthorization.valid_until",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.created_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.expires_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.project",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.reason_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.released_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.released_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.subject",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceLegalHold.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceMaintenanceState.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceMaintenanceState.last_error_code",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceMaintenanceState.last_examined_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceMaintenanceState.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.created_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.definition_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.disclosure_fields_json",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.kind",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.name",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.retired_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "ResourceSchema.version",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.created_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.deleted_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.processing_revoked_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.public_id",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.reason_code",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.requested_by_id_snapshot",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.subject",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.tenant",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/evidence/models.py",
+      "field": "SubjectResourceRestriction.updated_at",
+      "activity": "governed-evidence-claims-and-disclosure"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.approved_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.approved_by_id_snapshot",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.assurance_level",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.capability",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.configuration",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.configuration_digest",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.contract_version",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.created_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.delete_after",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.deleted_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.environment",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.id",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.manifest_sha256",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.operation_contract",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.proposed_by_id_snapshot",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.public_id",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.report_json",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.report_sha256",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.revocation_reason",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.revoked_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.suite_version",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.tenant",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.updated_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCertification.valid_until",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.capability",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.completed_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.configuration",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.configuration_digest",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.created_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.deadline",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.delete_after",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.deleted_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.id",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.invalidation_reason",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.lease_generation",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.lease_json",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.next_poll_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.operation_contract",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.processing_job",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.project",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.provider_check",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.public_id",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.remote_action",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.remote_action_status",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.remote_attempted_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.remote_requested_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.request_sha256",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.result_json",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.result_sha256",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.scope_json",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.status",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.tenant",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.transport_lease_until",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.updated_at",
+      "activity": "governed-provider-operations-and-assurance"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderOperation.verification",
+      "activity": "governed-provider-operations-and-assurance"
     }
   ]
 }

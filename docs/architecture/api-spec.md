@@ -6,7 +6,7 @@
 
 **Status:** Target API design. This document describes intended Version 1.0 behavior and
 is not the live endpoint contract. The concrete implemented public surface is
-`docs/openapi/identitycore-public-api.yaml` (currently version 0.3.0). IC-069 tracks
+`docs/openapi/identitycore-public-api.yaml` (currently version 0.4.0). IC-069 tracks
 contract parity and IC-070 tracks complete public idempotency enforcement.
 
 ---

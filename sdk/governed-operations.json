@@ -1,0 +1,207 @@
+[
+  {
+    "name": "list_resource_schemas",
+    "method": "GET",
+    "path": "/evidence/schemas"
+  },
+  {
+    "name": "create_resource_schema",
+    "method": "POST",
+    "path": "/evidence/schemas"
+  },
+  {
+    "name": "get_resource_schema",
+    "method": "GET",
+    "path": "/evidence/schemas/{schema_id}"
+  },
+  {
+    "name": "retire_resource_schema",
+    "method": "POST",
+    "path": "/evidence/schemas/{schema_id}/retire"
+  },
+  {
+    "name": "list_purpose_authorizations",
+    "method": "GET",
+    "path": "/evidence/authorizations"
+  },
+  {
+    "name": "create_purpose_authorization",
+    "method": "POST",
+    "path": "/evidence/authorizations"
+  },
+  {
+    "name": "get_purpose_authorization",
+    "method": "GET",
+    "path": "/evidence/authorizations/{authorization_id}"
+  },
+  {
+    "name": "approve_purpose_authorization",
+    "method": "POST",
+    "path": "/evidence/authorizations/{authorization_id}/approve"
+  },
+  {
+    "name": "revoke_purpose_authorization",
+    "method": "POST",
+    "path": "/evidence/authorizations/{authorization_id}/revoke"
+  },
+  {
+    "name": "list_resource_legal_holds",
+    "method": "GET",
+    "path": "/evidence/holds"
+  },
+  {
+    "name": "create_resource_legal_hold",
+    "method": "POST",
+    "path": "/evidence/holds"
+  },
+  {
+    "name": "get_resource_legal_hold",
+    "method": "GET",
+    "path": "/evidence/holds/{hold_id}"
+  },
+  {
+    "name": "release_resource_legal_hold",
+    "method": "POST",
+    "path": "/evidence/holds/{hold_id}/release"
+  },
+  {
+    "name": "list_evidence",
+    "method": "GET",
+    "path": "/evidence/"
+  },
+  {
+    "name": "create_evidence",
+    "method": "POST",
+    "path": "/evidence/"
+  },
+  {
+    "name": "get_evidence",
+    "method": "GET",
+    "path": "/evidence/{evidence_id}"
+  },
+  {
+    "name": "get_evidence_lineage",
+    "method": "GET",
+    "path": "/evidence/{evidence_id}/lineage"
+  },
+  {
+    "name": "revoke_evidence",
+    "method": "POST",
+    "path": "/evidence/{evidence_id}/revoke"
+  },
+  {
+    "name": "list_claims",
+    "method": "GET",
+    "path": "/claims/"
+  },
+  {
+    "name": "create_claim",
+    "method": "POST",
+    "path": "/claims/"
+  },
+  {
+    "name": "get_claim",
+    "method": "GET",
+    "path": "/claims/{claim_id}"
+  },
+  {
+    "name": "get_claim_lineage",
+    "method": "GET",
+    "path": "/claims/{claim_id}/lineage"
+  },
+  {
+    "name": "revoke_claim",
+    "method": "POST",
+    "path": "/claims/{claim_id}/revoke"
+  },
+  {
+    "name": "review_claim",
+    "method": "POST",
+    "path": "/claims/{claim_id}/review"
+  },
+  {
+    "name": "evaluate_claim",
+    "method": "POST",
+    "path": "/claims/{claim_id}/evaluate"
+  },
+  {
+    "name": "list_claim_policies",
+    "method": "GET",
+    "path": "/claims/policies"
+  },
+  {
+    "name": "create_claim_policy",
+    "method": "POST",
+    "path": "/claims/policies"
+  },
+  {
+    "name": "approve_claim_policy",
+    "method": "POST",
+    "path": "/claims/policies/{policy_id}/approve"
+  },
+  {
+    "name": "retire_claim_policy",
+    "method": "POST",
+    "path": "/claims/policies/{policy_id}/retire"
+  },
+  {
+    "name": "issue_claim_disclosure",
+    "method": "POST",
+    "path": "/claims/disclosures"
+  },
+  {
+    "name": "redeem_claim_disclosure",
+    "method": "POST",
+    "path": "/claims/disclosures/{disclosure_id}/redeem"
+  },
+  {
+    "name": "revoke_claim_disclosure",
+    "method": "POST",
+    "path": "/claims/disclosures/{disclosure_id}/revoke"
+  },
+  {
+    "name": "get_provider_certification_scope",
+    "method": "GET",
+    "path": "/providers/certifications/scope"
+  },
+  {
+    "name": "list_provider_certifications",
+    "method": "GET",
+    "path": "/providers/certifications"
+  },
+  {
+    "name": "create_provider_certification",
+    "method": "POST",
+    "path": "/providers/certifications"
+  },
+  {
+    "name": "get_provider_certification",
+    "method": "GET",
+    "path": "/providers/certifications/{certification_id}"
+  },
+  {
+    "name": "approve_provider_certification",
+    "method": "POST",
+    "path": "/providers/certifications/{certification_id}/approve"
+  },
+  {
+    "name": "revoke_provider_certification",
+    "method": "POST",
+    "path": "/providers/certifications/{certification_id}/revoke"
+  },
+  {
+    "name": "get_provider_operation",
+    "method": "GET",
+    "path": "/providers/operations/{operation_id}"
+  },
+  {
+    "name": "cancel_provider_operation",
+    "method": "POST",
+    "path": "/providers/operations/{operation_id}/cancel"
+  },
+  {
+    "name": "list_provider_operations",
+    "method": "GET",
+    "path": "/providers/operations"
+  }
+]

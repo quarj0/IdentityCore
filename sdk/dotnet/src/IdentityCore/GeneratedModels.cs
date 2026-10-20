@@ -2,12 +2,26 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Runtime.Serialization;
+using System.Collections.Generic;
 
 namespace IdentityCore.Models;
 
-public sealed class ContractStringEnumConverter<TEnum> : JsonStringEnumConverter<TEnum> where TEnum : struct, Enum
+public sealed class ContractStringEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum : struct, Enum
 {
-    public ContractStringEnumConverter() : base(namingPolicy: null, allowIntegerValues: false) { }
+    private static string Wire(TEnum value) => ((EnumMemberAttribute?)Attribute.GetCustomAttribute(typeof(TEnum).GetField(value.ToString())!, typeof(EnumMemberAttribute)))?.Value ?? value.ToString();
+    public override TEnum Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.String) throw new JsonException("Expected a string enum.");
+        var wire = reader.GetString();
+        foreach (var value in Enum.GetValues<TEnum>()) if (StringComparer.Ordinal.Equals(Wire(value), wire)) return value;
+        throw new JsonException("Unsupported string enum value.");
+    }
+    public override void Write(Utf8JsonWriter writer, TEnum value, JsonSerializerOptions options)
+    {
+        if (!Enum.IsDefined(value)) throw new JsonException("Unsupported enum value.");
+        writer.WriteStringValue(Wire(value));
+    }
 }
 
 public sealed record Error
@@ -67,22 +81,29 @@ public sealed record WorkflowSummary
 [JsonConverter(typeof(ContractStringEnumConverter<PolicyStatus>))]
 public enum PolicyStatus
 {
+    [EnumMember(Value = "draft")]
     draft,
+    [EnumMember(Value = "active")]
     active,
+    [EnumMember(Value = "archived")]
     archived,
 }
 
 [JsonConverter(typeof(ContractStringEnumConverter<PolicyRequiredLivenessLevel>))]
 public enum PolicyRequiredLivenessLevel
 {
+    [EnumMember(Value = "passive")]
     passive,
+    [EnumMember(Value = "active")]
     active,
 }
 
 [JsonConverter(typeof(ContractStringEnumConverter<PolicyExternalRiskFailureAction>))]
 public enum PolicyExternalRiskFailureAction
 {
+    [EnumMember(Value = "manual_review")]
     manual_review,
+    [EnumMember(Value = "ignore")]
     ignore,
 }
 
@@ -276,14 +297,18 @@ public sealed record PlatformUserMfaEnrollment
 [JsonConverter(typeof(ContractStringEnumConverter<VerificationPolicyCreateRequestRequiredLivenessLevel>))]
 public enum VerificationPolicyCreateRequestRequiredLivenessLevel
 {
+    [EnumMember(Value = "passive")]
     passive,
+    [EnumMember(Value = "active")]
     active,
 }
 
 [JsonConverter(typeof(ContractStringEnumConverter<VerificationPolicyCreateRequestExternalRiskFailureAction>))]
 public enum VerificationPolicyCreateRequestExternalRiskFailureAction
 {
+    [EnumMember(Value = "manual_review")]
     manual_review,
+    [EnumMember(Value = "ignore")]
     ignore,
 }
 
@@ -409,7 +434,9 @@ public sealed record VerificationSessionDocumentRequest
 [JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionSelfieRequestCaptureType>))]
 public enum VerificationSessionSelfieRequestCaptureType
 {
+    [EnumMember(Value = "image")]
     image,
+    [EnumMember(Value = "video")]
     video,
 }
 
@@ -424,7 +451,9 @@ public sealed record VerificationSessionSelfieRequest
 [JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionLivenessRequestLivenessType>))]
 public enum VerificationSessionLivenessRequestLivenessType
 {
+    [EnumMember(Value = "passive")]
     passive,
+    [EnumMember(Value = "active")]
     active,
 }
 
@@ -452,7 +481,9 @@ public sealed record VerificationMobileHandoffRedeemResponse
 [JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionResponseDirection>))]
 public enum VerificationSessionResponseDirection
 {
+    [EnumMember(Value = "ltr")]
     ltr,
+    [EnumMember(Value = "rtl")]
     rtl,
 }
 
@@ -623,10 +654,15 @@ public sealed record VerificationDetail
 [JsonConverter(typeof(ContractStringEnumConverter<SandboxSimulationRequestScenario>))]
 public enum SandboxSimulationRequestScenario
 {
+    [EnumMember(Value = "approved")]
     approved,
+    [EnumMember(Value = "declined")]
     declined,
+    [EnumMember(Value = "review")]
     review,
+    [EnumMember(Value = "timeout")]
     timeout,
+    [EnumMember(Value = "provider_error")]
     provider_error,
 }
 
@@ -639,10 +675,15 @@ public sealed record SandboxSimulationRequest
 [JsonConverter(typeof(ContractStringEnumConverter<SandboxSimulationMarkerScenario>))]
 public enum SandboxSimulationMarkerScenario
 {
+    [EnumMember(Value = "approved")]
     approved,
+    [EnumMember(Value = "declined")]
     declined,
+    [EnumMember(Value = "review")]
     review,
+    [EnumMember(Value = "timeout")]
     timeout,
+    [EnumMember(Value = "provider_error")]
     provider_error,
 }
 
@@ -746,17 +787,24 @@ public sealed record EvidenceReport
 [JsonConverter(typeof(ContractStringEnumConverter<PortalUploadCreateRequestCaptureMethod>))]
 public enum PortalUploadCreateRequestCaptureMethod
 {
+    [EnumMember(Value = "camera")]
     camera,
+    [EnumMember(Value = "live_recording")]
     live_recording,
+    [EnumMember(Value = "file")]
     file,
+    [EnumMember(Value = "unreported")]
     unreported,
 }
 
 [JsonConverter(typeof(ContractStringEnumConverter<PortalUploadCreateRequestPurpose>))]
 public enum PortalUploadCreateRequestPurpose
 {
+    [EnumMember(Value = "document_capture")]
     document_capture,
+    [EnumMember(Value = "selfie_capture")]
     selfie_capture,
+    [EnumMember(Value = "liveness_capture")]
     liveness_capture,
 }
 
@@ -838,7 +886,9 @@ public sealed record OrganizationProfile
 [JsonConverter(typeof(ContractStringEnumConverter<OrganizationBrandingAssetUploadRequestAssetType>))]
 public enum OrganizationBrandingAssetUploadRequestAssetType
 {
+    [EnumMember(Value = "logo")]
     logo,
+    [EnumMember(Value = "branding_image")]
     branding_image,
 }
 
@@ -913,7 +963,9 @@ public sealed record OrganizationSupportingDocumentDeleteResponse
 [JsonConverter(typeof(ContractStringEnumConverter<ProjectSummaryEnvironment>))]
 public enum ProjectSummaryEnvironment
 {
+    [EnumMember(Value = "sandbox")]
     sandbox,
+    [EnumMember(Value = "production")]
     production,
 }
 
@@ -942,7 +994,9 @@ public sealed record ProjectSummary
 [JsonConverter(typeof(ContractStringEnumConverter<ProjectCreateRequestEnvironment>))]
 public enum ProjectCreateRequestEnvironment
 {
+    [EnumMember(Value = "sandbox")]
     sandbox,
+    [EnumMember(Value = "production")]
     production,
 }
 
@@ -964,7 +1018,9 @@ public sealed record ProjectCreateRequest
 [JsonConverter(typeof(ContractStringEnumConverter<ProjectUpdateRequestEnvironment>))]
 public enum ProjectUpdateRequestEnvironment
 {
+    [EnumMember(Value = "sandbox")]
     sandbox,
+    [EnumMember(Value = "production")]
     production,
 }
 
@@ -1183,8 +1239,11 @@ public sealed record ManualReviewSummary
 [JsonConverter(typeof(ContractStringEnumConverter<ManualReviewDecisionRequestDecision>))]
 public enum ManualReviewDecisionRequestDecision
 {
+    [EnumMember(Value = "verified")]
     verified,
+    [EnumMember(Value = "rejected")]
     rejected,
+    [EnumMember(Value = "failed")]
     failed,
 }
 
@@ -1226,8 +1285,11 @@ public sealed record ManualReviewPendingDecisionResponse
 [JsonConverter(typeof(ContractStringEnumConverter<ManualReviewApprovalRequestDecision>))]
 public enum ManualReviewApprovalRequestDecision
 {
+    [EnumMember(Value = "verified")]
     verified,
+    [EnumMember(Value = "rejected")]
     rejected,
+    [EnumMember(Value = "failed")]
     failed,
 }
 
@@ -1251,4 +1313,1143 @@ public sealed record ManualReviewApprovalResponse
     public string Decision { get; init; }
     [JsonPropertyName("approval_status")]
     public string ApprovalStatus { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<GovernedSchemaCreateKind>))]
+public enum GovernedSchemaCreateKind
+{
+    [EnumMember(Value = "evidence")]
+    evidence,
+    [EnumMember(Value = "claim")]
+    claim,
+}
+
+public sealed record GovernedSchemaCreate
+{
+    [JsonPropertyName("name")]
+    public string Name { get; init; }
+    [JsonPropertyName("version")]
+    public int Version { get; init; }
+    [JsonPropertyName("kind")]
+    public required GovernedSchemaCreateKind Kind { get; init; }
+    [JsonPropertyName("definition")]
+    public JsonElement Definition { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("disclosure_fields")]
+    public IReadOnlyList<string>? DisclosureFields { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<PurposeAuthorizationCreateLegalBasis>))]
+public enum PurposeAuthorizationCreateLegalBasis
+{
+    [EnumMember(Value = "consent")]
+    consent,
+    [EnumMember(Value = "contract")]
+    contract,
+    [EnumMember(Value = "legal_obligation")]
+    legal_obligation,
+    [EnumMember(Value = "legitimate_interest")]
+    legitimate_interest,
+}
+
+public sealed record PurposeAuthorizationCreate
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("legal_basis")]
+    public required PurposeAuthorizationCreateLegalBasis LegalBasis { get; init; }
+    [JsonPropertyName("justification")]
+    public JsonElement Justification { get; init; }
+    [JsonPropertyName("operations")]
+    public IReadOnlyList<string> Operations { get; init; }
+    [JsonPropertyName("valid_from")]
+    public string ValidFrom { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("delete_after")]
+    public string? DeleteAfter { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("consent_record_id")]
+    public string? ConsentRecordId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("reuse_from_ids")]
+    public IReadOnlyList<string>? ReuseFromIds { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<EvidenceCreateEvidenceType>))]
+public enum EvidenceCreateEvidenceType
+{
+    [EnumMember(Value = "submitted")]
+    submitted,
+    [EnumMember(Value = "provider")]
+    provider,
+    [EnumMember(Value = "system")]
+    system,
+    [EnumMember(Value = "human")]
+    human,
+    [EnumMember(Value = "authoritative")]
+    authoritative,
+}
+
+public sealed record EvidenceCreate
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("authorization_id")]
+    public string AuthorizationId { get; init; }
+    [JsonPropertyName("schema_id")]
+    public string SchemaId { get; init; }
+    [JsonPropertyName("evidence_type")]
+    public required EvidenceCreateEvidenceType EvidenceType { get; init; }
+    [JsonPropertyName("operation_reference")]
+    public string OperationReference { get; init; }
+    [JsonPropertyName("payload")]
+    public JsonElement Payload { get; init; }
+    [JsonPropertyName("provenance")]
+    public JsonElement Provenance { get; init; }
+    [JsonPropertyName("observed_at")]
+    public string ObservedAt { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("source_ids")]
+    public IReadOnlyList<string>? SourceIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("supersedes_id")]
+    public string? SupersedesId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("verification_id")]
+    public string? VerificationId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("source_check_id")]
+    public string? SourceCheckId { get; init; }
+}
+
+public sealed record GovernedReason
+{
+    [JsonPropertyName("reason")]
+    public string Reason { get; init; }
+}
+
+public sealed record GovernedEmptyAction
+{
+}
+
+public sealed record ResourceLegalHoldCreate
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("reason")]
+    public JsonElement Reason { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("expires_at")]
+    public string? ExpiresAt { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ClaimCreateRuleName>))]
+public enum ClaimCreateRuleName
+{
+    [EnumMember(Value = "")]
+    Empty,
+    [EnumMember(Value = "copy")]
+    copy,
+    [EnumMember(Value = "field")]
+    field,
+    [EnumMember(Value = "normalize_name")]
+    normalize_name,
+    [EnumMember(Value = "iso_date")]
+    iso_date,
+    [EnumMember(Value = "age_over")]
+    age_over,
+    [EnumMember(Value = "document_current")]
+    document_current,
+    [EnumMember(Value = "exact_corroboration")]
+    exact_corroboration,
+}
+
+public sealed record ClaimCreate
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("authorization_id")]
+    public string AuthorizationId { get; init; }
+    [JsonPropertyName("schema_id")]
+    public string SchemaId { get; init; }
+    [JsonPropertyName("observed_at")]
+    public string ObservedAt { get; init; }
+    [JsonPropertyName("valid_from")]
+    public string ValidFrom { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("evidence_ids")]
+    public IReadOnlyList<string>? EvidenceIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("claim_ids")]
+    public IReadOnlyList<string>? ClaimIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("value")]
+    public JsonElement? Value { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("confidence")]
+    public double? Confidence { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("rule_name")]
+    public ClaimCreateRuleName? RuleName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("rule_version")]
+    public int? RuleVersion { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("rule_parameters")]
+    public JsonElement? RuleParameters { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("supersedes_id")]
+    public string? SupersedesId { get; init; }
+}
+
+public sealed record ClaimReusePolicyCreate
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("schema_id")]
+    public string SchemaId { get; init; }
+    [JsonPropertyName("name")]
+    public string Name { get; init; }
+    [JsonPropertyName("version")]
+    public int Version { get; init; }
+    [JsonPropertyName("purposes")]
+    public IReadOnlyList<string> Purposes { get; init; }
+    [JsonPropertyName("accepted_classes")]
+    public IReadOnlyList<string> AcceptedClasses { get; init; }
+    [JsonPropertyName("fields")]
+    public IReadOnlyList<string> Fields { get; init; }
+    [JsonPropertyName("max_age_seconds")]
+    public int MaxAgeSeconds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("minimum_confidence")]
+    public double? MinimumConfidence { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ClaimConflictReviewOutcome>))]
+public enum ClaimConflictReviewOutcome
+{
+    [EnumMember(Value = "selected")]
+    selected,
+    [EnumMember(Value = "disputed")]
+    disputed,
+    [EnumMember(Value = "more_evidence")]
+    more_evidence,
+}
+
+public sealed record ClaimConflictReview
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("selected_claim_id")]
+    public string? SelectedClaimId { get; init; }
+    [JsonPropertyName("outcome")]
+    public required ClaimConflictReviewOutcome Outcome { get; init; }
+    [JsonPropertyName("reason")]
+    public JsonElement Reason { get; init; }
+}
+
+public sealed record ClaimRevoke
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("reason")]
+    public string Reason { get; init; }
+}
+
+public sealed record ClaimEvaluation
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("policy_id")]
+    public string PolicyId { get; init; }
+}
+
+public sealed record ClaimDisclosureCreate
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("authorization_id")]
+    public string AuthorizationId { get; init; }
+    [JsonPropertyName("audience_id")]
+    public string AudienceId { get; init; }
+    [JsonPropertyName("selections")]
+    public IReadOnlyList<JsonElement> Selections { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("lifetime_seconds")]
+    public int? LifetimeSeconds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("max_redemptions")]
+    public int? MaxRedemptions { get; init; }
+}
+
+public sealed record GovernedProjectAction
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationCreateAssuranceLevel>))]
+public enum ProviderCertificationCreateAssuranceLevel
+{
+    [EnumMember(Value = "conformance")]
+    conformance,
+    [EnumMember(Value = "assured")]
+    assured,
+}
+
+public sealed record ProviderCertificationCreate
+{
+    [JsonPropertyName("configuration_id")]
+    public string ConfigurationId { get; init; }
+    [JsonPropertyName("capability")]
+    public string Capability { get; init; }
+    [JsonPropertyName("report")]
+    public JsonElement Report { get; init; }
+    [JsonPropertyName("assurance_level")]
+    public required ProviderCertificationCreateAssuranceLevel AssuranceLevel { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+}
+
+public sealed record ProviderCertificationRevoke
+{
+    [JsonPropertyName("reason")]
+    public string Reason { get; init; }
+}
+
+public sealed record ProviderOperationCancel
+{
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("reason")]
+    public string Reason { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<GovernedSchemaKind>))]
+public enum GovernedSchemaKind
+{
+    [EnumMember(Value = "evidence")]
+    evidence,
+    [EnumMember(Value = "claim")]
+    claim,
+}
+
+public sealed record GovernedSchema
+{
+    [JsonPropertyName("name")]
+    public string Name { get; init; }
+    [JsonPropertyName("version")]
+    public int Version { get; init; }
+    [JsonPropertyName("kind")]
+    public required GovernedSchemaKind Kind { get; init; }
+    [JsonPropertyName("definition")]
+    public JsonElement Definition { get; init; }
+    [JsonPropertyName("disclosure_fields")]
+    public IReadOnlyList<string> DisclosureFields { get; init; }
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("retired_at")]
+    public string? RetiredAt { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<PurposeAuthorizationLegalBasis>))]
+public enum PurposeAuthorizationLegalBasis
+{
+    [EnumMember(Value = "consent")]
+    consent,
+    [EnumMember(Value = "contract")]
+    contract,
+    [EnumMember(Value = "legal_obligation")]
+    legal_obligation,
+    [EnumMember(Value = "legitimate_interest")]
+    legitimate_interest,
+}
+
+public sealed record PurposeAuthorization
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("legal_basis")]
+    public required PurposeAuthorizationLegalBasis LegalBasis { get; init; }
+    [JsonPropertyName("operations")]
+    public IReadOnlyList<string> Operations { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("approved_at")]
+    public string? ApprovedAt { get; init; }
+    [JsonPropertyName("valid_from")]
+    public string ValidFrom { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("revoked_at")]
+    public string? RevokedAt { get; init; }
+    [JsonPropertyName("reuse_from_ids")]
+    public IReadOnlyList<string> ReuseFromIds { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<PurposeAuthorizationDetailLegalBasis>))]
+public enum PurposeAuthorizationDetailLegalBasis
+{
+    [EnumMember(Value = "consent")]
+    consent,
+    [EnumMember(Value = "contract")]
+    contract,
+    [EnumMember(Value = "legal_obligation")]
+    legal_obligation,
+    [EnumMember(Value = "legitimate_interest")]
+    legitimate_interest,
+}
+
+public sealed record PurposeAuthorizationDetail
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("legal_basis")]
+    public required PurposeAuthorizationDetailLegalBasis LegalBasis { get; init; }
+    [JsonPropertyName("operations")]
+    public IReadOnlyList<string> Operations { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("approved_at")]
+    public string? ApprovedAt { get; init; }
+    [JsonPropertyName("valid_from")]
+    public string ValidFrom { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("revoked_at")]
+    public string? RevokedAt { get; init; }
+    [JsonPropertyName("reuse_from_ids")]
+    public IReadOnlyList<string> ReuseFromIds { get; init; }
+    [JsonPropertyName("justification")]
+    public JsonElement Justification { get; init; }
+    [JsonPropertyName("proposed_by_id")]
+    public string ProposedById { get; init; }
+    [JsonPropertyName("approved_by_id")]
+    public string? ApprovedById { get; init; }
+    [JsonPropertyName("consent_record_id")]
+    public string? ConsentRecordId { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ResourceLegalHoldScope>))]
+public enum ResourceLegalHoldScope
+{
+    [EnumMember(Value = "subject_project_lineage")]
+    subject_project_lineage,
+}
+
+public sealed record ResourceLegalHold
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("created_at")]
+    public string CreatedAt { get; init; }
+    [JsonPropertyName("expires_at")]
+    public string? ExpiresAt { get; init; }
+    [JsonPropertyName("released_at")]
+    public string? ReleasedAt { get; init; }
+    [JsonPropertyName("scope")]
+    public required ResourceLegalHoldScope Scope { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ResourceLegalHoldDetailScope>))]
+public enum ResourceLegalHoldDetailScope
+{
+    [EnumMember(Value = "subject_project_lineage")]
+    subject_project_lineage,
+}
+
+public sealed record ResourceLegalHoldDetail
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("created_at")]
+    public string CreatedAt { get; init; }
+    [JsonPropertyName("expires_at")]
+    public string? ExpiresAt { get; init; }
+    [JsonPropertyName("released_at")]
+    public string? ReleasedAt { get; init; }
+    [JsonPropertyName("scope")]
+    public required ResourceLegalHoldDetailScope Scope { get; init; }
+    [JsonPropertyName("reason")]
+    public JsonElement Reason { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<GovernedEvidenceEvidenceType>))]
+public enum GovernedEvidenceEvidenceType
+{
+    [EnumMember(Value = "submitted")]
+    submitted,
+    [EnumMember(Value = "provider")]
+    provider,
+    [EnumMember(Value = "system")]
+    system,
+    [EnumMember(Value = "human")]
+    human,
+    [EnumMember(Value = "authoritative")]
+    authoritative,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<GovernedEvidenceOrigin>))]
+public enum GovernedEvidenceOrigin
+{
+    [EnumMember(Value = "persisted_provider_check")]
+    persisted_provider_check,
+    [EnumMember(Value = "caller_asserted")]
+    caller_asserted,
+}
+
+public sealed record GovernedEvidence
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("schema_id")]
+    public string SchemaId { get; init; }
+    [JsonPropertyName("schema_version")]
+    public int SchemaVersion { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("observed_at")]
+    public string ObservedAt { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonPropertyName("source_evidence_ids")]
+    public IReadOnlyList<string> SourceEvidenceIds { get; init; }
+    [JsonPropertyName("evidence_type")]
+    public required GovernedEvidenceEvidenceType EvidenceType { get; init; }
+    [JsonPropertyName("origin")]
+    public required GovernedEvidenceOrigin Origin { get; init; }
+    [JsonPropertyName("supersedes_id")]
+    public string? SupersedesId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("payload")]
+    public JsonElement? Payload { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("provenance")]
+    public JsonElement? Provenance { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<GovernedClaimClaimClass>))]
+public enum GovernedClaimClaimClass
+{
+    [EnumMember(Value = "candidate")]
+    candidate,
+    [EnumMember(Value = "normalized")]
+    normalized,
+    [EnumMember(Value = "corroborated")]
+    corroborated,
+    [EnumMember(Value = "derived")]
+    derived,
+    [EnumMember(Value = "reviewed")]
+    reviewed,
+}
+
+public sealed record GovernedClaim
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("subject_id")]
+    public string SubjectId { get; init; }
+    [JsonPropertyName("schema_id")]
+    public string SchemaId { get; init; }
+    [JsonPropertyName("schema_version")]
+    public int SchemaVersion { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("observed_at")]
+    public string ObservedAt { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonPropertyName("source_evidence_ids")]
+    public IReadOnlyList<string> SourceEvidenceIds { get; init; }
+    [JsonPropertyName("claim_class")]
+    public required GovernedClaimClaimClass ClaimClass { get; init; }
+    [JsonPropertyName("confidence")]
+    public string? Confidence { get; init; }
+    [JsonPropertyName("valid_from")]
+    public string ValidFrom { get; init; }
+    [JsonPropertyName("rule")]
+    public JsonElement? Rule { get; init; }
+    [JsonPropertyName("source_claim_ids")]
+    public IReadOnlyList<string> SourceClaimIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("value")]
+    public JsonElement? Value { get; init; }
+}
+
+public sealed record GovernedReceipt
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("status")]
+    public string? Status { get; init; }
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("schema_id")]
+    public string SchemaId { get; init; }
+    [JsonPropertyName("created_at")]
+    public string CreatedAt { get; init; }
+}
+
+public sealed record GovernedStateReceipt
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+}
+
+public sealed record GovernedLineage
+{
+    [JsonPropertyName("root_id")]
+    public string RootId { get; init; }
+    [JsonPropertyName("nodes")]
+    public IReadOnlyList<JsonElement> Nodes { get; init; }
+    [JsonPropertyName("edges")]
+    public IReadOnlyList<JsonElement> Edges { get; init; }
+    [JsonPropertyName("truncated")]
+    public bool Truncated { get; init; }
+}
+
+public sealed record ClaimReusePolicy
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("schema_id")]
+    public string SchemaId { get; init; }
+    [JsonPropertyName("name")]
+    public string Name { get; init; }
+    [JsonPropertyName("version")]
+    public int Version { get; init; }
+    [JsonPropertyName("purposes")]
+    public IReadOnlyList<string> Purposes { get; init; }
+    [JsonPropertyName("accepted_classes")]
+    public IReadOnlyList<string> AcceptedClasses { get; init; }
+    [JsonPropertyName("fields")]
+    public IReadOnlyList<string> Fields { get; init; }
+    [JsonPropertyName("max_age_seconds")]
+    public int MaxAgeSeconds { get; init; }
+    [JsonPropertyName("minimum_confidence")]
+    public string? MinimumConfidence { get; init; }
+    [JsonPropertyName("approved_at")]
+    public string? ApprovedAt { get; init; }
+    [JsonPropertyName("retired_at")]
+    public string? RetiredAt { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ClaimReviewReceiptOutcome>))]
+public enum ClaimReviewReceiptOutcome
+{
+    [EnumMember(Value = "selected")]
+    selected,
+    [EnumMember(Value = "disputed")]
+    disputed,
+    [EnumMember(Value = "more_evidence")]
+    more_evidence,
+}
+
+public sealed record ClaimReviewReceipt
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("outcome")]
+    public required ClaimReviewReceiptOutcome Outcome { get; init; }
+    [JsonPropertyName("selected_claim_id")]
+    public string? SelectedClaimId { get; init; }
+}
+
+public sealed record ClaimPolicyEvaluation
+{
+    [JsonPropertyName("satisfied")]
+    public bool Satisfied { get; init; }
+    [JsonPropertyName("reason_codes")]
+    public IReadOnlyList<string> ReasonCodes { get; init; }
+    [JsonPropertyName("claim_id")]
+    public string ClaimId { get; init; }
+    [JsonPropertyName("policy_id")]
+    public string PolicyId { get; init; }
+    [JsonPropertyName("usable_until")]
+    public string? UsableUntil { get; init; }
+    [JsonPropertyName("claim_class")]
+    public string ClaimClass { get; init; }
+    [JsonPropertyName("fresh_until")]
+    public string FreshUntil { get; init; }
+}
+
+public sealed record ClaimDisclosureReceipt
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("audience_id")]
+    public string AudienceId { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("expires_at")]
+    public string ExpiresAt { get; init; }
+    [JsonPropertyName("max_redemptions")]
+    public int MaxRedemptions { get; init; }
+    [JsonPropertyName("token")]
+    public string? Token { get; init; }
+    [JsonPropertyName("token_available")]
+    public bool TokenAvailable { get; init; }
+}
+
+public sealed record ClaimDisclosureRedemption
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("audience_id")]
+    public string AudienceId { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("claims")]
+    public IReadOnlyList<JsonElement> Claims { get; init; }
+    [JsonPropertyName("expires_at")]
+    public string ExpiresAt { get; init; }
+}
+
+public sealed record ClaimDisclosureRevocation
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("revoked")]
+    public bool Revoked { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationEnvironment>))]
+public enum ProviderCertificationEnvironment
+{
+    [EnumMember(Value = "sandbox")]
+    sandbox,
+    [EnumMember(Value = "production")]
+    production,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationContractVersion>))]
+public enum ProviderCertificationContractVersion
+{
+    [EnumMember(Value = "1")]
+    Value1,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationOperationContract>))]
+public enum ProviderCertificationOperationContract
+{
+    [EnumMember(Value = "sync")]
+    sync,
+    [EnumMember(Value = "ic-provider-operations-v1")]
+    IcProviderOperationsV1,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationAssuranceLevel>))]
+public enum ProviderCertificationAssuranceLevel
+{
+    [EnumMember(Value = "conformance")]
+    conformance,
+    [EnumMember(Value = "assured")]
+    assured,
+}
+
+public sealed record ProviderCertification
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("configuration_id")]
+    public string ConfigurationId { get; init; }
+    [JsonPropertyName("environment")]
+    public required ProviderCertificationEnvironment Environment { get; init; }
+    [JsonPropertyName("capability")]
+    public string Capability { get; init; }
+    [JsonPropertyName("contract_version")]
+    public required ProviderCertificationContractVersion ContractVersion { get; init; }
+    [JsonPropertyName("operation_contract")]
+    public required ProviderCertificationOperationContract OperationContract { get; init; }
+    [JsonPropertyName("suite_version")]
+    public string SuiteVersion { get; init; }
+    [JsonPropertyName("report_sha256")]
+    public string ReportSha256 { get; init; }
+    [JsonPropertyName("assurance_level")]
+    public required ProviderCertificationAssuranceLevel AssuranceLevel { get; init; }
+    [JsonPropertyName("approved_at")]
+    public string? ApprovedAt { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("revoked")]
+    public bool Revoked { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonPropertyName("proposed_by_id")]
+    public string ProposedById { get; init; }
+    [JsonPropertyName("approved_by_id")]
+    public string? ApprovedById { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationDetailEnvironment>))]
+public enum ProviderCertificationDetailEnvironment
+{
+    [EnumMember(Value = "sandbox")]
+    sandbox,
+    [EnumMember(Value = "production")]
+    production,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationDetailContractVersion>))]
+public enum ProviderCertificationDetailContractVersion
+{
+    [EnumMember(Value = "1")]
+    Value1,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationDetailOperationContract>))]
+public enum ProviderCertificationDetailOperationContract
+{
+    [EnumMember(Value = "sync")]
+    sync,
+    [EnumMember(Value = "ic-provider-operations-v1")]
+    IcProviderOperationsV1,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderCertificationDetailAssuranceLevel>))]
+public enum ProviderCertificationDetailAssuranceLevel
+{
+    [EnumMember(Value = "conformance")]
+    conformance,
+    [EnumMember(Value = "assured")]
+    assured,
+}
+
+public sealed record ProviderCertificationDetail
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("configuration_id")]
+    public string ConfigurationId { get; init; }
+    [JsonPropertyName("environment")]
+    public required ProviderCertificationDetailEnvironment Environment { get; init; }
+    [JsonPropertyName("capability")]
+    public string Capability { get; init; }
+    [JsonPropertyName("contract_version")]
+    public required ProviderCertificationDetailContractVersion ContractVersion { get; init; }
+    [JsonPropertyName("operation_contract")]
+    public required ProviderCertificationDetailOperationContract OperationContract { get; init; }
+    [JsonPropertyName("suite_version")]
+    public string SuiteVersion { get; init; }
+    [JsonPropertyName("report_sha256")]
+    public string ReportSha256 { get; init; }
+    [JsonPropertyName("assurance_level")]
+    public required ProviderCertificationDetailAssuranceLevel AssuranceLevel { get; init; }
+    [JsonPropertyName("approved_at")]
+    public string? ApprovedAt { get; init; }
+    [JsonPropertyName("valid_until")]
+    public string ValidUntil { get; init; }
+    [JsonPropertyName("revoked")]
+    public bool Revoked { get; init; }
+    [JsonPropertyName("report")]
+    public JsonElement Report { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonPropertyName("proposed_by_id")]
+    public string ProposedById { get; init; }
+    [JsonPropertyName("approved_by_id")]
+    public string? ApprovedById { get; init; }
+}
+
+public sealed record ProviderCertificationScope
+{
+    [JsonPropertyName("configuration_id")]
+    public string ConfigurationId { get; init; }
+    [JsonPropertyName("environment")]
+    public string Environment { get; init; }
+    [JsonPropertyName("capability")]
+    public string Capability { get; init; }
+    [JsonPropertyName("contract_version")]
+    public string ContractVersion { get; init; }
+    [JsonPropertyName("operation_contract")]
+    public string OperationContract { get; init; }
+    [JsonPropertyName("configuration_digest")]
+    public string ConfigurationDigest { get; init; }
+    [JsonPropertyName("manifest_sha256")]
+    public string ManifestSha256 { get; init; }
+    [JsonPropertyName("suite_version")]
+    public string SuiteVersion { get; init; }
+    [JsonPropertyName("required_cases")]
+    public IReadOnlyList<string> RequiredCases { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderOperationStatus>))]
+public enum ProviderOperationStatus
+{
+    [EnumMember(Value = "created")]
+    created,
+    [EnumMember(Value = "pending")]
+    pending,
+    [EnumMember(Value = "completed")]
+    completed,
+    [EnumMember(Value = "failed")]
+    failed,
+    [EnumMember(Value = "cancelled")]
+    cancelled,
+    [EnumMember(Value = "expired")]
+    expired,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderOperationRemoteAction>))]
+public enum ProviderOperationRemoteAction
+{
+    [EnumMember(Value = "cancel")]
+    cancel,
+    [EnumMember(Value = "delete")]
+    delete,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderOperationRemoteActionStatus>))]
+public enum ProviderOperationRemoteActionStatus
+{
+    [EnumMember(Value = "pending")]
+    pending,
+    [EnumMember(Value = "acknowledged")]
+    acknowledged,
+    [EnumMember(Value = "expired")]
+    expired,
+}
+
+public sealed record ProviderOperation
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("status")]
+    public required ProviderOperationStatus Status { get; init; }
+    [JsonPropertyName("configuration_id")]
+    public string ConfigurationId { get; init; }
+    [JsonPropertyName("check_id")]
+    public string CheckId { get; init; }
+    [JsonPropertyName("capability")]
+    public string Capability { get; init; }
+    [JsonPropertyName("deadline")]
+    public string Deadline { get; init; }
+    [JsonPropertyName("completed_at")]
+    public string? CompletedAt { get; init; }
+    [JsonPropertyName("verification_id")]
+    public string VerificationId { get; init; }
+    [JsonPropertyName("delete_after")]
+    public string DeleteAfter { get; init; }
+    [JsonPropertyName("invalidation_reason")]
+    public string InvalidationReason { get; init; }
+    [JsonPropertyName("remote_action")]
+    public required ProviderOperationRemoteAction? RemoteAction { get; init; }
+    [JsonPropertyName("remote_action_status")]
+    public required ProviderOperationRemoteActionStatus? RemoteActionStatus { get; init; }
+    [JsonPropertyName("remote_requested_at")]
+    public string? RemoteRequestedAt { get; init; }
+    [JsonPropertyName("remote_attempted_at")]
+    public string? RemoteAttemptedAt { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderOperationBindingOperationContract>))]
+public enum ProviderOperationBindingOperationContract
+{
+    [EnumMember(Value = "ic-provider-operations-v1")]
+    IcProviderOperationsV1,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderOperationBindingEnvironment>))]
+public enum ProviderOperationBindingEnvironment
+{
+    [EnumMember(Value = "sandbox")]
+    sandbox,
+    [EnumMember(Value = "production")]
+    production,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderOperationBindingContractVersion>))]
+public enum ProviderOperationBindingContractVersion
+{
+    [EnumMember(Value = "1")]
+    Value1,
+}
+
+public sealed record ProviderOperationBinding
+{
+    [JsonPropertyName("operation_contract")]
+    public required ProviderOperationBindingOperationContract OperationContract { get; init; }
+    [JsonPropertyName("operation_id")]
+    public string OperationId { get; init; }
+    [JsonPropertyName("configuration_id")]
+    public string ConfigurationId { get; init; }
+    [JsonPropertyName("tenant_id")]
+    public string TenantId { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("environment")]
+    public required ProviderOperationBindingEnvironment Environment { get; init; }
+    [JsonPropertyName("capability")]
+    public string Capability { get; init; }
+    [JsonPropertyName("contract_version")]
+    public required ProviderOperationBindingContractVersion ContractVersion { get; init; }
+    [JsonPropertyName("request_sha256")]
+    public string RequestSha256 { get; init; }
+    [JsonPropertyName("lease_generation")]
+    public int LeaseGeneration { get; init; }
+    [JsonPropertyName("deadline")]
+    public string Deadline { get; init; }
+    [JsonPropertyName("callback_path")]
+    public string CallbackPath { get; init; }
+    [JsonPropertyName("lease_token")]
+    public string LeaseToken { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<ProviderOperationCallbackStatus>))]
+public enum ProviderOperationCallbackStatus
+{
+    [EnumMember(Value = "pending")]
+    pending,
+    [EnumMember(Value = "completed")]
+    completed,
+    [EnumMember(Value = "failed")]
+    failed,
+}
+
+public sealed record ProviderOperationCallback
+{
+    [JsonPropertyName("binding")]
+    public ProviderOperationBinding Binding { get; init; }
+    [JsonPropertyName("status")]
+    public required ProviderOperationCallbackStatus Status { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("result")]
+    public JsonElement? Result { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("retry_after_seconds")]
+    public int? RetryAfterSeconds { get; init; }
+}
+
+public sealed record GovernedSchemaPage
+{
+    [JsonPropertyName("results")]
+    public IReadOnlyList<GovernedSchema> Results { get; init; }
+    [JsonPropertyName("pagination")]
+    public CursorPagination Pagination { get; init; }
+}
+
+public sealed record PurposeAuthorizationPage
+{
+    [JsonPropertyName("results")]
+    public IReadOnlyList<PurposeAuthorization> Results { get; init; }
+    [JsonPropertyName("pagination")]
+    public CursorPagination Pagination { get; init; }
+}
+
+public sealed record ResourceLegalHoldPage
+{
+    [JsonPropertyName("results")]
+    public IReadOnlyList<ResourceLegalHold> Results { get; init; }
+    [JsonPropertyName("pagination")]
+    public CursorPagination Pagination { get; init; }
+}
+
+public sealed record GovernedEvidencePage
+{
+    [JsonPropertyName("results")]
+    public IReadOnlyList<GovernedEvidence> Results { get; init; }
+    [JsonPropertyName("pagination")]
+    public CursorPagination Pagination { get; init; }
+}
+
+public sealed record GovernedClaimPage
+{
+    [JsonPropertyName("results")]
+    public IReadOnlyList<GovernedClaim> Results { get; init; }
+    [JsonPropertyName("pagination")]
+    public CursorPagination Pagination { get; init; }
+}
+
+public sealed record ClaimReusePolicyPage
+{
+    [JsonPropertyName("results")]
+    public IReadOnlyList<ClaimReusePolicy> Results { get; init; }
+    [JsonPropertyName("pagination")]
+    public CursorPagination Pagination { get; init; }
+}
+
+public sealed record ProviderCertificationPage
+{
+    [JsonPropertyName("results")]
+    public IReadOnlyList<ProviderCertification> Results { get; init; }
+    [JsonPropertyName("pagination")]
+    public CursorPagination Pagination { get; init; }
+}
+
+public sealed record ProviderOperationPage
+{
+    [JsonPropertyName("results")]
+    public IReadOnlyList<ProviderOperation> Results { get; init; }
+    [JsonPropertyName("pagination")]
+    public CursorPagination Pagination { get; init; }
 }

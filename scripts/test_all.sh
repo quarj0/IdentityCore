@@ -24,6 +24,7 @@ run_suite() {
 cd "$ROOT_DIR"
 
 run_suite "generated SDK model drift" uv run --frozen --project backend --group django python scripts/generate_sdk_models.py --check
+run_suite "governed SDK method drift" uv run --frozen --project backend --group django python scripts/generate_governed_sdk.py --check
 run_suite "public OpenAPI parity" env DJANGO_SETTINGS_MODULE=config.settings.testing \
   uv run --frozen --project backend --group django python scripts/check_openapi_contract.py
 
@@ -40,5 +41,10 @@ run_suite "Python SDK" python -m unittest discover -s sdk/python/tests
 run_suite "JavaScript SDK" npm --prefix sdk/javascript test
 run_suite "Java SDK" mvn --batch-mode -f sdk/java/pom.xml test
 run_suite ".NET SDK" dotnet test sdk/dotnet/IdentityCore.sln --configuration Release
+
+run_suite "Python Provider SDK" uv run --frozen --project backend --group django python -m unittest discover -s provider-sdk/python/tests
+run_suite "JavaScript Provider SDK" npm --prefix provider-sdk/javascript test
+run_suite "Java Provider SDK" mvn --batch-mode -f provider-sdk/java/pom.xml test
+run_suite ".NET Provider SDK" dotnet test provider-sdk/dotnet/tests/IdentityCore.Provider.Tests/IdentityCore.Provider.Tests.csproj --configuration Release
 
 printf '\nAll test suites passed.\n'

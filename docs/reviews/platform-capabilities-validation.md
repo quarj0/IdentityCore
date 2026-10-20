@@ -1,0 +1,89 @@
+# Governed platform extension validation
+
+Local validation on 2026-10-20 for the bounded public v0.4 implementation.
+This receipt describes repository/synthetic tests. It is not production,
+independent provider/model, privacy/legal, physical-device or penetration-test assurance.
+Protected independent review and current-head CI/Security remain merge requirements.
+
+## Implemented scope
+
+- Independent purpose-scoped evidence resources, immutable schemas, encrypted
+  provenance, bounded lineage, supersession, holds and privacy retirement.
+- Deterministic versioned claims, source-bound freshness, explicit independent
+  conflict resolution, revocation, approved reuse and audience-bound field disclosure.
+- Configuration/manifest/contract-scoped provider assurance reports with independent
+  approval, expiry/revocation and separate conformance/assured levels.
+- Signed durable pending provider operations, callbacks/polling, lease/deadline
+  binding, original-worker resumption and durable remote cancel/delete reconciliation.
+- Python, JavaScript, Java and .NET Provider SDK packages, public OpenAPI coverage
+  and generated governed-resource methods/models in all four API client SDKs.
+
+## Executed checks
+
+| Check | Result |
+| --- | --- |
+| Complete Django suite | 1,369 tests; passed, 61 environment-dependent skips |
+| Governed evidence/claims, subject privacy and provider PostgreSQL suite | 87 tests; passed, no skips, including the three review regressions |
+| Exact CI PostgreSQL concurrency selection | 245 tests; passed, no skips; overlaps the focused suite |
+| Public contract/generator/config regression selection | 111 tests; passed |
+| Public route/OpenAPI parity | 111 operations validated |
+| Real signed backend-to-Python-Provider-SDK HTTPS integration | Passed negotiation, sync, pending, polling, worker completion, callback signature and deletion over verified TLS |
+| Redis shared provider replay | Passed with actual separate processes and key-rotation protection |
+| Provider SDK native tests | Python 6, JavaScript 5, Java 6, .NET 6; passed, including real process replay and stale-worker fencing |
+| Packaged SDK HTTP/worker assurance | All four languages passed all 17 `provider-assurance/v1` cases |
+| API client native suites | Passed Python, JavaScript, Java and .NET, including new governed scope/header/user-JWT and strict wire-enum checks |
+| Live API client HTTP compatibility | Python and JavaScript passed against an isolated migrated Django backend; Java/.NET live jobs remain part of hosted CI |
+| Distribution builds | Python wheel/sdist, Java JAR/sources and .NET NuGet built; JavaScript archive packed |
+| Other checks | No migration drift; processing inventory valid (11 activities, 1,421 fields); generated model/method drift, TypeScript declarations, Ruff, changed Markdown links and whitespace checks passed |
+
+The complete Django SQLite suite intentionally skips environment-dependent tests.
+The focused and full CI PostgreSQL selections exercise actual locking/concurrency;
+Redis and TLS checks execute their real transport/process boundaries. Suite counts
+are separate runs and must not be added as a count of distinct tests.
+
+## Reproduce
+
+Run `scripts/test_all.sh` with the documented Python, Node, Java, .NET and frontend
+toolchains. `make check-sdk-models` verifies both generated models and governed
+methods. CI also applies migrations to empty PostgreSQL, runs its concurrency
+selection, and retains the four SDK conformance artifacts. See the job definitions
+in [CI](../../.github/workflows/ci.yml) for exact commands and fixture services.
+
+The [conformance guide](../../provider-sdk/conformance/README.md) documents each
+language's real HTTP harness command. Artifacts identify the SDK, suite, transport
+and case outcomes with `deployment_assurance: false`; they contain no subject
+values, raw messages, credentials or lease tokens. The harness includes controlled
+clock/worker actions only for synthetic testing and must never be deployed.
+
+Runtime operations and authorization boundaries are documented in
+[governed resources](../operations/governed-resources.md) and
+[provider operations](../operations/provider-operations.md). Retained deployment
+reports and independent references require their own accountable approval.
+
+
+## Independent review remediation and AI startup follow-up
+
+The first configured review of `f396f49` found three P2 issues. Each was reproduced:
+future-dated consent grant creation failed; a callback after proof withdrawal
+returned 500; and route assignment accepted a configuration without its required
+approved assurance. The fixes preserve the not-before grant boundary, return a
+controlled 409 for withdrawn proof, and check current capability/level-scoped
+assurance under the existing tenant serialization lock before publishing a route.
+The 87-test PostgreSQL run includes these regression cases.
+
+The AI application starts in an isolated local runtime. Without provisioned models
+and storage configuration it correctly returns readiness 503. The actual error
+from the user's machine has been requested; no unobserved crash is claimed fixed.
+The added authenticated Compose/readiness diagnostic reports bounded requirement
+codes without raw responses, tokens or model paths. All 96 AI tests passed,
+including real HTTP tests of authentication, unready exit status and redaction.
+`make up` preserves startup failure and attempts this probe; `make check-ai` runs it
+explicitly. Real mode and model integrity requirements remain enforced.
+
+The follow-up configured review of `71867ce` completed without new findings. The
+next Security run detected CVE-2026-111755 and CVE-2026-111756 in the frontend's
+transitive `follow-redirects` 1.16.0. The lockfile now selects patched 1.16.1 with
+its registry integrity hash; unrelated dependency versions remain unchanged.
+Frozen-lockfile installation, the five existing dependency security regressions,
+workspace lint (zero errors) and verification-portal TypeScript checks passed.
+Current-head Security and fresh independent review remain required before merge.

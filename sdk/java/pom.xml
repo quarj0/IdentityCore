@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.identitycore</groupId>
   <artifactId>identitycore-sdk</artifactId>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
   <name>IdentityCore Java SDK</name>
   <description>Server-side Java SDK for the IdentityCore REST API.</description>
   <properties>

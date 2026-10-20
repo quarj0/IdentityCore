@@ -1,0 +1,26 @@
+{
+  "name": "@identitycore/provider",
+  "version": "0.1.0",
+  "description": "Signed provider contracts and durable operations for IdentityCore providers",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

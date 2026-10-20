@@ -123,13 +123,20 @@ organization-facing provider setup and independently approved production activat
 tenant/environment storage routes, customer-managed AWS KMS keys, review queues and
 quality sampling, and GHS Paystack invoice payment/recovery.
 
-The four immediate remediation items are merged in
-[PR #433](https://github.com/quarj0/IdentityCore/pull/433). The
-[historical audit reconciliation](docs/reviews/README.md) records all findings against
-merged main; publishing that receipt is the remaining closure step for #281. Reusable claims, a generalized evidence/lineage API, broader provider certification
-and general asynchronous provider completion remain platform expansion work. Production
-model validation, independent assurance and deployed operational evidence remain separate
-release requirements.
+The four immediate remediation items merged in
+[PR #433](https://github.com/quarj0/IdentityCore/pull/433); the historical audit
+receipt merged in [PR #434](https://github.com/quarj0/IdentityCore/pull/434), closing #281.
+
+The platform extension adds public purpose-scoped evidence/lineage resources,
+reusable claims with explicit conflicts, expiry, revocation and selective disclosure,
+scoped independently approved provider assurance records, durable async provider
+callbacks/polling, and packaged Python, JavaScript, Java and .NET Provider SDKs.
+See [governed resource operations](docs/operations/governed-resources.md),
+[provider operations](docs/operations/provider-operations.md) and
+[Provider SDK packages](provider-sdk/README.md). OpenAPI v0.4 and API SDK v0.3 cover
+the new resources. Packages are built in CI; public registry publication is separate.
+Production model validation, independent assurance and deployed operational evidence
+remain release requirements.
 
 See the [product alignment and gap assessment](docs/architecture/product-alignment.md)
 for capability-level maturity.
@@ -244,6 +251,15 @@ infrastructure/
 Some filenames may evolve as the documentation is consolidated. The canonical
 architecture and ADRs determine architectural meaning; OpenAPI remains the source of
 truth for concrete public endpoints.
+
+## Local startup
+
+Follow [backend setup](backend/README.md) before `make up`: the Compose AI service
+runs in real mode and requires configured object storage, provisioned models and
+an independently pinned model-manifest digest. An unready model service prevents
+processing workers from starting. `make check-ai` reports readiness requirement
+codes; `make logs-ai` shows an actual process/import/configuration failure. A failed
+`make up` also attempts the readiness diagnostic and retains its failure status.
 
 ## Production startup configuration
 

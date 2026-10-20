@@ -2,13 +2,16 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: up down ps logs logs-django logs-ai logs-worker logs-worker-ai logs-worker-retention logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-ai shell-worker-retention shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser seed-local test test-all generate-sdk-models check-sdk-models lint ensure-env
+.PHONY: up down ps logs logs-django logs-ai check-ai logs-worker logs-worker-ai logs-worker-retention logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-ai shell-worker-retention shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser seed-local test test-all generate-sdk-models check-sdk-models lint ensure-env
 
 ensure-env:
 	@test -f .env || cp .env.example .env
 
 up: ensure-env
-	$(COMPOSE) up --build -d
+	@$(COMPOSE) up --build -d || { up_status=$$?; \
+		echo "Checking AI readiness (if its container is running):"; \
+		$(COMPOSE) exec -T ai-service python -m app.healthcheck || true; \
+		exit $$up_status; }
 
 down:
 	$(COMPOSE) down
@@ -24,6 +27,9 @@ logs-django:
 
 logs-ai:
 	$(COMPOSE) logs -f ai-service
+
+check-ai:
+	$(COMPOSE) exec -T ai-service python -m app.healthcheck
 
 logs-worker:
 	$(COMPOSE) logs -f celery-worker
@@ -84,9 +90,11 @@ test-all:
 
 generate-sdk-models:
 	uv run --frozen --project backend --group django python scripts/generate_sdk_models.py
+	uv run --frozen --project backend --group django python scripts/generate_governed_sdk.py
 
 check-sdk-models:
 	uv run --frozen --project backend --group django python scripts/generate_sdk_models.py --check
+	uv run --frozen --project backend --group django python scripts/generate_governed_sdk.py --check
 
 lint:
 	$(COMPOSE) run --rm django ruff check .

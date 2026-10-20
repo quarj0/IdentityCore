@@ -1,7 +1,8 @@
+import { GovernedResources } from "./governed.js";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { randomUUID } from "node:crypto";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 
 export class IdentityCoreError extends Error {
   constructor(message) {
@@ -159,6 +160,7 @@ export class IdentityCoreClient {
     apiOrigin,
     clientId,
     clientSecret,
+    accessToken = "",
     fetch: fetchImpl = globalThis.fetch,
     timeout = 30000,
     maxRetries = 2,
@@ -173,8 +175,8 @@ export class IdentityCoreClient {
     }
     if (!/^https?:/.test(apiOrigin))
       throw new IdentityCoreError("apiOrigin must be an absolute HTTP(S) URL.");
-    if (!clientId || !clientSecret)
-      throw new IdentityCoreError("clientId and clientSecret are required.");
+    if (!accessToken && (!clientId || !clientSecret))
+      throw new IdentityCoreError("accessToken or clientId and clientSecret are required.");
     if (!fetchImpl)
       throw new IdentityCoreError("A fetch implementation is required.");
     if (timeout <= 0 || maxRetries < 0 || retryBackoff < 0)
@@ -188,10 +190,12 @@ export class IdentityCoreClient {
     this.apiOrigin = apiOrigin.replace(/\/$/, "");
     this.clientId = clientId;
     this.clientSecret = clientSecret;
+    this.accessToken = accessToken;
     this.fetch = fetchImpl;
     this.timeout = timeout;
     this.maxRetries = maxRetries;
     this.retryBackoff = retryBackoff;
+    this.governed = new GovernedResources(this);
     this.policies = {
       list: () => this.request("GET", "/policies/"),
       retrieve: (id) => this.request("GET", `/policies/${id}`),
@@ -283,8 +287,8 @@ export class IdentityCoreClient {
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
       const headers = {
         Accept: "application/json",
-        "X-Client-Id": this.clientId,
-        Authorization: `Bearer ${this.clientSecret}`,
+        ...(!this.accessToken ? { "X-Client-Id": this.clientId } : {}),
+        Authorization: `Bearer ${this.accessToken || this.clientSecret}`,
         "X-Request-Id": requestId,
         "User-Agent": `identitycore-node/${VERSION}`,
         ...extraHeaders,

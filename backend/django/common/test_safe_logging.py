@@ -59,6 +59,32 @@ class SafeLoggingTests(SimpleTestCase):
         self.assertEqual(redacted["evidence"]["document_storage_key"], REDACTED)
         self.assertEqual(redacted["binary"], REDACTED_BINARY)
 
+    def test_governed_values_and_provider_callbacks_redact_arbitrary_schema_fields(
+        self,
+    ):
+        data = {
+            key: {"arbitrary_customer_attribute": "private subject value"}
+            for key in (
+                "payload",
+                "provenance",
+                "value",
+                "justification",
+                "rule_parameters",
+                "reason",
+                "report",
+                "result",
+                "payload_json",
+                "value_json",
+                "result_json",
+                "report_json",
+                "lease_json",
+            )
+        }
+        data["HTTP_X_DISCLOSURE_TOKEN"] = "synthetic-capability"
+        redacted = redact_value(data)
+        self.assertEqual(set(redacted), set(data))
+        self.assertTrue(all(value == REDACTED for value in redacted.values()))
+
     def test_mfa_codes_are_redacted_only_in_authentication_context(self):
         for payload in [
             {"mfa_token": "private-token", "code": "123456"},
@@ -93,13 +119,14 @@ class SafeLoggingTests(SimpleTestCase):
 
     def test_django_logger_redacts_message_arguments_and_structured_extra(self):
         logger = logging.getLogger("django.identitycore.redaction-test")
-        stream = self._capture(logger, "%(message)s payload=%(payload)s")
+        stream = self._capture(logger, "%(message)s payload=%(payload)s reason=%(safe_reason)s")
 
         logger.info(
             "request rejected email=%s Authorization: Bearer %s",
             "ada@example.test",
             "secret-access-token",
             extra={
+                "safe_reason": "credentials_missing",
                 "payload": {
                     "password": "never-log-this",
                     "selfie_image": "raw-biometric-data",

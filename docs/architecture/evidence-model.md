@@ -1,5 +1,14 @@
 # Evidence Model
 
+## Implemented contract
+
+OpenAPI v0.4 exposes independent `/api/v1/evidence/` resources, immutable schemas,
+purpose authorizations, bounded lineage, holds, supersession and revocation.
+Payload/provenance are encrypted and immutable in meaning; existing verification
+capture/check/report contracts remain available. See [governed resources](../operations/governed-resources.md)
+for the actual supported schema subset, permissions, privacy export boundary and
+retirement procedure. The architectural examples below do not grant extra data access.
+
 ## Purpose
 
 Evidence is the durable, auditable record of what was supplied, observed, or produced

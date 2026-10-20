@@ -104,8 +104,10 @@ jobs:
         run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps common config
       - name: Reject public API and OpenAPI drift
         run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python scripts/check_openapi_contract.py
-      - name: Reject generated SDK model drift
-        run: uv run --project backend python scripts/generate_sdk_models.py --check
+      - name: Reject generated SDK model and governed-method drift
+        run: |
+          uv run --project backend python scripts/generate_sdk_models.py --check
+          uv run --project backend python scripts/generate_governed_sdk.py --check
       - name: Test built-in adapters against Provider Contract v1
         run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps.providers.tests.ProviderAdapterRegistryTests
 
@@ -154,7 +156,7 @@ jobs:
       - name: Apply migrations to an empty PostgreSQL database
         run: uv run --project backend python backend/django/manage.py migrate --noinput
       - name: Test concurrent idempotency, human decisions and audit chains on PostgreSQL
-        run: uv run --project backend python backend/django/manage.py test common.test_tenant_crypto.TenantEnvelopeRaceTests apps.verifications.test_review_queues.ReviewQueueRaceTests apps.verifications.test_review_quality.ReviewQualityRaceTests apps.verifications.test_simulator.SandboxSimulatorRaceTests apps.accounts.test_mfa_races apps.verifications.test_failure_injection apps.verifications.test_deployment_rollout apps.verification_sessions.test_handoff_races.MobileHandoffRaceTests apps.risk.test_reuse_races.ReuseFingerprintRaceTests apps.providers.test_system_provider_races.SystemProviderCreationRaceTests apps.accounts.test_session_races.DashboardSessionRaceTests apps.accounts.test_invitation_races.InvitationRaceTests apps.api_clients.test_usage apps.api_clients.test_idempotency apps.workflows.test_publishing_races apps.workflows.test_historical_publishing apps.risk.test_decision_races apps.risk.test_external_races apps.providers.test_manifest_races apps.consent.test_races apps.verifications.test_historical_processing_lock_race apps.verifications.test_historical_processing_invariants apps.verifications.test_document_postprocessing_recovery apps.consent.test_legacy_locale_migration apps.consent.test_legacy_locale_reporting apps.reviewers.test_admin_control_races apps.reviewers.test_historical_admin_controls apps.templates.test_lifecycle_races apps.templates.test_historical_lifecycle apps.templates.test_historical_instantiation apps.templates.test_instantiation_races apps.verification_subjects.test_deletion_races apps.verification_subjects.test_creation_races apps.billing --verbosity 1
+        run: uv run --project backend python backend/django/manage.py test common.test_tenant_crypto.TenantEnvelopeRaceTests apps.verifications.test_review_queues.ReviewQueueRaceTests apps.verifications.test_review_quality.ReviewQualityRaceTests apps.verifications.test_simulator.SandboxSimulatorRaceTests apps.accounts.test_mfa_races apps.verifications.test_failure_injection apps.verifications.test_deployment_rollout apps.verification_sessions.test_handoff_races.MobileHandoffRaceTests apps.risk.test_reuse_races.ReuseFingerprintRaceTests apps.providers.test_system_provider_races.SystemProviderCreationRaceTests apps.accounts.test_session_races.DashboardSessionRaceTests apps.accounts.test_invitation_races.InvitationRaceTests apps.api_clients.test_usage apps.api_clients.test_idempotency apps.workflows.test_publishing_races apps.workflows.test_historical_publishing apps.risk.test_decision_races apps.risk.test_external_races apps.providers.test_manifest_races apps.consent.test_races apps.verifications.test_historical_processing_lock_race apps.verifications.test_historical_processing_invariants apps.verifications.test_document_postprocessing_recovery apps.consent.test_legacy_locale_migration apps.consent.test_legacy_locale_reporting apps.reviewers.test_admin_control_races apps.reviewers.test_historical_admin_controls apps.templates.test_lifecycle_races apps.templates.test_historical_lifecycle apps.templates.test_historical_instantiation apps.templates.test_instantiation_races apps.verification_subjects.test_deletion_races apps.verification_subjects.test_creation_races apps.evidence.test_races apps.providers.test_operation_races apps.billing --verbosity 1
 
   ai-service:
     runs-on: ubuntu-latest
@@ -234,11 +236,29 @@ jobs:
           python-version: "3.12"
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
       - name: Install shells for native completion regressions
         run: sudo apt-get update && sudo apt-get install -y fish zsh
       - run: python -m unittest discover -s sdk/python/tests
-      - run: python -m pip install build && python -m build sdk/python
+      - run: python -m pip install build ./provider-sdk/python && python -m build sdk/python
+      - name: Test and package Python Provider SDK
+        run: |
+          python -m unittest discover -s provider-sdk/python/tests
+          python -m build provider-sdk/python
+          python provider-sdk/conformance/assurance.py --driver "python provider-sdk/conformance/harness/python.py" --sdk python --artifact "$RUNNER_TEMP/provider-python-assurance.json"
+      - name: Test and package JavaScript Provider SDK
+        run: |
+          npm test --prefix provider-sdk/javascript
+          npm pack ./provider-sdk/javascript --dry-run
+          python provider-sdk/conformance/assurance.py --driver "node provider-sdk/conformance/harness/javascript.mjs" --sdk javascript --artifact "$RUNNER_TEMP/provider-javascript-assurance.json"
+          npm install --prefix "$RUNNER_TEMP/provider-types" --ignore-scripts --no-audit --no-fund typescript@5.9.3 @types/node@24.0.0
+          "$RUNNER_TEMP/provider-types/node_modules/.bin/tsc" --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --typeRoots "$RUNNER_TEMP/provider-types/node_modules/@types" provider-sdk/javascript/src/index.d.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-javascript-provider-interoperability
+          path: ${{ runner.temp }}/provider-*-assurance.json
+          retention-days: 90
       - run: npm test
         working-directory: sdk/javascript
       - run: npm pack --dry-run
@@ -253,9 +273,26 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: maven
-          cache-dependency-path: sdk/java/pom.xml
+          cache-dependency-path: |
+            sdk/java/pom.xml
+            provider-sdk/java/pom.xml
       - run: mvn --batch-mode test package
         working-directory: sdk/java
+      - name: Test and package Java Provider SDK
+        run: mvn --batch-mode test package dependency:build-classpath -Dmdep.outputFile=target/provider-classpath.txt
+        working-directory: provider-sdk/java
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install ./provider-sdk/python
+      - name: Java Provider SDK HTTP interoperability
+        run: python provider-sdk/conformance/assurance.py --driver "java -cp provider-sdk/java/target/test-classes:provider-sdk/java/target/classes:$(cat provider-sdk/java/target/provider-classpath.txt) io.identitycore.provider.ConformanceHarness" --sdk java --artifact "$RUNNER_TEMP/provider-java-assurance.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: java-provider-interoperability
+          path: ${{ runner.temp }}/provider-java-assurance.json
+          retention-days: 90
 
   dotnet-sdk:
     runs-on: ubuntu-latest
@@ -270,6 +307,22 @@ jobs:
         working-directory: sdk/dotnet
       - run: dotnet pack src/IdentityCore/IdentityCore.csproj --configuration Release --no-restore
         working-directory: sdk/dotnet
+      - name: Test and package .NET Provider SDK
+        run: |
+          dotnet test provider-sdk/dotnet/tests/IdentityCore.Provider.Tests/IdentityCore.Provider.Tests.csproj --configuration Release
+          dotnet pack provider-sdk/dotnet/src/IdentityCore.Provider/IdentityCore.Provider.csproj --configuration Release
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install ./provider-sdk/python
+      - name: .NET Provider SDK HTTP interoperability
+        run: python provider-sdk/conformance/assurance.py --driver "dotnet provider-sdk/dotnet/tests/IdentityCore.Provider.Tests/bin/Release/net8.0/IdentityCore.Provider.Tests.dll harness" --sdk dotnet --artifact "$RUNNER_TEMP/provider-dotnet-assurance.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dotnet-provider-interoperability
+          path: ${{ runner.temp }}/provider-dotnet-assurance.json
+          retention-days: 90
 
   sdk-live-python:
     runs-on: ubuntu-latest

@@ -1,0 +1,74 @@
+from common.public_api import public_api_path
+from apps.claims import views
+
+urlpatterns = [
+    public_api_path(
+        "policies/<str:policy_id>/retire",
+        views.PolicyRetireView.as_view(),
+        methods=("POST",),
+        name="claim-policy-retire",
+    ),
+    public_api_path(
+        "policies",
+        views.PolicyListView.as_view(),
+        methods=("GET", "POST"),
+        name="claim-policy-list",
+    ),
+    public_api_path(
+        "policies/<str:policy_id>/approve",
+        views.PolicyApproveView.as_view(),
+        methods=("POST",),
+        name="claim-policy-approve",
+    ),
+    public_api_path(
+        "disclosures",
+        views.DisclosureIssueView.as_view(),
+        methods=("POST",),
+        name="claim-disclosure-issue",
+    ),
+    public_api_path(
+        "disclosures/<str:disclosure_id>/redeem",
+        views.DisclosureRedeemView.as_view(),
+        methods=("POST",),
+        name="claim-disclosure-redeem",
+    ),
+    public_api_path(
+        "disclosures/<str:disclosure_id>/revoke",
+        views.DisclosureRevokeView.as_view(),
+        methods=("POST",),
+        name="claim-disclosure-revoke",
+    ),
+    public_api_path(
+        "", views.ClaimListView.as_view(), methods=("GET", "POST"), name="claim-list"
+    ),
+    public_api_path(
+        "<str:claim_id>",
+        views.ClaimDetailView.as_view(),
+        methods=("GET",),
+        name="claim-detail",
+    ),
+    public_api_path(
+        "<str:claim_id>/lineage",
+        views.ClaimLineageView.as_view(),
+        methods=("GET",),
+        name="claim-lineage",
+    ),
+    public_api_path(
+        "<str:claim_id>/review",
+        views.ClaimReviewView.as_view(),
+        methods=("POST",),
+        name="claim-review",
+    ),
+    public_api_path(
+        "<str:claim_id>/revoke",
+        views.ClaimRevokeView.as_view(),
+        methods=("POST",),
+        name="claim-revoke",
+    ),
+    public_api_path(
+        "<str:claim_id>/evaluate",
+        views.ClaimEvaluateView.as_view(),
+        methods=("POST",),
+        name="claim-evaluate",
+    ),
+]

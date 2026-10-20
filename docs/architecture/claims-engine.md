@@ -2,9 +2,10 @@
 
 ## Status
 
-Architectural direction with implemented foundations. IdentityCore currently stores
-extracted fields, normalized provider results, evidence snapshots, and policy-driven
-decisions, but does not yet expose a complete reusable cross-workload Claims Engine.
+Implemented bounded public Claims Engine in OpenAPI v0.4. See the
+[operating contract](../operations/governed-resources.md) for supported rules,
+permissions, independent conflict review, reuse policies, disclosure and lifecycle.
+The broader architectural examples below do not add unsupported rules or workloads.
 
 ## Purpose
 
@@ -303,21 +304,17 @@ Derived claims must be deleted or invalidated when required supporting evidence 
 claims are deleted, unless a documented legal basis permits retention of a minimal audit
 fact.
 
-## API direction
+## Public API
 
-A future public claims API may support:
+`/api/v1/claims/` exposes creation/list/detail/lineage, independent review,
+revocation, policy evaluation, reuse policy proposal/approval/retirement and
+short-lived audience-bound disclosures. All four API client SDKs expose named
+methods. [OpenAPI](../openapi/identitycore-public-api.yaml) defines exact envelopes;
+the [runbook](../operations/governed-resources.md) defines authority and retention.
 
-- requesting claims through a workflow;
-- retrieving allowed normalized claims;
-- inspecting provenance summaries;
-- checking freshness and status;
-- requesting policy satisfaction;
-- revoking or superseding organization-created claims;
-- selective disclosure tokens or attestations.
-
-The API must not expose raw provider payloads or unrestricted evidence graphs by default.
-Concrete endpoint documentation should only be published after contracts are implemented
-and represented in OpenAPI and SDKs.
+Field selection and derived predicates minimize disclosure. This implementation
+does not issue signed credentials or zero-knowledge attestations. General workflow
+claim requests and new rule families require separately implemented contracts.
 
 ## Current foundations
 

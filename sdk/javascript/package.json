@@ -1,6 +1,6 @@
 {
   "name": "@identitycore/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Server-side JavaScript SDK for the IdentityCore REST API.",
   "type": "module",
   "main": "./src/index.js",

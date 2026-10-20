@@ -1,3 +1,5 @@
+import type { GovernedResources } from "./governed.js";
+export type { GovernedResources, GovernedRequestOptions } from "./governed.js";
 export * from "./models.js";
 import type { VerificationResult } from "./models.js";
 
@@ -42,8 +44,9 @@ export interface RequestOptions {
 }
 export interface IdentityCoreClientOptions {
   apiOrigin: string;
-  clientId: string;
-  clientSecret: string;
+  clientId?: string;
+  clientSecret?: string;
+  accessToken?: string;
   fetch?: typeof fetch;
   timeout?: number;
   maxRetries?: number;
@@ -51,6 +54,7 @@ export interface IdentityCoreClientOptions {
   allowBrowser?: boolean;
 }
 export class IdentityCoreClient {
+  governed: GovernedResources;
   constructor(options: IdentityCoreClientOptions);
   policies: {
     list(): Promise<Record<string, unknown>[]>;

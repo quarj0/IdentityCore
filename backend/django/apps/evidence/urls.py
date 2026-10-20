@@ -1,0 +1,89 @@
+from common.public_api import public_api_path
+from apps.evidence import views
+
+urlpatterns = [
+    public_api_path(
+        "authorizations/<str:authorization_id>",
+        views.AuthorizationDetailView.as_view(),
+        methods=("GET",),
+        name="purpose-authorization-detail",
+    ),
+    public_api_path(
+        "holds/<str:hold_id>",
+        views.HoldDetailView.as_view(),
+        methods=("GET",),
+        name="resource-hold-detail",
+    ),
+    public_api_path(
+        "holds",
+        views.HoldListView.as_view(),
+        methods=("GET", "POST"),
+        name="resource-hold-list",
+    ),
+    public_api_path(
+        "holds/<str:hold_id>/release",
+        views.HoldReleaseView.as_view(),
+        methods=("POST",),
+        name="resource-hold-release",
+    ),
+    public_api_path(
+        "schemas/<str:schema_id>",
+        views.SchemaDetailView.as_view(),
+        methods=("GET",),
+        name="resource-schema-detail",
+    ),
+    public_api_path(
+        "schemas/<str:schema_id>/retire",
+        views.SchemaRetireView.as_view(),
+        methods=("POST",),
+        name="resource-schema-retire",
+    ),
+    public_api_path(
+        "schemas",
+        views.SchemaListView.as_view(),
+        methods=("GET", "POST"),
+        name="evidence-schema-list",
+    ),
+    public_api_path(
+        "authorizations",
+        views.AuthorizationListView.as_view(),
+        methods=("GET", "POST"),
+        name="purpose-authorization-list",
+    ),
+    public_api_path(
+        "authorizations/<str:authorization_id>/approve",
+        views.AuthorizationApproveView.as_view(),
+        methods=("POST",),
+        name="purpose-authorization-approve",
+    ),
+    public_api_path(
+        "authorizations/<str:authorization_id>/revoke",
+        views.AuthorizationRevokeView.as_view(),
+        methods=("POST",),
+        name="purpose-authorization-revoke",
+    ),
+    public_api_path(
+        "",
+        views.EvidenceListView.as_view(),
+        methods=("GET", "POST"),
+        name="evidence-list",
+    ),
+    public_api_path(
+        "<str:evidence_id>",
+        views.EvidenceDetailView.as_view(),
+        methods=("GET",),
+        name="evidence-detail",
+    ),
+    public_api_path(
+        "<str:evidence_id>/lineage",
+        views.EvidenceLineageView.as_view(),
+        methods=("GET",),
+        name="evidence-lineage",
+    ),
+    public_api_path(
+        "<str:evidence_id>/revoke",
+        views.EvidenceRevokeView.as_view(),
+        methods=("POST",),
+        name="evidence-revoke",
+    ),
+]

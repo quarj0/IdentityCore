@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import re
 from pathlib import Path
 from typing import Any
 import yaml
@@ -49,7 +50,9 @@ def kind(s: dict[str, Any]) -> tuple[str, bool]:
                 else (
                     "number"
                     if isinstance(literal, float)
-                    else "string" if isinstance(literal, str) else "object"
+                    else "string"
+                    if isinstance(literal, str)
+                    else "object"
                 )
             )
         )
@@ -133,7 +136,7 @@ def cstype(s: dict[str, Any]) -> str:
 
 
 def pascal(v: str) -> str:
-    return "".join(x[:1].upper() + x[1:] for x in v.split("_"))
+    return "".join(x[:1].upper() + x[1:] for x in re.split(r"[^A-Za-z0-9]+", v))
 
 
 def validate_fixture(payload, schema_name, schemas):
@@ -166,6 +169,7 @@ def generate(schemas: dict[str, Any]) -> dict[str, str]:
         "",
         "import com.fasterxml.jackson.annotation.JsonProperty;",
         "import com.fasterxml.jackson.annotation.JsonValue;",
+        "import com.fasterxml.jackson.annotation.JsonCreator;",
         "import com.fasterxml.jackson.databind.JsonNode;",
         "import java.util.List;",
         "",
@@ -180,12 +184,26 @@ def generate(schemas: dict[str, Any]) -> dict[str, str]:
         "using System;",
         "using System.Text.Json;",
         "using System.Text.Json.Serialization;",
+        "using System.Runtime.Serialization;",
+        "using System.Collections.Generic;",
         "",
         "namespace IdentityCore.Models;",
         "",
-        "public sealed class ContractStringEnumConverter<TEnum> : JsonStringEnumConverter<TEnum> where TEnum : struct, Enum",
+        "public sealed class ContractStringEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum : struct, Enum",
         "{",
-        "    public ContractStringEnumConverter() : base(namingPolicy: null, allowIntegerValues: false) { }",
+        "    private static string Wire(TEnum value) => ((EnumMemberAttribute?)Attribute.GetCustomAttribute(typeof(TEnum).GetField(value.ToString())!, typeof(EnumMemberAttribute)))?.Value ?? value.ToString();",
+        "    public override TEnum Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)",
+        "    {",
+        '        if (reader.TokenType != JsonTokenType.String) throw new JsonException("Expected a string enum.");',
+        "        var wire = reader.GetString();",
+        "        foreach (var value in Enum.GetValues<TEnum>()) if (StringComparer.Ordinal.Equals(Wire(value), wire)) return value;",
+        '        throw new JsonException("Unsupported string enum value.");',
+        "    }",
+        "    public override void Write(Utf8JsonWriter writer, TEnum value, JsonSerializerOptions options)",
+        "    {",
+        '        if (!Enum.IsDefined(value)) throw new JsonException("Unsupported enum value.");',
+        "        writer.WriteStringValue(Wire(value));",
+        "    }",
         "}",
         "",
     ]
@@ -198,11 +216,18 @@ def generate(schemas: dict[str, Any]) -> dict[str, str]:
         for property_name, property_schema in props.items():
             if "enum" not in property_schema:
                 continue
-            values = property_schema["enum"]
+            raw_values = property_schema["enum"]
+            if None in raw_values and not kind(property_schema)[1]:
+                raise ValueError(f"Unsupported enum: {name}.{property_name}")
+            values = [value for value in raw_values if value is not None]
             if not values or not all(isinstance(value, str) for value in values):
                 raise ValueError(f"Unsupported enum: {name}.{property_name}")
             enum_name = name + pascal(property_name)
-            members = [pascal(value) for value in values]
+            members = [pascal(value) or "Empty" for value in values]
+            members = [
+                member if not member[0].isdigit() else "Value" + member
+                for member in members
+            ]
             if len(set(members)) != len(members) or any(
                 not member.isidentifier() for member in members
             ):
@@ -221,6 +246,11 @@ def generate(schemas: dict[str, Any]) -> dict[str, str]:
                 f"        {enum_name}(String value) {{ this.value = value; }}",
                 "        @JsonValue",
                 "        public String value() { return value; }",
+                "        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)",
+                f"        public static {enum_name} fromValue(JsonNode input) {{",
+                f"            if (input != null && input.isTextual()) for ({enum_name} member : values()) if (member.value.equals(input.textValue())) return member;",
+                '            throw new IllegalArgumentException("Unsupported contract enum value.");',
+                "        }",
                 "    }",
                 "",
             ]
@@ -229,7 +259,12 @@ def generate(schemas: dict[str, Any]) -> dict[str, str]:
                 f"public enum {enum_name}",
                 "{",
             ]
-            cs += [f"    {value}," for value in values]
+            for member, value in zip(members, values):
+                cs_member = value if value.isidentifier() else member
+                cs += [
+                    f"    [EnumMember(Value = {json.dumps(value)})]",
+                    f"    {cs_member},",
+                ]
             cs += ["}", ""]
         py += (
             [f"class _{name}Required(TypedDict):"]

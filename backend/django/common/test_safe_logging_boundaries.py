@@ -204,10 +204,11 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
     def test_interpolated_structures_and_bytes_are_redacted(self):
         logger, stream = self._capture("identitycore.structured-arguments-test")
         logger.info(
-            "payload=%s binary=%s attempts=%03d",
+            "payload=%s binary=%s attempts=%03d status=%s",
             {"storage_key": "tenant/private.jpg", "status": "failed"},
             b"private-document-content",
             7,
+            "failed",
             extra={"context": {}},
         )
         output = stream.getvalue()
