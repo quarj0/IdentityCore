@@ -8,6 +8,12 @@ dependencies separately before upgrading the AI interpreter.
 FastAPI performs document quality/classification/OCR and biometric checks. It is an
 internal service, not a browser-facing API, and requires `X-Internal-Token`.
 
+Before starting Compose, provision the named model volume as described below.
+For PyPI wheel download timeouts during image builds, follow
+[AI image download recovery](../README.md#ai-image-download-timeout). A build
+failure and an existing container's missing-model readiness response are separate
+problems; rebuilding the image does not provision the model volume.
+
 ```bash
 cp .env.example .env
 docker compose up --build -d ai-service

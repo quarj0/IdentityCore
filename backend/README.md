@@ -48,3 +48,23 @@ pin `AI_MODEL_MANIFEST_SHA256`, and configure the object-storage values above.
 Changing to mock/hybrid or weakening the probe does not fix real inference readiness.
 If the process exits or restarts, inspect `docker compose logs --tail=40 ai-service`
 for the import/runtime/configuration error before retrying `make up`.
+
+### AI image download timeout
+
+If the build reports `ReadTimeoutError` from `files.pythonhosted.org` while
+installing a wheel, the image build failed before the new AI process started.
+Retry `docker compose build ai-service`, then `make up`. The AI Dockerfile uses
+BuildKit's pip cache so completed downloads survive a failed build, a 120-second
+socket timeout and five connection retries. For a persistently slow link, use:
+
+```bash
+docker compose build --build-arg PIP_DEFAULT_TIMEOUT=300 --build-arg PIP_RETRIES=10 ai-service
+docker compose up -d --no-build
+```
+
+The cache does not resume a partially downloaded wheel; that file may need to be
+downloaded again. Keep TLS verification enabled. If the later readiness probe
+reports `models.manifest_missing`, `models.pad`, `models.insightface` or
+`models.paddleocr.*`, complete the model provisioning and manifest approval steps
+above. A failed rebuild can leave an older AI container running, so its readiness
+output describes that existing container rather than a successfully rebuilt image.
