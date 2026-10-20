@@ -1,6 +1,8 @@
 # IdentityCore Provider SDK
 
-> Status: architecture and integration contract.
+> Status: packaged Python, JavaScript, Java and .NET Provider SDKs are implemented.
+> [Package index](../../provider-sdk/README.md) and [operation runbook](../operations/provider-operations.md) define the concrete supported v1 wire contract.
+> Broader architectural examples below are not additional runtime contracts.
 >
 > This document describes how a provider integrates with the IdentityCore Provider Runtime. It is distinct from the customer-facing Python, JavaScript/TypeScript, Java, and .NET SDKs used to call IdentityCore APIs.
 
@@ -255,7 +257,7 @@ An asynchronous contract must define:
 - duplicate callback handling;
 - terminal state semantics.
 
-The current platform is strongest around synchronous and task-mediated execution. General asynchronous provider contracts should be treated as evolving until fully implemented and tested.
+The separately negotiated `ic-provider-operations-v1` contract implements durable pending operations, signed callbacks, bounded polling, lease/deadline binding and explicit cancellation/deletion. See the [operation runbook](../operations/provider-operations.md); synchronous integrations retain their existing contract.
 
 ## 13. Health and readiness
 
@@ -381,7 +383,7 @@ Before production activation, a provider author should be able to answer:
 
 The repository already contains important Provider SDK foundations: adapter registration, centralized invocation, secure custom HTTP execution, message signing, replay prevention, redacted telemetry, versioned capability results, provider-check persistence, and an executable Contract v1 conformance baseline.
 
-Machine-readable manifest v1 and organization self-service setup/promotion are implemented; see [provider setup](../operations/provider-setup.md). A packaged multi-language Provider SDK and broader capability/evidence/retention certification remain incomplete. Passing setup or baseline protocol fixtures does not establish arbitrary plug-and-play production integration.
+Machine-readable manifest v1 and organization self-service setup/promotion are implemented; see [provider setup](../operations/provider-setup.md). Python, JavaScript, Java and .NET Provider SDKs and scope-bound assurance records with independent approval are implemented. Shared 17-case HTTP/worker tests establish synthetic protocol interoperability; actual deployment, capability/model and independent security assurance require retained external evidence. Passing setup or baseline protocol fixtures does not establish arbitrary plug-and-play production integration.
 
 ## Current active-liveness sub-contract
 

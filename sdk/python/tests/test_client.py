@@ -106,7 +106,7 @@ class IdentityCoreClientTests(unittest.TestCase):
         self.assertEqual(headers["X-Client-Id"], "cli_test")
         self.assertEqual(headers["Authorization"], "Bearer secret")
         self.assertTrue(headers["X-Request-Id"].startswith("req_"))
-        self.assertEqual(headers["User-Agent"], "identitycore-python/0.2.0")
+        self.assertEqual(headers["User-Agent"], "identitycore-python/0.3.0")
 
     def test_access_token_omits_saved_client_identifier(self):
         transport = FakeTransport([(200, envelope([])), (200, b"binary evidence")])

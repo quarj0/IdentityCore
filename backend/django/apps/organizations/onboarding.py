@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from apps.access_control.governed_permissions import GOVERNED_PERMISSIONS
+
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -354,6 +356,11 @@ def ensure_tenant_administrator_role(*, tenant: Tenant, user: PlatformUser) -> N
         ("manage_team", "Manage team invitations"),
         ("manage_billing", "Manage organization billing"),
         ("approve_provider_promotion", "Approve provider promotion"),
+        *(
+            GOVERNED_PERMISSIONS.items()
+            if role.is_system_role and role.scope == RoleScope.TENANT
+            else ()
+        ),
     ):
         permission, _ = Permission.objects.get_or_create(
             code=code, defaults={"name": name}

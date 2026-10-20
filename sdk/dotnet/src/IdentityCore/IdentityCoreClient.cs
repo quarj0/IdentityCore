@@ -9,8 +9,9 @@ namespace IdentityCore;
 public sealed class IdentityCoreClientOptions
 {
     public required Uri ApiOrigin { get; init; }
-    public required string ClientId { get; init; }
-    public required string ClientSecret { get; init; }
+    public string ClientId { get; init; } = "";
+    public string ClientSecret { get; init; } = "";
+    public string AccessToken { get; init; } = "";
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
     public int MaxRetries { get; init; } = 2;
     public TimeSpan RetryBackoff { get; init; } = TimeSpan.FromMilliseconds(250);
@@ -18,26 +19,31 @@ public sealed class IdentityCoreClientOptions
 
 public sealed class IdentityCoreClient : IDisposable
 {
-    public const string Version = "0.2.0";
+    public const string Version = "0.3.0";
     private static readonly HashSet<int> RetryableStatuses = [408, 429, 500, 502, 503, 504];
     private readonly IdentityCoreClientOptions options;
     private readonly HttpClient http;
     private readonly bool ownsHttp;
+    public GovernedResources Governed { get; }
     public PoliciesResource Policies { get; }
     public VerificationsResource Verifications { get; }
 
     public IdentityCoreClient(IdentityCoreClientOptions options, HttpClient? httpClient = null)
     {
         if (options.ApiOrigin is null || !options.ApiOrigin.IsAbsoluteUri || options.ApiOrigin.Scheme is not ("http" or "https")) throw new IdentityCoreException("ApiOrigin must be an absolute HTTP(S) URL.");
-        if (string.IsNullOrWhiteSpace(options.ClientId) || string.IsNullOrWhiteSpace(options.ClientSecret)) throw new IdentityCoreException("ClientId and ClientSecret are required.");
+        if (string.IsNullOrWhiteSpace(options.AccessToken) && (string.IsNullOrWhiteSpace(options.ClientId) || string.IsNullOrWhiteSpace(options.ClientSecret))) throw new IdentityCoreException("AccessToken or ClientId and ClientSecret are required.");
         if (options.Timeout <= TimeSpan.Zero || options.MaxRetries < 0 || options.RetryBackoff < TimeSpan.Zero) throw new IdentityCoreException("Retry and timeout settings are invalid.");
         this.options = options; http = httpClient ?? new HttpClient(); ownsHttp = httpClient is null; if (ownsHttp) http.Timeout = Timeout.InfiniteTimeSpan;
+        Governed = new GovernedResources(this);
         Policies = new PoliciesResource(this); Verifications = new VerificationsResource(this);
     }
 
     public Task<JsonElement> HealthAsync(CancellationToken cancellationToken = default) => SendAsync(HttpMethod.Get, "/health", null, null, cancellationToken);
 
-    public async Task<JsonElement> SendAsync(HttpMethod method, string path, object? body = null, string? idempotencyKey = null, CancellationToken cancellationToken = default)
+    public Task<JsonElement> SendAsync(HttpMethod method, string path, object? body = null, string? idempotencyKey = null, CancellationToken cancellationToken = default)
+        => SendAsync(method, path, body, idempotencyKey, new Dictionary<string, string>(), cancellationToken);
+
+    public async Task<JsonElement> SendAsync(HttpMethod method, string path, object? body, string? idempotencyKey, IReadOnlyDictionary<string, string> extraHeaders, CancellationToken cancellationToken = default)
     {
         var retryable = method is { Method: "GET" or "HEAD" or "OPTIONS" } || !string.IsNullOrWhiteSpace(idempotencyKey);
         var requestId = "req_" + Guid.NewGuid().ToString("N");
@@ -47,8 +53,9 @@ public sealed class IdentityCoreClient : IDisposable
             timeout.CancelAfter(options.Timeout);
             using var request = new HttpRequestMessage(method, new Uri(options.ApiOrigin, "/api/v1" + path));
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ClientSecret);
-            request.Headers.Add("X-Client-Id", options.ClientId); request.Headers.Add("X-Request-Id", requestId); request.Headers.UserAgent.ParseAdd($"identitycore-dotnet/{Version}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", string.IsNullOrWhiteSpace(options.AccessToken) ? options.ClientSecret : options.AccessToken);
+            if (string.IsNullOrWhiteSpace(options.AccessToken)) request.Headers.Add("X-Client-Id", options.ClientId);
+            foreach (var header in extraHeaders) request.Headers.Add(header.Key, header.Value); request.Headers.Add("X-Request-Id", requestId); request.Headers.UserAgent.ParseAdd($"identitycore-dotnet/{Version}");
             if (!string.IsNullOrWhiteSpace(idempotencyKey)) request.Headers.Add("Idempotency-Key", idempotencyKey);
             if (body is not null) request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
             try

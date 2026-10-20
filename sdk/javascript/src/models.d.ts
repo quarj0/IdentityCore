@@ -574,3 +574,445 @@ export interface ManualReviewApprovalResponse {
   decision: string;
   approval_status: "approved";
 }
+
+export interface GovernedSchemaCreate {
+  name: string;
+  version: number;
+  kind: "evidence" | "claim";
+  definition: Record<string, unknown>;
+  disclosure_fields?: Array<string>;
+}
+
+export interface PurposeAuthorizationCreate {
+  project_id: string;
+  subject_id: string;
+  purpose: string;
+  legal_basis: "consent" | "contract" | "legal_obligation" | "legitimate_interest";
+  justification: Record<string, unknown>;
+  operations: Array<"claims:disclose" | "claims:read" | "claims:write" | "evidence:read" | "evidence:write">;
+  valid_from: string;
+  valid_until: string;
+  delete_after?: string;
+  consent_record_id?: string;
+  reuse_from_ids?: Array<string>;
+}
+
+export interface EvidenceCreate {
+  project_id: string;
+  subject_id: string;
+  authorization_id: string;
+  schema_id: string;
+  evidence_type: "submitted" | "provider" | "system" | "human" | "authoritative";
+  operation_reference: string;
+  payload: Record<string, unknown>;
+  provenance: Record<string, unknown>;
+  observed_at: string;
+  valid_until: string;
+  delete_after: string;
+  source_ids?: Array<string>;
+  supersedes_id?: string;
+  verification_id?: string;
+  source_check_id?: string;
+}
+
+export interface GovernedReason {
+  reason: string;
+}
+
+export interface GovernedEmptyAction {
+}
+
+export interface ResourceLegalHoldCreate {
+  project_id: string;
+  subject_id: string;
+  reason: Record<string, unknown>;
+  expires_at?: string | null;
+}
+
+export interface ClaimCreate {
+  project_id: string;
+  subject_id: string;
+  authorization_id: string;
+  schema_id: string;
+  observed_at: string;
+  valid_from: string;
+  valid_until: string;
+  delete_after: string;
+  evidence_ids?: Array<string>;
+  claim_ids?: Array<string>;
+  value?: Record<string, unknown>;
+  confidence?: number;
+  rule_name?: "" | "copy" | "field" | "normalize_name" | "iso_date" | "age_over" | "document_current" | "exact_corroboration";
+  rule_version?: number;
+  rule_parameters?: Record<string, unknown>;
+  supersedes_id?: string;
+}
+
+export interface ClaimReusePolicyCreate {
+  project_id: string;
+  schema_id: string;
+  name: string;
+  version: number;
+  purposes: Array<string>;
+  accepted_classes: Array<"candidate" | "corroborated" | "derived" | "normalized" | "provider_asserted" | "reviewed">;
+  fields: Array<string>;
+  max_age_seconds: number;
+  minimum_confidence?: number;
+}
+
+export interface ClaimConflictReview {
+  project_id: string;
+  purpose: string;
+  selected_claim_id?: string | null;
+  outcome: "selected" | "disputed" | "more_evidence";
+  reason: Record<string, unknown>;
+}
+
+export interface ClaimRevoke {
+  project_id: string;
+  purpose: string;
+  reason: string;
+}
+
+export interface ClaimEvaluation {
+  project_id: string;
+  purpose: string;
+  policy_id: string;
+}
+
+export interface ClaimDisclosureCreate {
+  project_id: string;
+  authorization_id: string;
+  audience_id: string;
+  selections: Array<Record<string, unknown>>;
+  lifetime_seconds?: number;
+  max_redemptions?: number;
+}
+
+export interface GovernedProjectAction {
+  project_id: string;
+}
+
+export interface ProviderCertificationCreate {
+  configuration_id: string;
+  capability: string;
+  report: Record<string, unknown>;
+  assurance_level: "conformance" | "assured";
+  valid_until: string;
+  delete_after: string;
+}
+
+export interface ProviderCertificationRevoke {
+  reason: string;
+}
+
+export interface ProviderOperationCancel {
+  project_id: string;
+  reason: string;
+}
+
+export interface GovernedSchema {
+  name: string;
+  version: number;
+  kind: "evidence" | "claim";
+  definition: Record<string, unknown>;
+  disclosure_fields: Array<string>;
+  id: string;
+  retired_at: string | null;
+}
+
+export interface PurposeAuthorization {
+  id: string;
+  project_id: string;
+  subject_id: string;
+  purpose: string;
+  legal_basis: "consent" | "contract" | "legal_obligation" | "legitimate_interest";
+  operations: Array<string>;
+  approved_at?: string | null;
+  valid_from: string;
+  valid_until: string;
+  delete_after: string;
+  revoked_at?: string | null;
+  reuse_from_ids: Array<string>;
+}
+
+export interface PurposeAuthorizationDetail {
+  id: string;
+  project_id: string;
+  subject_id: string;
+  purpose: string;
+  legal_basis: "consent" | "contract" | "legal_obligation" | "legitimate_interest";
+  operations: Array<string>;
+  approved_at?: string | null;
+  valid_from: string;
+  valid_until: string;
+  delete_after: string;
+  revoked_at?: string | null;
+  reuse_from_ids: Array<string>;
+  justification: Record<string, unknown>;
+  proposed_by_id: string;
+  approved_by_id: string | null;
+  consent_record_id: string | null;
+}
+
+export interface ResourceLegalHold {
+  id: string;
+  project_id: string;
+  subject_id: string;
+  created_at: string;
+  expires_at: string | null;
+  released_at: string | null;
+  scope: "subject_project_lineage";
+}
+
+export interface ResourceLegalHoldDetail {
+  id: string;
+  project_id: string;
+  subject_id: string;
+  created_at: string;
+  expires_at: string | null;
+  released_at: string | null;
+  scope: "subject_project_lineage";
+  reason: Record<string, unknown>;
+}
+
+export interface GovernedEvidence {
+  id: string;
+  project_id: string;
+  subject_id: string;
+  schema_id: string;
+  schema_version: number;
+  purpose: string;
+  status: string;
+  observed_at: string;
+  valid_until: string;
+  delete_after: string;
+  source_evidence_ids: Array<string>;
+  evidence_type: "submitted" | "provider" | "system" | "human" | "authoritative";
+  origin: "persisted_provider_check" | "caller_asserted";
+  supersedes_id: string | null;
+  payload?: Record<string, unknown>;
+  provenance?: Record<string, unknown>;
+}
+
+export interface GovernedClaim {
+  id: string;
+  project_id: string;
+  subject_id: string;
+  schema_id: string;
+  schema_version: number;
+  purpose: string;
+  status: string;
+  observed_at: string;
+  valid_until: string;
+  delete_after: string;
+  source_evidence_ids: Array<string>;
+  claim_class: "candidate" | "normalized" | "corroborated" | "derived" | "reviewed";
+  confidence: string | null;
+  valid_from: string;
+  rule: Record<string, unknown> | null;
+  source_claim_ids: Array<string>;
+  value?: Record<string, unknown>;
+}
+
+export interface GovernedReceipt {
+  status?: string;
+  id: string;
+  schema_id: string;
+  created_at: string;
+}
+
+export interface GovernedStateReceipt {
+  id: string;
+  status: string;
+}
+
+export interface GovernedLineage {
+  root_id: string;
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+  truncated: false;
+}
+
+export interface ClaimReusePolicy {
+  id: string;
+  project_id: string;
+  schema_id: string;
+  name: string;
+  version: number;
+  purposes: Array<string>;
+  accepted_classes: Array<"candidate" | "corroborated" | "derived" | "normalized" | "provider_asserted" | "reviewed">;
+  fields: Array<string>;
+  max_age_seconds: number;
+  minimum_confidence: string | null;
+  approved_at: string | null;
+  retired_at: string | null;
+}
+
+export interface ClaimReviewReceipt {
+  id: string;
+  outcome: "selected" | "disputed" | "more_evidence";
+  selected_claim_id: string | null;
+}
+
+export interface ClaimPolicyEvaluation {
+  satisfied: boolean;
+  reason_codes: Array<string>;
+  claim_id: string;
+  policy_id: string;
+  usable_until: string | null;
+  claim_class: string;
+  fresh_until: string;
+}
+
+export interface ClaimDisclosureReceipt {
+  id: string;
+  audience_id: string;
+  purpose: string;
+  expires_at: string;
+  max_redemptions: number;
+  token: string | null;
+  token_available: boolean;
+}
+
+export interface ClaimDisclosureRedemption {
+  id: string;
+  audience_id: string;
+  purpose: string;
+  claims: Array<Record<string, unknown>>;
+  expires_at: string;
+}
+
+export interface ClaimDisclosureRevocation {
+  id: string;
+  revoked: boolean;
+}
+
+export interface ProviderCertification {
+  id: string;
+  configuration_id: string;
+  environment: "sandbox" | "production";
+  capability: string;
+  contract_version: "1";
+  operation_contract: "sync" | "ic-provider-operations-v1";
+  suite_version: string;
+  report_sha256: string;
+  assurance_level: "conformance" | "assured";
+  approved_at: string | null;
+  valid_until: string;
+  revoked: boolean;
+  delete_after: string;
+  proposed_by_id: string;
+  approved_by_id: string | null;
+}
+
+export interface ProviderCertificationDetail {
+  id: string;
+  configuration_id: string;
+  environment: "sandbox" | "production";
+  capability: string;
+  contract_version: "1";
+  operation_contract: "sync" | "ic-provider-operations-v1";
+  suite_version: string;
+  report_sha256: string;
+  assurance_level: "conformance" | "assured";
+  approved_at: string | null;
+  valid_until: string;
+  revoked: boolean;
+  report: Record<string, unknown>;
+  delete_after: string;
+  proposed_by_id: string;
+  approved_by_id: string | null;
+}
+
+export interface ProviderCertificationScope {
+  configuration_id: string;
+  environment: string;
+  capability: string;
+  contract_version: string;
+  operation_contract: string;
+  configuration_digest: string;
+  manifest_sha256: string;
+  suite_version: string;
+  required_cases: Array<string>;
+}
+
+export interface ProviderOperation {
+  id: string;
+  status: "created" | "pending" | "completed" | "failed" | "cancelled" | "expired";
+  configuration_id: string;
+  check_id: string;
+  capability: string;
+  deadline: string;
+  completed_at: string | null;
+  verification_id: string;
+  delete_after: string;
+  invalidation_reason: string;
+  remote_action: "cancel" | "delete" | null | null;
+  remote_action_status: "pending" | "acknowledged" | "expired" | null | null;
+  remote_requested_at: string | null;
+  remote_attempted_at: string | null;
+}
+
+export interface ProviderOperationBinding {
+  operation_contract: "ic-provider-operations-v1";
+  operation_id: string;
+  configuration_id: string;
+  tenant_id: string;
+  project_id: string;
+  environment: "sandbox" | "production";
+  capability: string;
+  contract_version: "1";
+  request_sha256: string;
+  lease_generation: number;
+  deadline: string;
+  callback_path: string;
+  lease_token: string;
+}
+
+export interface ProviderOperationCallback {
+  binding: ProviderOperationBinding;
+  status: "pending" | "completed" | "failed";
+  result?: Record<string, unknown>;
+  retry_after_seconds?: number;
+}
+
+export interface GovernedSchemaPage {
+  results: Array<GovernedSchema>;
+  pagination: CursorPagination;
+}
+
+export interface PurposeAuthorizationPage {
+  results: Array<PurposeAuthorization>;
+  pagination: CursorPagination;
+}
+
+export interface ResourceLegalHoldPage {
+  results: Array<ResourceLegalHold>;
+  pagination: CursorPagination;
+}
+
+export interface GovernedEvidencePage {
+  results: Array<GovernedEvidence>;
+  pagination: CursorPagination;
+}
+
+export interface GovernedClaimPage {
+  results: Array<GovernedClaim>;
+  pagination: CursorPagination;
+}
+
+export interface ClaimReusePolicyPage {
+  results: Array<ClaimReusePolicy>;
+  pagination: CursorPagination;
+}
+
+export interface ProviderCertificationPage {
+  results: Array<ProviderCertification>;
+  pagination: CursorPagination;
+}
+
+export interface ProviderOperationPage {
+  results: Array<ProviderOperation>;
+  pagination: CursorPagination;
+}

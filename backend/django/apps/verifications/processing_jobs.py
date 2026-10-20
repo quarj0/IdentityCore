@@ -32,6 +32,15 @@ class ProcessingJobOwnershipLost(RuntimeError):
     """Raised when a worker no longer owns the durable processing lease."""
 
 
+class ProviderOperationPending(ProcessingJobOwnershipLost):
+    """A signed provider accepted work whose completion is still pending."""
+
+    def __init__(self, job, operation_id, next_poll_at):
+        self.job = job
+        self.operation_id = operation_id
+        self.next_poll_at = next_poll_at
+        super().__init__("Provider operation is pending.")
+
 
 class ProcessingConsentProofUnavailable(ProcessingJobOwnershipLost):
     """Transport a transient proof outage through worker failure handlers."""
@@ -46,7 +55,7 @@ def defer_on_consent_proof_unavailable(worker):
     def wrapped(*args, **kwargs):
         try:
             return worker(*args, **kwargs)
-        except ProcessingConsentProofUnavailable as exc:
+        except (ProcessingConsentProofUnavailable, ProviderOperationPending) as exc:
             # This runs outside the failed finalization transaction, so the durable
             # deferral survives rollback. Generations never move backwards.
             with transaction.atomic():
@@ -55,17 +64,36 @@ def defer_on_consent_proof_unavailable(worker):
                 locked.status = ProcessingJobStatus.QUEUED
                 locked.attempt_count -= 1
                 locked.error_code = (
-                    COMMITTED_PROVIDER_RESULT_RECOVERY
+                    "provider_pending:" + exc.operation_id
+                    if isinstance(exc, ProviderOperationPending)
+                    else COMMITTED_PROVIDER_RESULT_RECOVERY
                     if exc.job.error_code == COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED
                     else "consent_key_unavailable"
                 )
                 locked.heartbeat_at = timezone.now()
-                locked.lease_expires_at = _lease_deadline(locked.heartbeat_at)
-                locked.save(update_fields=["status", "attempt_count", "error_code", "heartbeat_at", "lease_expires_at", "updated_at"])
+                locked.lease_expires_at = (
+                    max(locked.heartbeat_at + timedelta(seconds=5), exc.next_poll_at)
+                    if isinstance(exc, ProviderOperationPending)
+                    else _lease_deadline(locked.heartbeat_at)
+                )
+                locked.save(
+                    update_fields=[
+                        "status",
+                        "attempt_count",
+                        "error_code",
+                        "heartbeat_at",
+                        "lease_expires_at",
+                        "updated_at",
+                    ]
+                )
             if locked.job_type == ProcessingJobType.IDENTITY_DOCUMENT:
                 from apps.identity_documents.models import IdentityDocument
-                return IdentityDocument.objects.get(public_id=locked.resource_public_id).status
+
+                return IdentityDocument.objects.get(
+                    public_id=locked.resource_public_id
+                ).status
             return Verification.objects.get(pk=locked.verification_id).status
+
     return wrapped
 
 
@@ -99,11 +127,17 @@ def lock_processing_job_for_finalization(job: ProcessingJob) -> ProcessingJob:
     locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
     _assert_processing_job_owner(locked, job)
     from apps.consent.services import active_consent
-    scope = "document" if locked.job_type == ProcessingJobType.IDENTITY_DOCUMENT else "biometrics"
+
+    scope = (
+        "document"
+        if locked.job_type == ProcessingJobType.IDENTITY_DOCUMENT
+        else "biometrics"
+    )
     try:
         consent = active_consent(locked.verification, scope, raise_on_unavailable=True)
     except Exception as exc:
         from apps.consent.services import ConsentProofUnavailable
+
         if isinstance(exc, ConsentProofUnavailable):
             raise ProcessingConsentProofUnavailable(job) from exc
         raise
@@ -423,21 +457,43 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
         return None
     now = timezone.now()
     from apps.consent.services import active_consent, ConsentProofUnavailable
-    scope = "document" if job_type == ProcessingJobType.IDENTITY_DOCUMENT else "biometrics"
+
+    scope = (
+        "document" if job_type == ProcessingJobType.IDENTITY_DOCUMENT else "biometrics"
+    )
     try:
-        consent = active_consent(resource.verification, scope, raise_on_unavailable=True)
+        consent = active_consent(
+            resource.verification, scope, raise_on_unavailable=True
+        )
     except ConsentProofUnavailable:
         ProcessingJob.objects.filter(
-            job_type=job_type, resource_public_id=resource.public_id,
+            job_type=job_type,
+            resource_public_id=resource.public_id,
             status=ProcessingJobStatus.QUEUED,
-        ).update(error_code=Case(
-            When(error_code=COMMITTED_PROVIDER_RESULT_RECOVERY, then=Value(COMMITTED_PROVIDER_RESULT_RECOVERY)),
-            default=Value("consent_key_unavailable")), heartbeat_at=now, lease_expires_at=_lease_deadline(now))
+        ).update(
+            error_code=Case(
+                When(
+                    error_code=COMMITTED_PROVIDER_RESULT_RECOVERY,
+                    then=Value(COMMITTED_PROVIDER_RESULT_RECOVERY),
+                ),
+                default=Value("consent_key_unavailable"),
+            ),
+            heartbeat_at=now,
+            lease_expires_at=_lease_deadline(now),
+        )
         return None
     if consent is None:
-        ProcessingJob.objects.filter(job_type=job_type, resource_public_id=resource.public_id,
-            status=ProcessingJobStatus.QUEUED).update(status=ProcessingJobStatus.EXHAUSTED,
-                error_code="consent_unavailable", completed_at=now, heartbeat_at=now, lease_expires_at=now)
+        ProcessingJob.objects.filter(
+            job_type=job_type,
+            resource_public_id=resource.public_id,
+            status=ProcessingJobStatus.QUEUED,
+        ).update(
+            status=ProcessingJobStatus.EXHAUSTED,
+            error_code="consent_unavailable",
+            completed_at=now,
+            heartbeat_at=now,
+            lease_expires_at=now,
+        )
         return None
     with transaction.atomic():
         job, _ = ProcessingJob.objects.select_for_update().get_or_create(
@@ -663,7 +719,10 @@ def complete_processing_job(job: ProcessingJob) -> None:
     now = timezone.now()
     locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
     if locked.status == ProcessingJobStatus.COMPLETED:
-        if locked.attempt_count == job.attempt_count and locked.lease_generation == job.lease_generation:
+        if (
+            locked.attempt_count == job.attempt_count
+            and locked.lease_generation == job.lease_generation
+        ):
             return
         raise ProcessingJobOwnershipLost(
             f"Processing job {locked.public_id} was completed by another attempt."

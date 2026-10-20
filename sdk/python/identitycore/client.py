@@ -10,6 +10,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
+from identitycore.governed import GovernedResources
+
 from identitycore.errors import (
     IdentityCoreAPIError,
     IdentityCoreConnectionError,
@@ -17,7 +19,7 @@ from identitycore.errors import (
     IdentityCoreTimeoutError,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 Transport = Callable[
     [str, str, dict[str, str], Optional[bytes], float], Tuple[int, bytes]
 ]
@@ -225,6 +227,7 @@ class IdentityCoreClient:
         self._sleep = sleep
         self.policies = _PoliciesClient(self)
         self.verifications = _VerificationsClient(self)
+        self.governed = GovernedResources(self)
 
     def health(self) -> dict[str, Any]:
         return self.request("GET", "/health")

@@ -362,8 +362,14 @@ class VerificationCreateSerializer(serializers.Serializer):
         verification_subject = None
         if external_reference:
             verification_subject = (
-                tenant.verification_subjects.select_for_update(no_key=True)
-                .filter(external_reference=external_reference, deleted_at__isnull=True)
+                tenant.verification_subjects.select_for_update(
+                    of=("self",), no_key=True
+                )
+                .filter(
+                    external_reference=external_reference,
+                    deleted_at__isnull=True,
+                    resource_restriction__isnull=True,
+                )
                 .order_by("created_at")
                 .first()
             )

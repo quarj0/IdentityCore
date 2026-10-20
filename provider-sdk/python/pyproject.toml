@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "identitycore-provider"
+version = "0.1.0"
+description = "Signed Provider Contract and durable operation runtime for IdentityCore providers."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+dependencies = ["cryptography>=46.0.3,<49"]
+
+[tool.setuptools.packages.find]
+include = ["identitycore_provider*"]

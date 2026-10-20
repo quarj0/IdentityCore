@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
 from apps.core.models import BaseModel, PublicIdModel
+from apps.evidence.models import GovernedRecord
 from common.fields import EncryptedJSONField
 
 
@@ -779,3 +780,143 @@ class ProviderEnvironmentConfiguration(PublicIdModel, BaseModel):
                 )
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+# Provider assurance receipts are retained independently of subject evidence.
+class ProviderCertification(GovernedRecord):
+    public_id_prefix = "pct"
+    configuration = models.ForeignKey(
+        ProviderEnvironmentConfiguration,
+        on_delete=models.PROTECT,
+        related_name="certifications",
+    )
+    environment = models.CharField(
+        max_length=16, choices=ProviderRouteEnvironment.choices
+    )
+    capability = models.CharField(max_length=32, choices=ProviderCheckType.choices)
+    contract_version = models.CharField(max_length=32, default="1")
+    operation_contract = models.CharField(max_length=32, default="sync")
+    suite_version = models.CharField(max_length=64)
+    configuration_digest = models.CharField(max_length=64)
+    manifest_sha256 = models.CharField(max_length=64)
+    report_sha256 = models.CharField(max_length=64)
+    report_json = EncryptedJSONField(
+        encryption_purpose="providers.certification.report"
+    )
+    assurance_level = models.CharField(
+        max_length=24,
+        choices=[
+            ("conformance", "Conformance"),
+            ("assured", "Independently reviewed assurance"),
+        ],
+    )
+    proposed_by_id_snapshot = models.CharField(max_length=64)
+    approved_by_id_snapshot = models.CharField(max_length=64, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    valid_until = models.DateTimeField(db_index=True)
+    delete_after = models.DateTimeField(db_index=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revocation_reason = models.CharField(max_length=120, blank=True)
+
+    def clean(self):
+        super().clean()
+        if self.configuration_id and (
+            self.configuration.provider.tenant_id != self.tenant_id
+            or self.configuration.environment != self.environment
+        ):
+            raise ValidationError("Certification ownership and environment must match.")
+        if self.delete_after < self.valid_until:
+            raise ValidationError("Certification retention must cover validity.")
+
+
+class ProviderOperation(GovernedRecord):
+    public_id_prefix = "pop"
+    project = models.ForeignKey("projects.Project", on_delete=models.PROTECT)
+    verification = models.ForeignKey(
+        "verifications.Verification", on_delete=models.PROTECT
+    )
+    configuration = models.ForeignKey(
+        ProviderEnvironmentConfiguration, on_delete=models.PROTECT
+    )
+    provider_check = models.OneToOneField(
+        ProviderCheck, on_delete=models.PROTECT, related_name="operation"
+    )
+    processing_job = models.ForeignKey(
+        "verifications.ProcessingJob", on_delete=models.PROTECT
+    )
+    capability = models.CharField(max_length=32, choices=ProviderCheckType.choices)
+    operation_contract = models.CharField(
+        max_length=32, default="ic-provider-operations-v1"
+    )
+    request_sha256 = models.CharField(max_length=64)
+    configuration_digest = models.CharField(max_length=64)
+    scope_json = models.JSONField()
+    lease_json = EncryptedJSONField(encryption_purpose="providers.operation.lease")
+    result_json = EncryptedJSONField(
+        default=dict, blank=True, encryption_purpose="providers.operation.result"
+    )
+    result_sha256 = models.CharField(max_length=64, blank=True)
+    status = models.CharField(
+        max_length=16,
+        default="created",
+        db_index=True,
+        choices=[
+            ("created", "Created"),
+            ("pending", "Pending"),
+            ("completed", "Completed"),
+            ("failed", "Failed"),
+            ("cancelled", "Cancelled"),
+            ("expired", "Expired"),
+        ],
+    )
+    lease_generation = models.PositiveBigIntegerField()
+    deadline = models.DateTimeField(db_index=True)
+    next_poll_at = models.DateTimeField(db_index=True)
+    transport_lease_until = models.DateTimeField()
+    completed_at = models.DateTimeField(null=True, blank=True)
+    invalidation_reason = models.CharField(max_length=120, blank=True)
+    delete_after = models.DateTimeField(db_index=True)
+    remote_action = models.CharField(
+        max_length=16,
+        blank=True,
+        choices=[
+            ("cancel", "Cancel processing"),
+            ("delete", "Delete retained content"),
+        ],
+    )
+    remote_action_status = models.CharField(
+        max_length=16,
+        blank=True,
+        db_index=True,
+        choices=[
+            ("pending", "Pending"),
+            ("acknowledged", "Acknowledged"),
+            ("expired", "Expired"),
+        ],
+    )
+    remote_attempted_at = models.DateTimeField(null=True, blank=True)
+    remote_requested_at = models.DateTimeField(null=True, blank=True)
+
+    def clean(self):
+        super().clean()
+        if self.configuration_id and (
+            self.configuration.provider.tenant_id != self.tenant_id
+            or self.configuration.environment != self.project.environment
+        ):
+            raise ValidationError(
+                "Operation configuration ownership and environment must match."
+            )
+        if self.provider_check_id and (
+            self.provider_check.tenant_id != self.tenant_id
+            or self.provider_check.verification_id != self.verification_id
+            or self.provider_check.provider_id != self.configuration.provider_id
+            or self.provider_check.check_type != self.capability
+        ):
+            raise ValidationError("Operation check binding must match.")
+        if self.processing_job_id and (
+            self.processing_job.tenant_id != self.tenant_id
+            or self.processing_job.verification_id != self.verification_id
+        ):
+            raise ValidationError("Operation worker binding must match.")
+        if self.verification_id and self.verification.project_id != self.project_id:
+            raise ValidationError("Operation project must match its verification.")

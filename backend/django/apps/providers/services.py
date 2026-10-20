@@ -328,13 +328,31 @@ def _lock_processing_owner(processing_job) -> None:
     lock_processing_job_for_finalization(processing_job)
 
 
-def _lock_provider_consent(provider_check):
+def _lock_provider_consent(provider_check, processing_job=None):
     from apps.audit.services import lock_audit_chain
-    from apps.consent.services import require_active_consent, scope_for_check
+    from apps.consent.services import (
+        active_consent,
+        scope_for_check,
+        ConsentProofUnavailable,
+        ERROR,
+    )
     from apps.verifications.models import Verification
+    from apps.verifications.processing_jobs import ProcessingConsentProofUnavailable
+
     lock_audit_chain(provider_check.tenant_id)
-    case = Verification.objects.select_for_update(no_key=True).get(pk=provider_check.verification_id, tenant_id=provider_check.tenant_id)
-    require_active_consent(case, scope_for_check(provider_check.check_type))
+    case = Verification.objects.select_for_update(no_key=True).get(
+        pk=provider_check.verification_id, tenant_id=provider_check.tenant_id
+    )
+    try:
+        proof = active_consent(
+            case, scope_for_check(provider_check.check_type), raise_on_unavailable=True
+        )
+    except ConsentProofUnavailable as exc:
+        if processing_job is not None:
+            raise ProcessingConsentProofUnavailable(processing_job) from exc
+        raise
+    if proof is None:
+        raise ValidationError(ERROR)
 
 
 @observed("provider", "invoke_provider_check")
@@ -370,7 +388,7 @@ def invoke_provider_check(
         merged_request_metadata
     )
     with transaction.atomic():
-        _lock_provider_consent(provider_check)
+        _lock_provider_consent(provider_check, processing_job)
         _lock_processing_owner(processing_job)
         provider_check.save(
             update_fields=[
@@ -387,12 +405,22 @@ def invoke_provider_check(
             ]
         )
 
+    from apps.verifications.processing_jobs import ProcessingJobOwnershipLost
+
     try:
-        result = operation(**operation_kwargs)
+        from apps.providers.operations import current_invocation
+
+        invocation_token = current_invocation.set((provider_check, processing_job))
+        try:
+            result = operation(**operation_kwargs)
+        finally:
+            current_invocation.reset(invocation_token)
         normalized = normalize(result) if normalize else result
         normalized = normalize_provider_result(provider_check.check_type, normalized)
         if provider_check.check_type == ProviderCheckType.LIVENESS:
             validate_liveness_evidence(normalized)
+    except ProcessingJobOwnershipLost:
+        raise
     except Exception as exc:
         completed_at = timezone.now()
         error_code = getattr(exc, "error_code", "provider_error")
@@ -422,7 +450,7 @@ def invoke_provider_check(
             },
         }
         with transaction.atomic():
-            _lock_provider_consent(provider_check)
+            _lock_provider_consent(provider_check, processing_job)
             _lock_processing_owner(processing_job)
             provider_check.save(
                 update_fields=[
@@ -455,7 +483,7 @@ def invoke_provider_check(
     )
     provider_check.normalized_result_json = normalized
     with transaction.atomic():
-        _lock_provider_consent(provider_check)
+        _lock_provider_consent(provider_check, processing_job)
         _lock_processing_owner(processing_job)
         provider_check.save(
             update_fields=[
@@ -772,6 +800,7 @@ def _apply_route_final_action(
 
     from apps.audit.services import lock_audit_chain
     from apps.consent.services import require_active_consent, scope_for_check
+
     lock_audit_chain(verification.tenant_id)
     requested = verification
     verification = Verification.objects.select_for_update(no_key=True).get(
@@ -892,26 +921,75 @@ def execute_provider_route(
     """
     from apps.verifications.processing_jobs import ProcessingJobOwnershipLost
 
-    if processing_job is not None and getattr(processing_job, "recovering_consent_proof", False):
+    if processing_job is not None and getattr(
+        processing_job, "recovering_consent_proof", False
+    ):
         with transaction.atomic():
             _lock_processing_owner(processing_job)
             candidates = verification.provider_checks.filter(
-                check_type=check_type, status=ProviderCheckStatus.COMPLETED,
+                check_type=check_type,
+                status=ProviderCheckStatus.COMPLETED,
             ).order_by("-completed_at", "-created_at")
             for check in candidates:
                 metadata = check.request_metadata_json or {}
                 normalized = check.normalized_result_json or {}
                 if not isinstance(metadata, dict) or not isinstance(normalized, dict):
                     continue
-                if (not all(metadata.get(key) == value for key, value in (request_metadata or {}).items())
+                if (
+                    not all(
+                        metadata.get(key) == value
+                        for key, value in (request_metadata or {}).items()
+                    )
                     or normalized.get("capability") != check_type
-                    or normalized.get("contract_version") != PROVIDER_CONTRACT_VERSION):
+                    or normalized.get("contract_version") != PROVIDER_CONTRACT_VERSION
+                ):
                     continue
                 try:
                     normalized = normalize_provider_result(check_type, normalized)
                 except ProviderContractError:
                     continue
-                return ProviderRouteExecutionResult(result=normalized, provider_check=check, attempts=())
+                return ProviderRouteExecutionResult(
+                    result=normalized, provider_check=check, attempts=()
+                )
+
+    from apps.providers.operations import find_operation
+
+    pending_operation = find_operation(processing_job, check_type, request_metadata)
+    if pending_operation is not None:
+        check = pending_operation.provider_check
+        result = invoke_provider_check(
+            provider_check=check,
+            operation=lambda: operation(
+                pending_operation.configuration.provider,
+                pending_operation.configuration.public_configuration_json[
+                    "timeout_seconds"
+                ],
+            ),
+            operation_kwargs={},
+            request_metadata=request_metadata,
+            processing_job=processing_job,
+        )
+        attempts = tuple(ProviderExecutionAttempt.objects.filter(provider_check=check))
+        if not attempts:
+            attempts = (
+                _record_execution_attempt(
+                    provider_check=check,
+                    execution_id=generate_public_id("pex"),
+                    route=None,
+                    route_step=None,
+                    sequence=1,
+                    provider_attempt=1,
+                    outcome=ProviderAttemptOutcome.SUCCEEDED,
+                    timeout_seconds=pending_operation.configuration.public_configuration_json[
+                        "timeout_seconds"
+                    ],
+                    started_at=pending_operation.created_at,
+                    processing_job=processing_job,
+                ),
+            )
+        return ProviderRouteExecutionResult(
+            result=result, provider_check=check, attempts=attempts
+        )
 
     resolution = resolve_provider_chain_for_verification(
         verification=verification,
@@ -1033,7 +1111,9 @@ def execute_provider_route(
                 fallback_reason = (
                     "retryable_error"
                     if has_retry
-                    else "provider_fallback" if has_fallback else "route_exhausted"
+                    else "provider_fallback"
+                    if has_fallback
+                    else "route_exhausted"
                 )
                 attempt = _record_execution_attempt(
                     provider_check=provider_check,

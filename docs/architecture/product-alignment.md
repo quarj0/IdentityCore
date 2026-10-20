@@ -6,22 +6,22 @@ IdentityCore is a vendor-neutral identity infrastructure platform with a working
 identity verification workload. Repository implementation, historical review closure,
 and deployment assurance are separate milestones. The live
 [issue tracker](https://github.com/quarj0/IdentityCore/issues) and merged pull requests
-remain authoritative for issue completion. PR #433 is merged. Audit #281 awaits
-publication of the [completed reconciliation](../reviews/README.md); no actionable
-or pending finding remains in that snapshot.
+remain authoritative for issue completion. PRs #433 and #434 are merged. Audit #281 is closed with the
+[completed reconciliation](../reviews/README.md). New feedback still requires
+individual assessment and protected remediation.
 
 ## Current capability assessment
 
 | Capability | Repository implementation | Remaining boundary |
 | --- | --- | --- |
-| Control plane | Tenant/project/environment isolation, roles, API clients, versioned workflows/policies and administration | Publish the completed historical audit receipt; broader enterprise hierarchy and delegated operations remain future scope |
-| Provider routing | Immutable conditional routes by capability, country, document type and workflow; ordered fallback, bounded retries, timeouts and single-probe circuit recovery | Cost/tier optimization, arbitrary policy expressions and general asynchronous callbacks are not implemented |
+| Control plane | Tenant/project/environment isolation, roles, API clients, versioned workflows/policies and administration | Broader enterprise hierarchy and delegated operations remain future scope |
+| Provider routing | Immutable conditional routes by capability, country, document type and workflow; ordered fallback, bounded retries, timeouts and single-probe circuit recovery | Cost/tier optimization, arbitrary policy expressions remain future scope; signed durable async callbacks/polling are implemented |
 | Provider setup | Versioned machine-readable manifests, encrypted environment credentials, organization-facing connection tests, production configuration diffs and independent activation approval | A connection test is not capability, deletion, retention or security certification |
 | Signed custom providers | HMAC wire contracts, request/response verification, provider/environment-scoped shared replay claims and cross-runtime fixtures | Existing bearer configurations require explicit migration and re-testing; do not imply all providers use signed mode |
-| Provider conformance | Executable Contract v1 fixtures and built-in adapter contract tests | Broad provider certification and a packaged multi-language Provider SDK remain incomplete |
+| Provider conformance | Versioned scope-bound assurance reports, independent approval/revocation, packaged Python/JS/Java/.NET Provider SDKs and 17-case HTTP/worker conformance | Actual deployment/model/security certification requires independently verified evidence |
 | Workflows/policies/decisions | Published versions, immutable running snapshots, template instantiation idempotency, policy-driven decisions and maker-checker review | General cross-workload branching, compensation, policy language and signed attestations remain future work |
-| Evidence | Captures, normalized provider checks, model provenance, immutable decision inputs, evidence reports and protected access | No generalized cross-workload evidence resource or public lineage API |
-| Claims | Extracted fields and evidence-backed policy decisions | No reusable claims API; expiry, revocation, conflict resolution, selective disclosure and descendant propagation require a dedicated implementation |
+| Evidence | Versioned cross-workload resources, encrypted payloads/provenance, provider-check origins, purpose grants, bounded public lineage, supersession and lifecycle propagation | Signed third-party attestations and unrestricted raw exports are outside the implemented contract |
+| Claims | Public versioned deterministic claims, expiry/revocation, source-bound freshness, independent conflict decisions, approved reuse policies and audience-bound field disclosure | Credential issuance and zero-knowledge selective disclosure remain separate capabilities |
 | Manual review | Verification assignment, maker-checker, policy-bound reasons, tenant queues, skills/SLA routing and independent quality sampling; organization onboarding has its own escalation flow | Explicit `review_verification` enforcement and the narrow system-role migration are merged in #433. General verification-case escalation is not implemented; reviewer calibration/staffing assurance remain deployment responsibilities |
 | Consent/privacy | Purpose-bound immutable consent, withdrawal, retention, legal holds and permission-controlled subject export/deletion with processing revocation | Historical unbound notification contacts and reports with lost references need controlled reconciliation; external processor deletion and legal assurance require accountable evidence |
 | Tenant keys | Tenant data envelopes, resumable rotation, environment-scoped AWS KMS customer bindings and fail-closed key availability | Other KMS vendors and independent HSM integrations are not general plug-in capabilities |
@@ -46,13 +46,18 @@ Hosted applicant attribution uses [signed subject metadata](../operations/subjec
 Trusted ingress configuration is required before claiming applicant IP attribution;
 User-Agent remains reported context. Historical proxy records must not be rewritten.
 
-## Broader platform expansion
+## Governed platform capabilities
 
-The next architectural capabilities are the generalized
-[evidence service](evidence-model.md), [Claims Engine](claims-engine.md), broader provider
-certification and asynchronous provider completion. These require complete domain,
-authorization, privacy, lifecycle, OpenAPI and SDK contracts. Their architectural design
-must not be presented as an implemented public API.
+The generalized [evidence service](evidence-model.md), [Claims Engine](claims-engine.md),
+provider assurance and asynchronous completion now have implemented domain,
+authorization, lifecycle, OpenAPI and four-language SDK contracts. Their runbooks
+are [governed resources](../operations/governed-resources.md) and
+[provider operations](../operations/provider-operations.md). The generalized APIs
+coexist with verification-specific capture/check/decision records; they do not
+retroactively turn every historical extracted field into an approved reusable claim.
+
+Additional workflow branching/compensation, infrastructure vendors, signed credential
+formats, marketplaces and representative deployment assurance remain separate scope.
 
 ## Documentation authority
 
@@ -63,7 +68,7 @@ OpenAPI defines concrete public endpoints. The
 future platform work and external release evidence.
 
 Do not claim universal country/document coverage, arbitrary plug-and-play providers,
-certified managed models, a provider marketplace, reusable verified claims or legal
+certified managed models, a provider marketplace, unconditionally verified claims or legal
 compliance based only on repository tests or deployment configuration.
 
 The repository owner selected proprietary, all-rights-reserved licensing on

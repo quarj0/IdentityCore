@@ -67,7 +67,13 @@ def request_subject_deletion(
                 released_at__isnull=True,
             ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
         )
-        if active_holds:
+        from apps.evidence.lifecycle import active_subject_holds
+
+        governed_hold_ids = active_subject_holds(subject, include_legacy=False)
+        if active_holds or governed_hold_ids:
+            from apps.evidence.lifecycle import restrict_subject_resources
+
+            restrict_subject_resources(subject, actor=actor, request=request)
             report = {
                 "status": "deferred",
                 "subject_id": subject.public_id,
@@ -76,7 +82,10 @@ def request_subject_deletion(
                     "verification_records",
                     "evidence",
                 ],
-                "reasons": [hold.reason for hold in active_holds],
+                "reasons": [hold.reason for hold in active_holds]
+                + [
+                    "governed_resource_hold:" + hold_id for hold_id in governed_hold_ids
+                ],
             }
             record_audit_event(
                 tenant=subject.tenant,
@@ -185,6 +194,10 @@ def request_subject_deletion(
 
         notifications_anonymized = scrub_subject_notifications(subject)
 
+        from apps.evidence.lifecycle import scrub_subject_resources
+
+        governed_counts = scrub_subject_resources(subject, actor=actor, request=request)
+
         subject.full_name = "Deleted subject"
         subject.external_reference = ""
         subject.email = ""
@@ -248,6 +261,7 @@ def request_subject_deletion(
                 "verification_metadata",
                 "decision_inputs",
                 "provider_result_copies",
+                "governed_evidence_and_claims",
                 "subject_exports",
                 "subject_notifications",
             ],
@@ -277,6 +291,7 @@ def request_subject_deletion(
                 "documents_anonymized": document_count,
                 "verifications_anonymized": verification_count,
                 "decision_inputs_anonymized": decision_count,
+                "governed_resources_anonymized": governed_counts,
             },
         )
         return report
@@ -316,7 +331,10 @@ def create_subject_export(
                 ),
             }
         )
+    from apps.evidence.lifecycle import subject_resource_export
+
     payload = {
+        "governed_resources": subject_resource_export(subject),
         "subject": {
             "id": subject.public_id,
             "external_reference": subject.external_reference,
@@ -340,6 +358,7 @@ def create_subject_export(
             "raw document/selfie media",
             "provider credentials and internal notes",
             "network and device fingerprints",
+            "raw governed payloads, provenance and claim values; metadata is included",
         ],
     }
     export = VerificationSubjectExport(

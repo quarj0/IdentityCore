@@ -162,7 +162,7 @@ customer-hosted OCR
     -> Manual Review if no acceptable result
 ```
 
-Conditional routes, bounded attempts, ordered fallback and circuit recovery are implemented; see [route resilience](../operations/provider-route-resilience.md). Cost/tier optimization and general asynchronous providers remain future work. Validate the exact deployed provider chain before release.
+Conditional routes, bounded attempts, ordered fallback and circuit recovery are implemented; see [route resilience](../operations/provider-route-resilience.md). Cost/tier optimization remains future work. Signed durable async providers use the separately negotiated [operation contract](../operations/provider-operations.md). Validate the exact deployed provider chain before release.
 
 ## Security boundary
 

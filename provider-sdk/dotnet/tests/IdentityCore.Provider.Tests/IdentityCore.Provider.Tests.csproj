@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><IsPackable>false</IsPackable><OutputType>Exe</OutputType><GenerateProgramFile>false</GenerateProgramFile><StartupObject>IdentityCore.Provider.Tests.ProviderTests</StartupObject></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" /><PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0"><PrivateAssets>all</PrivateAssets></PackageReference>
+    <ProjectReference Include="../../src/IdentityCore.Provider/IdentityCore.Provider.csproj" />
+    <None Include="../../../../docs/fixtures/provider-signing-wire-v1.json" Link="provider-signing-wire-v1.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

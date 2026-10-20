@@ -13,3 +13,12 @@ Configuration changes create a new version and require a new test. Manifest chan
 Internal dashboard endpoints are under `/api/v1/providers/`: POST `setup/`, GET/POST `<provider_id>/configurations/`, and POST `configurations/<configuration_id>/{test,activate,assign}/`. These are control-plane APIs, not the public partner SDK surface. POST configuration accepts `environment`, `configuration` (`endpoint_url`, `allowed_hosts`, `timeout_seconds`), `credentials` (`api_key`), and production `source_id`. Assignment accepts a declared `capability`, `countries`, and `document_types`.
 
 Configured invocations POST contract version, capability, environment and the required capability inputs, with credentials only in Authorization. Responses must match the requested contract/capability. Select configuration from the verification project environment; there is no sandbox credential fallback. The endpoint operator must implement the existing capability input/output contract and authorized evidence reference handling. A passing connection probe checks reachability/authentication/contract declarations; production rollout also requires capability conformance and operational validation with synthetic evidence. Never install shared-storage credentials in browser configuration or provider responses.
+
+## Scoped assurance and asynchronous completion
+
+Public `/api/v1/providers/certifications` resources add scoped retained reports,
+independent approval, expiry and revocation. These do not expose the internal
+configuration/setup endpoints as public SDK operations. Async configurations require
+`hmac_v1`, explicit `ic-provider-operations-v1` negotiation and current approved
+assurance. See [provider operations](provider-operations.md) for report scope, all
+17 required async cases, durable workers/callbacks and remote deletion acknowledgments.

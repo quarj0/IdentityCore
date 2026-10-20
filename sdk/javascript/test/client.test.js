@@ -12,7 +12,7 @@ test("sends production headers and create payload", async () => {
   await client.verifications.create({ purpose: "Onboarding", policyId: "pol_1", projectId: "prj_1", verificationSubject: { fullName: "Ama" } }, { idempotencyKey: "customer-1" });
   assert.equal(calls[0].init.headers["Idempotency-Key"], "customer-1");
   assert.match(calls[0].init.headers["X-Request-Id"], /^req_/);
-  assert.equal(calls[0].init.headers["User-Agent"], "identitycore-node/0.2.0");
+  assert.equal(calls[0].init.headers["User-Agent"], "identitycore-node/0.3.0");
   assert.equal(JSON.parse(calls[0].init.body).project_id, "prj_1");
 });
 

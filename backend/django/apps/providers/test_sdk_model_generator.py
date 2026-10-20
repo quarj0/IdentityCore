@@ -31,6 +31,37 @@ class SDKModelGeneratorTests(SimpleTestCase):
         self.assertEqual(generator.cstype({"const": False}), "bool")
         self.assertEqual(generator.jtype({"const": False}), "Boolean")
 
+    def test_wire_enums_preserve_empty_numeric_hyphen_and_nullable_values(self):
+        generated = generator.generate(
+            {
+                "Envelope": {
+                    "type": "object",
+                    "properties": {
+                        "contract": {
+                            "type": "string",
+                            "enum": ["", "1", "ic-provider-operations-v1"],
+                        },
+                        "action": {
+                            "type": ["string", "null"],
+                            "enum": ["cancel", "delete", None],
+                        },
+                    },
+                    "required": ["contract", "action"],
+                }
+            }
+        )
+        self.assertIn('Empty("")', generated["java"])
+        self.assertIn('Value1("1")', generated["java"])
+        self.assertIn(
+            'IcProviderOperationsV1("ic-provider-operations-v1")', generated["java"]
+        )
+        self.assertIn('[EnumMember(Value = "")]', generated["dotnet"])
+        self.assertIn(
+            '[EnumMember(Value = "ic-provider-operations-v1")]', generated["dotnet"]
+        )
+        self.assertIn("EnvelopeAction? Action", generated["dotnet"])
+        self.assertIn("Literal['cancel', 'delete', None]", generated["python"])
+
     def test_fixture_validates_types_enums_constraints_and_nested_values(self):
         schemas = {
             "Fixture": {
@@ -98,7 +129,7 @@ class SDKModelGeneratorTests(SimpleTestCase):
         self.assertIn(
             "ContractStringEnumConverter<RequestPurpose>", generated["dotnet"]
         )
-        self.assertIn("allowIntegerValues: false", generated["dotnet"])
+        self.assertIn("reader.TokenType != JsonTokenType.String", generated["dotnet"])
         self.assertIn("public RequestPurpose? Purpose", generated["dotnet"])
         self.assertEqual(
             generated["dotnet"].count(

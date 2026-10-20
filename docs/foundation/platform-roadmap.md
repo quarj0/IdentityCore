@@ -36,18 +36,26 @@ documentation with proprietary/all-rights-reserved licensing.
 
 The [audit reconciliation](../reviews/README.md) inventories all closed/merged PR
 feedback against merged main. No actionable or pending finding remains in that
-snapshot. Issue #281 awaits publication of the reviewed reconciliation receipt.
+snapshot. The receipt merged in PR #434 and issue #281 is closed.
 Future feedback still requires individual evidence and protected merge; neither
 thread resolution nor a clean test suite alone establishes closure.
 
-## Next platform capabilities
+## Governed platform extension
 
-- **Generalized evidence:** a cross-workload resource, bounded lineage API, supersession,
-  retention/deletion propagation and purpose-scoped access.
-- **Reusable claims:** versioned schemas, encrypted values, source evidence, explicit
-  conflicts/corroboration, freshness/expiry, revocation, selective disclosure and reuse.
-- **Provider ecosystem:** packaged reference SDKs, wider capability/retention/deletion
-  conformance, certification levels and general asynchronous callback/polling contracts.
+- **Generalized evidence:** implemented public resources, immutable bounded schemas,
+  purpose grants, encrypted provenance, lineage, supersession and privacy lifecycle.
+- **Reusable claims:** implemented deterministic versioned rules, source-bound freshness,
+  explicit independent conflict resolution, revocation and audience-bound disclosure.
+- **Provider ecosystem:** implemented scoped assurance proposal/approval/revocation,
+  durable signed callback/polling operations and Python/JS/Java/.NET Provider SDKs.
+
+See [governed resources](../operations/governed-resources.md),
+[provider operations](../operations/provider-operations.md) and the
+[SDK package index](../../provider-sdk/README.md). Synthetic conformance artifacts
+prove SDK protocol behavior, not deployment or independent provider assurance.
+
+## Further platform scope
+
 - **Workflow generalization:** cross-workload branching, compensation and policy expressions.
 - **Infrastructure expansion:** additional storage/KMS vendors, independently integrated
   HSMs, WORM/SIEM exports, signed checkpoints and attestations.

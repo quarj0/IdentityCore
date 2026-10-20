@@ -32,6 +32,12 @@ from common.authorization import AuthorizationAction, decide_user_access
 
 PUBLIC_FIELDS = {"endpoint_url", "allowed_hosts", "timeout_seconds"}
 TEST_FRESHNESS = timedelta(minutes=15)
+OPERATION_FIELDS = {
+    "operation_contract",
+    "operation_timeout_seconds",
+    "poll_interval_seconds",
+    "required_assurance",
+}
 
 
 def _require(user, tenant, permission="manage_providers"):
@@ -63,7 +69,7 @@ def validate_public_configuration(value):
     if (
         not isinstance(value, dict)
         or not PUBLIC_FIELDS <= set(value)
-        or set(value) - PUBLIC_FIELDS - {"signing_mode"}
+        or set(value) - PUBLIC_FIELDS - {"signing_mode"} - OPERATION_FIELDS
     ):
         raise ValidationError(
             "Supply endpoint_url, allowed_hosts, timeout_seconds and optional signing_mode."
@@ -77,6 +83,35 @@ def validate_public_configuration(value):
         "signing_mode", "bearer"
     ) not in {"bearer", "hmac_v1"}:
         raise ValidationError("Signing mode must be bearer or hmac_v1.")
+    if not isinstance(value.get("operation_contract", "sync"), str) or value.get(
+        "operation_contract", "sync"
+    ) not in {
+        "sync",
+        "ic-provider-operations-v1",
+    }:
+        raise ValidationError("The operation contract is unsupported.")
+    if not isinstance(value.get("required_assurance", "none"), str) or value.get(
+        "required_assurance", "none"
+    ) not in {
+        "none",
+        "conformance",
+        "assured",
+    }:
+        raise ValidationError("The required assurance level is unsupported.")
+    for key, default, minimum, maximum in (
+        ("operation_timeout_seconds", 900, 30, 86400),
+        ("poll_interval_seconds", 10, 5, 300),
+    ):
+        number = value.get(key, default)
+        if type(number) is not int or not minimum <= number <= maximum:
+            raise ValidationError("Choose bounded operation timing parameters.")
+    if value.get("operation_contract", "sync") != "sync" and (
+        value.get("signing_mode") != "hmac_v1"
+        or value.get("required_assurance", "none") == "none"
+    ):
+        raise ValidationError(
+            "Asynchronous providers require HMAC signing and scoped assurance."
+        )
     hosts = value["allowed_hosts"]
     if (
         not isinstance(hosts, list)
@@ -165,9 +200,9 @@ def create_configuration(
     }
     current = {"signing_mode": "bearer", **public_configuration}
     diff = {
-        key: {"before": previous.get(key), "after": current[key]}
-        for key in sorted(PUBLIC_FIELDS | {"signing_mode"})
-        if previous.get(key) != current[key]
+        key: {"before": previous.get(key), "after": current.get(key)}
+        for key in sorted(PUBLIC_FIELDS | {"signing_mode"} | OPERATION_FIELDS)
+        if previous.get(key) != current.get(key)
     }
     config = ProviderEnvironmentConfiguration.objects.create(
         provider=locked,
@@ -222,6 +257,18 @@ def test_configuration(*, config, user):
                 "environment": config.environment,
                 "challenge": challenge,
                 "capabilities": sorted(config.manifest_snapshot_json["capabilities"]),
+                **(
+                    {
+                        "operation_contract": config.public_configuration_json[
+                            "operation_contract"
+                        ]
+                    }
+                    if config.public_configuration_json.get(
+                        "operation_contract", "sync"
+                    )
+                    != "sync"
+                    else {}
+                ),
             },
             headers={"Authorization": "Bearer " + config.credentials_json["api_key"]},
             signing=_signing_context(config),
@@ -234,6 +281,12 @@ def test_configuration(*, config, user):
             and isinstance(response.get("capabilities"), list)
             and set(response["capabilities"])
             == set(config.manifest_snapshot_json["capabilities"])
+            and (
+                config.public_configuration_json.get("operation_contract", "sync")
+                == "sync"
+                or response.get("operation_contract")
+                == config.public_configuration_json["operation_contract"]
+            )
         )
     except (SecureHTTPAdapterError, ValueError, TypeError):
         passed = False
@@ -409,6 +462,14 @@ def invoke_configured_provider(
             "No approved provider configuration is available.",
             error_code="provider_configuration_unavailable",
         )
+    if config.public_configuration_json.get("required_assurance", "none") != "none":
+        from apps.providers.assurance import require_certification
+
+        require_certification(
+            config,
+            capability,
+            minimum_level=config.public_configuration_json["required_assurance"],
+        )
     public = {
         **config.public_configuration_json,
         "timeout_seconds": min(
@@ -417,6 +478,16 @@ def invoke_configured_provider(
     }
     from common.tenant_storage import transfer_references
 
+    if public.get("operation_contract", "sync") == "ic-provider-operations-v1":
+        from apps.providers.operations import invoke
+
+        return invoke(
+            config,
+            capability,
+            inputs,
+            transfer_inputs=transfer_references,
+            timeout_seconds=public["timeout_seconds"],
+        )
     result = SecureHTTPProviderAdapter(public).post_json(
         url=public["endpoint_url"],
         payload={

@@ -86,6 +86,8 @@ urlpatterns = [
     path("api/v1/uploads/", include("apps.uploads.urls")),
     path("api/v1/sessions/", include("apps.verification_sessions.urls")),
     path("api/v1/subjects/", include("apps.verification_subjects.urls")),
+    path("api/v1/evidence/", include("apps.evidence.urls")),
+    path("api/v1/claims/", include("apps.claims.urls")),
     path("api/v1/verifications/", include("apps.verifications.urls")),
     path("api/graphql", csrf_exempt(AuthenticatedGraphQLView.as_view(schema=schema))),
 ]

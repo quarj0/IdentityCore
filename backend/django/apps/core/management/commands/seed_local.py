@@ -1,3 +1,4 @@
+from apps.access_control.governed_permissions import GOVERNED_PERMISSIONS
 from datetime import datetime, timedelta, timezone as datetime_timezone
 from decimal import Decimal
 
@@ -137,6 +138,7 @@ class Command(BaseCommand):
                     ("manage_subject_privacy", "Manage subject privacy requests"),
                     ("manage_providers", "Manage providers"),
                     ("approve_provider_promotion", "Approve provider promotion"),
+                    *GOVERNED_PERMISSIONS.items(),
                 ):
                     permission, _ = Permission.objects.get_or_create(
                         code=code, defaults={"name": name}
@@ -300,6 +302,8 @@ class Command(BaseCommand):
                         "decided_at": PAST_EXPIRY,
                     },
                 )
-                VerificationDecision.objects.filter(pk=decision.pk).update(created_at=PAST_EXPIRY - timedelta(hours=1))
+                VerificationDecision.objects.filter(pk=decision.pk).update(
+                    created_at=PAST_EXPIRY - timedelta(hours=1)
+                )
             else:
                 VerificationDecision.objects.filter(verification=verification).delete()

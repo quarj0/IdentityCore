@@ -57,5 +57,6 @@ celerybeat-schedule
 *.sqlite3
 *.db
 sdk/java/target/
+provider-sdk/java/target/
 bin/
 obj/

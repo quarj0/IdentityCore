@@ -2,7 +2,10 @@
 
 ## Status
 
-Implemented foundation with planned expansion.
+Implemented synchronous execution plus separately negotiated durable signed async
+operations, scoped assurance records and packaged Provider SDKs. See
+[provider operations](../operations/provider-operations.md) for the supported contract
+and [SDK packages](../../provider-sdk/README.md) for language implementations.
 
 ## Purpose
 

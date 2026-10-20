@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: IdentityCore Public API
-  version: 0.3.0
+  version: 0.4.0
   description: Public REST API surface plus workspace-authenticated portal routes used by IdentityCore SDKs and sandbox testing.
 servers:
   - url: https://api.identitycore.com/api/v1
@@ -42,6 +42,11 @@ components:
       in: header
       name: X-Session-Id
       description: Verification session identifier required when it is not present in the URL path.
+    providerSignature:
+      type: apiKey
+      in: header
+      name: X-IC-Signature
+      description: ic-provider-v1 exact-wire HMAC signature; also requires X-IC-Key-Id, X-IC-Timestamp, X-IC-Nonce and X-IC-Signature-Version. Shared replay state must be available.
   parameters:
     IdempotencyKeyHeader:
       name: Idempotency-Key
@@ -1713,6 +1718,1693 @@ components:
         approval_status:
           type: string
           const: approved
+    GovernedSchemaCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        version:
+          type: integer
+          minimum: 1
+        kind:
+          type: string
+          enum:
+          - evidence
+          - claim
+        definition:
+          type: object
+          additionalProperties: true
+        disclosure_fields:
+          type: array
+          items:
+            type: string
+            maxLength: 120
+          maxItems: 100
+      required:
+      - name
+      - version
+      - kind
+      - definition
+      additionalProperties: false
+      description: 'Immutable tenant-scoped object JSON Schema (Draft 2020-12 bounded subset): no references,
+        regular expressions, combinatorial validation, nested enum/const or remote resolution. Maximum definition
+        32 KiB, 512 schema nodes; permitted disclosure fields must be declared top-level properties. Do not
+        put subject values in schema definitions.'
+    PurposeAuthorizationCreate:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        purpose:
+          type: string
+          maxLength: 255
+        legal_basis:
+          type: string
+          enum:
+          - consent
+          - contract
+          - legal_obligation
+          - legitimate_interest
+        justification:
+          type: object
+          additionalProperties: true
+        operations:
+          type: array
+          items:
+            type: string
+            enum:
+            - claims:disclose
+            - claims:read
+            - claims:write
+            - evidence:read
+            - evidence:write
+          minItems: 1
+          maxItems: 5
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        delete_after:
+          type: string
+          format: date-time
+        consent_record_id:
+          type: string
+          maxLength: 64
+        reuse_from_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 64
+          maxItems: 16
+      required:
+      - project_id
+      - subject_id
+      - purpose
+      - legal_basis
+      - justification
+      - operations
+      - valid_from
+      - valid_until
+      additionalProperties: false
+    EvidenceCreate:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        authorization_id:
+          type: string
+          maxLength: 64
+        schema_id:
+          type: string
+          maxLength: 64
+        evidence_type:
+          type: string
+          enum:
+          - submitted
+          - provider
+          - system
+          - human
+          - authoritative
+        operation_reference:
+          type: string
+          maxLength: 120
+        payload:
+          type: object
+          additionalProperties: true
+        provenance:
+          type: object
+          additionalProperties: true
+        observed_at:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        delete_after:
+          type: string
+          format: date-time
+        source_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 64
+          maxItems: 16
+        supersedes_id:
+          type: string
+          maxLength: 64
+        verification_id:
+          type: string
+          maxLength: 64
+        source_check_id:
+          type: string
+          maxLength: 64
+      required:
+      - project_id
+      - subject_id
+      - authorization_id
+      - schema_id
+      - evidence_type
+      - operation_reference
+      - payload
+      - provenance
+      - observed_at
+      - valid_until
+      - delete_after
+      additionalProperties: false
+    GovernedReason:
+      type: object
+      properties:
+        reason:
+          type: string
+          pattern: ^[a-z][a-z0-9_]{0,119}$
+      required:
+      - reason
+      additionalProperties: false
+    GovernedEmptyAction:
+      type: object
+      properties: {}
+      additionalProperties: false
+    ResourceLegalHoldCreate:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        reason:
+          type: object
+          additionalProperties: true
+        expires_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - project_id
+      - subject_id
+      - reason
+      additionalProperties: false
+    ClaimCreate:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        authorization_id:
+          type: string
+          maxLength: 64
+        schema_id:
+          type: string
+          maxLength: 64
+        observed_at:
+          type: string
+          format: date-time
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        delete_after:
+          type: string
+          format: date-time
+        evidence_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 64
+          maxItems: 16
+        claim_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 64
+          maxItems: 16
+        value:
+          type: object
+          additionalProperties: true
+        confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+        rule_name:
+          type: string
+          enum:
+          - ''
+          - copy
+          - field
+          - normalize_name
+          - iso_date
+          - age_over
+          - document_current
+          - exact_corroboration
+        rule_version:
+          type: integer
+          minimum: 1
+        rule_parameters:
+          type: object
+          additionalProperties: true
+        supersedes_id:
+          type: string
+          maxLength: 64
+      required:
+      - project_id
+      - subject_id
+      - authorization_id
+      - schema_id
+      - observed_at
+      - valid_from
+      - valid_until
+      - delete_after
+      additionalProperties: false
+    ClaimReusePolicyCreate:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        schema_id:
+          type: string
+          maxLength: 64
+        name:
+          type: string
+          maxLength: 120
+        version:
+          type: integer
+          minimum: 1
+        purposes:
+          type: array
+          items:
+            type: string
+            maxLength: 255
+          minItems: 1
+          maxItems: 32
+        accepted_classes:
+          type: array
+          items:
+            type: string
+            enum:
+            - candidate
+            - corroborated
+            - derived
+            - normalized
+            - provider_asserted
+            - reviewed
+          minItems: 1
+          maxItems: 6
+        fields:
+          type: array
+          items:
+            type: string
+            maxLength: 120
+          minItems: 1
+          maxItems: 32
+        max_age_seconds:
+          type: integer
+          minimum: 1
+          maximum: 31622400
+        minimum_confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+      required:
+      - project_id
+      - schema_id
+      - name
+      - version
+      - purposes
+      - accepted_classes
+      - fields
+      - max_age_seconds
+      additionalProperties: false
+    ClaimConflictReview:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        purpose:
+          type: string
+          maxLength: 255
+        selected_claim_id:
+          type:
+          - string
+          - 'null'
+          maxLength: 64
+        outcome:
+          type: string
+          enum:
+          - selected
+          - disputed
+          - more_evidence
+        reason:
+          type: object
+          additionalProperties: true
+      required:
+      - project_id
+      - purpose
+      - outcome
+      - reason
+      additionalProperties: false
+    ClaimRevoke:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        purpose:
+          type: string
+          maxLength: 255
+        reason:
+          type: string
+          pattern: ^[a-z][a-z0-9_]{0,119}$
+      required:
+      - project_id
+      - purpose
+      - reason
+      additionalProperties: false
+    ClaimEvaluation:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        purpose:
+          type: string
+          maxLength: 255
+        policy_id:
+          type: string
+          maxLength: 64
+      required:
+      - project_id
+      - purpose
+      - policy_id
+      additionalProperties: false
+    ClaimDisclosureCreate:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        authorization_id:
+          type: string
+          maxLength: 64
+        audience_id:
+          type: string
+          maxLength: 64
+        selections:
+          type: array
+          items:
+            type: object
+            properties:
+              claim_id:
+                type: string
+                maxLength: 64
+              policy_id:
+                type: string
+                maxLength: 64
+              fields:
+                type: array
+                items:
+                  type: string
+                  maxLength: 120
+                minItems: 1
+                maxItems: 32
+            required:
+            - claim_id
+            - policy_id
+            - fields
+            additionalProperties: false
+          minItems: 1
+          maxItems: 16
+        lifetime_seconds:
+          type: integer
+          minimum: 1
+          maximum: 900
+        max_redemptions:
+          type: integer
+          minimum: 1
+          maximum: 10
+      required:
+      - project_id
+      - authorization_id
+      - audience_id
+      - selections
+      additionalProperties: false
+    GovernedProjectAction:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+      required:
+      - project_id
+      additionalProperties: false
+    ProviderCertificationCreate:
+      type: object
+      properties:
+        configuration_id:
+          type: string
+          maxLength: 64
+        capability:
+          type: string
+          maxLength: 32
+        report:
+          type: object
+          additionalProperties: true
+        assurance_level:
+          type: string
+          enum:
+          - conformance
+          - assured
+        valid_until:
+          type: string
+          format: date-time
+        delete_after:
+          type: string
+          format: date-time
+      required:
+      - configuration_id
+      - capability
+      - report
+      - assurance_level
+      - valid_until
+      - delete_after
+      additionalProperties: false
+    ProviderCertificationRevoke:
+      type: object
+      properties:
+        reason:
+          type: string
+          pattern: ^[a-z][a-z0-9_]{0,119}$
+      required:
+      - reason
+      additionalProperties: false
+    ProviderOperationCancel:
+      type: object
+      properties:
+        project_id:
+          type: string
+          maxLength: 64
+        reason:
+          type: string
+          pattern: ^[a-z][a-z0-9_]{0,119}$
+      required:
+      - project_id
+      - reason
+      additionalProperties: false
+    GovernedSchema:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        version:
+          type: integer
+          minimum: 1
+        kind:
+          type: string
+          enum:
+          - evidence
+          - claim
+        definition:
+          type: object
+          additionalProperties: true
+        disclosure_fields:
+          type: array
+          items:
+            type: string
+            maxLength: 120
+          maxItems: 100
+        id:
+          type: string
+          maxLength: 64
+        retired_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - id
+      - name
+      - version
+      - kind
+      - definition
+      - disclosure_fields
+      - retired_at
+      additionalProperties: false
+    PurposeAuthorization:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        purpose:
+          type: string
+        legal_basis:
+          type: string
+          enum:
+          - consent
+          - contract
+          - legal_obligation
+          - legitimate_interest
+        operations:
+          type: array
+          items:
+            type: string
+        approved_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        delete_after:
+          type: string
+          format: date-time
+        revoked_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        reuse_from_ids:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - project_id
+      - subject_id
+      - purpose
+      - legal_basis
+      - operations
+      - valid_from
+      - valid_until
+      - delete_after
+      - reuse_from_ids
+      additionalProperties: false
+    PurposeAuthorizationDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        purpose:
+          type: string
+        legal_basis:
+          type: string
+          enum:
+          - consent
+          - contract
+          - legal_obligation
+          - legitimate_interest
+        operations:
+          type: array
+          items:
+            type: string
+        approved_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        delete_after:
+          type: string
+          format: date-time
+        revoked_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        reuse_from_ids:
+          type: array
+          items:
+            type: string
+        justification:
+          type: object
+          additionalProperties: true
+        proposed_by_id:
+          type: string
+          maxLength: 64
+        approved_by_id:
+          type:
+          - string
+          - 'null'
+        consent_record_id:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - project_id
+      - subject_id
+      - purpose
+      - legal_basis
+      - operations
+      - valid_from
+      - valid_until
+      - delete_after
+      - reuse_from_ids
+      - justification
+      - proposed_by_id
+      - approved_by_id
+      - consent_record_id
+      additionalProperties: false
+    ResourceLegalHold:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        released_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        scope:
+          type: string
+          enum:
+          - subject_project_lineage
+      required:
+      - id
+      - project_id
+      - subject_id
+      - created_at
+      - expires_at
+      - released_at
+      - scope
+      additionalProperties: false
+    ResourceLegalHoldDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        released_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        scope:
+          type: string
+          enum:
+          - subject_project_lineage
+        reason:
+          type: object
+          additionalProperties: true
+      required:
+      - id
+      - project_id
+      - subject_id
+      - created_at
+      - expires_at
+      - released_at
+      - scope
+      - reason
+      additionalProperties: false
+    GovernedEvidence:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        schema_id:
+          type: string
+          maxLength: 64
+        schema_version:
+          type: integer
+        purpose:
+          type: string
+        status:
+          type: string
+        observed_at:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        delete_after:
+          type: string
+          format: date-time
+        source_evidence_ids:
+          type: array
+          items:
+            type: string
+        evidence_type:
+          type: string
+          enum:
+          - submitted
+          - provider
+          - system
+          - human
+          - authoritative
+        origin:
+          type: string
+          enum:
+          - persisted_provider_check
+          - caller_asserted
+        supersedes_id:
+          type:
+          - string
+          - 'null'
+        payload:
+          type: object
+          additionalProperties: true
+        provenance:
+          type: object
+          additionalProperties: true
+      required:
+      - id
+      - project_id
+      - subject_id
+      - schema_id
+      - schema_version
+      - purpose
+      - status
+      - observed_at
+      - valid_until
+      - delete_after
+      - source_evidence_ids
+      - evidence_type
+      - origin
+      - supersedes_id
+      additionalProperties: false
+    GovernedClaim:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        project_id:
+          type: string
+          maxLength: 64
+        subject_id:
+          type: string
+          maxLength: 64
+        schema_id:
+          type: string
+          maxLength: 64
+        schema_version:
+          type: integer
+        purpose:
+          type: string
+        status:
+          type: string
+        observed_at:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        delete_after:
+          type: string
+          format: date-time
+        source_evidence_ids:
+          type: array
+          items:
+            type: string
+        claim_class:
+          type: string
+          enum:
+          - candidate
+          - normalized
+          - corroborated
+          - derived
+          - reviewed
+        confidence:
+          type:
+          - string
+          - 'null'
+        valid_from:
+          type: string
+          format: date-time
+        rule:
+          type:
+          - object
+          - 'null'
+          properties:
+            name:
+              type: string
+            version:
+              type: integer
+        source_claim_ids:
+          type: array
+          items:
+            type: string
+        value:
+          type: object
+          additionalProperties: true
+      required:
+      - id
+      - project_id
+      - subject_id
+      - schema_id
+      - schema_version
+      - purpose
+      - status
+      - observed_at
+      - valid_until
+      - delete_after
+      - source_evidence_ids
+      - claim_class
+      - confidence
+      - valid_from
+      - rule
+      - source_claim_ids
+      additionalProperties: false
+    GovernedReceipt:
+      type: object
+      properties:
+        status:
+          type: string
+        id:
+          type: string
+          maxLength: 64
+        schema_id:
+          type: string
+          maxLength: 64
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - schema_id
+      - created_at
+      additionalProperties: false
+    GovernedStateReceipt:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        status:
+          type: string
+      required:
+      - id
+      - status
+      additionalProperties: false
+    GovernedLineage:
+      type: object
+      properties:
+        root_id:
+          type: string
+          maxLength: 64
+        nodes:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            properties:
+              id:
+                type: string
+                maxLength: 64
+              schema_id:
+                type: string
+                maxLength: 64
+              status:
+                type: string
+              resource_type:
+                type: string
+            additionalProperties: true
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              resource_id:
+                type: string
+                maxLength: 64
+              source_id:
+                type: string
+                maxLength: 64
+            required:
+            - resource_id
+            - source_id
+            additionalProperties: false
+        truncated:
+          type: boolean
+          const: false
+      required:
+      - root_id
+      - nodes
+      - edges
+      - truncated
+      additionalProperties: false
+    ClaimReusePolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        project_id:
+          type: string
+          maxLength: 64
+        schema_id:
+          type: string
+          maxLength: 64
+        name:
+          type: string
+          maxLength: 120
+        version:
+          type: integer
+          minimum: 1
+        purposes:
+          type: array
+          items:
+            type: string
+            maxLength: 255
+          minItems: 1
+          maxItems: 32
+        accepted_classes:
+          type: array
+          items:
+            type: string
+            enum:
+            - candidate
+            - corroborated
+            - derived
+            - normalized
+            - provider_asserted
+            - reviewed
+          minItems: 1
+          maxItems: 6
+        fields:
+          type: array
+          items:
+            type: string
+            maxLength: 120
+          minItems: 1
+          maxItems: 32
+        max_age_seconds:
+          type: integer
+          minimum: 1
+          maximum: 31622400
+        minimum_confidence:
+          type:
+          - string
+          - 'null'
+        approved_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        retired_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - id
+      - project_id
+      - schema_id
+      - name
+      - version
+      - purposes
+      - accepted_classes
+      - fields
+      - max_age_seconds
+      - minimum_confidence
+      - approved_at
+      - retired_at
+      additionalProperties: false
+    ClaimReviewReceipt:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        outcome:
+          type: string
+          enum:
+          - selected
+          - disputed
+          - more_evidence
+        selected_claim_id:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - outcome
+      - selected_claim_id
+      additionalProperties: false
+    ClaimPolicyEvaluation:
+      type: object
+      properties:
+        satisfied:
+          type: boolean
+        reason_codes:
+          type: array
+          items:
+            type: string
+        claim_id:
+          type: string
+          maxLength: 64
+        policy_id:
+          type: string
+          maxLength: 64
+        usable_until:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        claim_class:
+          type: string
+        fresh_until:
+          type: string
+          format: date-time
+      required:
+      - satisfied
+      - reason_codes
+      - claim_id
+      - policy_id
+      - usable_until
+      - claim_class
+      - fresh_until
+      additionalProperties: false
+    ClaimDisclosureReceipt:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        audience_id:
+          type: string
+          maxLength: 64
+        purpose:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        max_redemptions:
+          type: integer
+        token:
+          type:
+          - string
+          - 'null'
+        token_available:
+          type: boolean
+      required:
+      - id
+      - audience_id
+      - purpose
+      - expires_at
+      - max_redemptions
+      - token
+      - token_available
+      additionalProperties: false
+      description: Token is returned only on first issuance. The same idempotency key returns the original
+        receipt with token=null and token_available=false. Request a new disclosure if the initial token was
+        lost.
+    ClaimDisclosureRedemption:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        audience_id:
+          type: string
+          maxLength: 64
+        purpose:
+          type: string
+        claims:
+          type: array
+          items:
+            type: object
+            properties:
+              claim_id:
+                type: string
+                maxLength: 64
+              schema_id:
+                type: string
+                maxLength: 64
+              value:
+                type: object
+                additionalProperties: true
+              schema_version:
+                type: integer
+              policy_id:
+                type: string
+              claim_class:
+                type: string
+              observed_at:
+                type: string
+                format: date-time
+            required:
+            - claim_id
+            - schema_id
+            - value
+            - schema_version
+            - policy_id
+            - claim_class
+            - observed_at
+            additionalProperties: false
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - audience_id
+      - purpose
+      - claims
+      - expires_at
+      additionalProperties: false
+    ClaimDisclosureRevocation:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        revoked:
+          type: boolean
+      required:
+      - id
+      - revoked
+      additionalProperties: false
+    ProviderCertification:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        configuration_id:
+          type: string
+          maxLength: 64
+        environment:
+          type: string
+          enum:
+          - sandbox
+          - production
+        capability:
+          type: string
+        contract_version:
+          type: string
+          enum:
+          - '1'
+        operation_contract:
+          type: string
+          enum:
+          - sync
+          - ic-provider-operations-v1
+        suite_version:
+          type: string
+        report_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        assurance_level:
+          type: string
+          enum:
+          - conformance
+          - assured
+        approved_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        revoked:
+          type: boolean
+        delete_after:
+          type: string
+          format: date-time
+        proposed_by_id:
+          type: string
+        approved_by_id:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - configuration_id
+      - environment
+      - capability
+      - contract_version
+      - operation_contract
+      - suite_version
+      - report_sha256
+      - assurance_level
+      - approved_at
+      - valid_until
+      - revoked
+      - delete_after
+      - proposed_by_id
+      - approved_by_id
+      additionalProperties: false
+    ProviderCertificationDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        configuration_id:
+          type: string
+          maxLength: 64
+        environment:
+          type: string
+          enum:
+          - sandbox
+          - production
+        capability:
+          type: string
+        contract_version:
+          type: string
+          enum:
+          - '1'
+        operation_contract:
+          type: string
+          enum:
+          - sync
+          - ic-provider-operations-v1
+        suite_version:
+          type: string
+        report_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        assurance_level:
+          type: string
+          enum:
+          - conformance
+          - assured
+        approved_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        revoked:
+          type: boolean
+        report:
+          type: object
+          additionalProperties: true
+        delete_after:
+          type: string
+          format: date-time
+        proposed_by_id:
+          type: string
+        approved_by_id:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - configuration_id
+      - environment
+      - capability
+      - contract_version
+      - operation_contract
+      - suite_version
+      - report_sha256
+      - assurance_level
+      - approved_at
+      - valid_until
+      - revoked
+      - report
+      - delete_after
+      - proposed_by_id
+      - approved_by_id
+      additionalProperties: false
+    ProviderCertificationScope:
+      type: object
+      properties:
+        configuration_id:
+          type: string
+          maxLength: 64
+        environment:
+          type: string
+        capability:
+          type: string
+        contract_version:
+          type: string
+        operation_contract:
+          type: string
+        configuration_digest:
+          type: string
+        manifest_sha256:
+          type: string
+        suite_version:
+          type: string
+        required_cases:
+          type: array
+          items:
+            type: string
+      required:
+      - configuration_id
+      - environment
+      - capability
+      - contract_version
+      - operation_contract
+      - configuration_digest
+      - manifest_sha256
+      - suite_version
+      - required_cases
+      additionalProperties: false
+    ProviderOperation:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 64
+        status:
+          type: string
+          enum:
+          - created
+          - pending
+          - completed
+          - failed
+          - cancelled
+          - expired
+        configuration_id:
+          type: string
+          maxLength: 64
+        check_id:
+          type: string
+          maxLength: 64
+        capability:
+          type: string
+        deadline:
+          type: string
+          format: date-time
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        verification_id:
+          type: string
+        delete_after:
+          type: string
+          format: date-time
+        invalidation_reason:
+          type: string
+        remote_action:
+          type:
+          - string
+          - 'null'
+          enum:
+          - cancel
+          - delete
+          - null
+        remote_action_status:
+          type:
+          - string
+          - 'null'
+          enum:
+          - pending
+          - acknowledged
+          - expired
+          - null
+        remote_requested_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        remote_attempted_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - id
+      - status
+      - configuration_id
+      - check_id
+      - capability
+      - deadline
+      - completed_at
+      - verification_id
+      - delete_after
+      - invalidation_reason
+      - remote_action
+      - remote_action_status
+      - remote_requested_at
+      - remote_attempted_at
+      additionalProperties: false
+    ProviderOperationBinding:
+      type: object
+      properties:
+        operation_contract:
+          type: string
+          enum:
+          - ic-provider-operations-v1
+        operation_id:
+          type: string
+          maxLength: 64
+        configuration_id:
+          type: string
+          maxLength: 64
+        tenant_id:
+          type: string
+          maxLength: 64
+        project_id:
+          type: string
+          maxLength: 64
+        environment:
+          type: string
+          enum:
+          - sandbox
+          - production
+        capability:
+          type: string
+        contract_version:
+          type: string
+          enum:
+          - '1'
+        request_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        lease_generation:
+          type: integer
+          minimum: 1
+        deadline:
+          type: string
+          format: date-time
+        callback_path:
+          type: string
+        lease_token:
+          type: string
+          minLength: 1
+          maxLength: 256
+      required:
+      - operation_contract
+      - operation_id
+      - configuration_id
+      - tenant_id
+      - project_id
+      - environment
+      - capability
+      - contract_version
+      - request_sha256
+      - lease_generation
+      - deadline
+      - callback_path
+      - lease_token
+      additionalProperties: false
+    ProviderOperationCallback:
+      type: object
+      properties:
+        binding:
+          $ref: '#/components/schemas/ProviderOperationBinding'
+        status:
+          type: string
+          enum:
+          - pending
+          - completed
+          - failed
+        result:
+          type: object
+          additionalProperties: true
+        retry_after_seconds:
+          type: integer
+          minimum: 5
+          maximum: 300
+      required:
+      - binding
+      - status
+      additionalProperties: false
+      description: Exact admitted binding is mandatory, including the encrypted operation lease delivered
+        to the provider. Pending accepts retry_after_seconds and forbids result; completion requires a matching
+        Provider Contract v1 result and forbids retry_after_seconds. Sign exact wire bytes with fresh nonce.
+        Re-sign identical completion when retrying; conflicting completion is rejected.
+    GovernedSchemaPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GovernedSchema'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+      required:
+      - results
+      - pagination
+      additionalProperties: false
+    PurposeAuthorizationPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurposeAuthorization'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+      required:
+      - results
+      - pagination
+      additionalProperties: false
+    ResourceLegalHoldPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceLegalHold'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+      required:
+      - results
+      - pagination
+      additionalProperties: false
+    GovernedEvidencePage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GovernedEvidence'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+      required:
+      - results
+      - pagination
+      additionalProperties: false
+    GovernedClaimPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GovernedClaim'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+      required:
+      - results
+      - pagination
+      additionalProperties: false
+    ClaimReusePolicyPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimReusePolicy'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+      required:
+      - results
+      - pagination
+      additionalProperties: false
+    ProviderCertificationPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderCertification'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+      required:
+      - results
+      - pagination
+      additionalProperties: false
+    ProviderOperationPage:
+      type: object
+      additionalProperties: false
+      required:
+      - results
+      - pagination
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderOperation'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
   responses:
     ValidationError:
       description: Validation error.
@@ -4271,3 +5963,2719 @@ paths:
           $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+  /evidence/schemas:
+    get:
+      summary: List active resource schemas.
+      description: 'Requires evidence:read or claims:read for kind=claim. Current authority, project/environment
+        and purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: kind
+        in: query
+        schema:
+          type: string
+          enum:
+          - evidence
+          - claim
+          default: evidence
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: List active resource schemas.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedSchemaPage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      summary: Create an immutable schema version.
+      description: 'Requires manage_evidence. Schema configuration is human controlled. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          description: Create an immutable schema version.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedSchema'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedSchemaCreate'
+  /evidence/schemas/{schema_id}:
+    get:
+      summary: Retrieve a schema version.
+      description: 'Requires the resource kind read permission. Current authority, project/environment and
+        purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: schema_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: kind
+        in: query
+        schema:
+          type: string
+          enum:
+          - evidence
+          - claim
+          default: evidence
+      responses:
+        '200':
+          description: Retrieve a schema version.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedSchema'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /evidence/schemas/{schema_id}/retire:
+    post:
+      summary: Retire a schema for new writes.
+      description: 'Requires manage_evidence; existing historical records retain their schema. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: schema_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Retire a schema for new writes.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedSchema'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedEmptyAction'
+  /evidence/authorizations:
+    get:
+      summary: List purpose authorizations.
+      description: 'Requires manage_subject_privacy. Current authority, project/environment and purpose/source
+        availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: List purpose authorizations.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/PurposeAuthorizationPage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      summary: Propose a purpose authorization.
+      description: 'Requires manage_subject_privacy. Consent grants require current exact-purpose proof;
+        other legal bases and secondary reuse require independent approval. Holds preserve content without
+        granting continued processing. Current authority, project/environment and purpose/source availability
+        are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          description: Propose a purpose authorization.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/PurposeAuthorization'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurposeAuthorizationCreate'
+  /evidence/authorizations/{authorization_id}:
+    get:
+      summary: Review the protected governance record.
+      description: 'Requires manage_subject_privacy; protected reason/justification access is audited. Current
+        authority, project/environment and purpose/source availability are checked on access. Protected
+        responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: authorization_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      responses:
+        '200':
+          description: Review the protected governance record.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/PurposeAuthorizationDetail'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /evidence/holds:
+    get:
+      summary: List subject/project legal holds.
+      description: 'Requires manage_subject_privacy. Current authority, project/environment and purpose/source
+        availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: List subject/project legal holds.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ResourceLegalHoldPage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      summary: Preserve a subject/project lineage under legal hold.
+      description: 'Requires manage_subject_privacy. Consent grants require current exact-purpose proof;
+        other legal bases and secondary reuse require independent approval. Holds preserve content without
+        granting continued processing. Current authority, project/environment and purpose/source availability
+        are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          description: Preserve a subject/project lineage under legal hold.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ResourceLegalHold'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceLegalHoldCreate'
+  /evidence/holds/{hold_id}:
+    get:
+      summary: Review the protected governance record.
+      description: 'Requires manage_subject_privacy; protected reason/justification access is audited. Current
+        authority, project/environment and purpose/source availability are checked on access. Protected
+        responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: hold_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      responses:
+        '200':
+          description: Review the protected governance record.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ResourceLegalHoldDetail'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /evidence/authorizations/{authorization_id}/approve:
+    post:
+      summary: Approve a purpose authorization.
+      description: 'Requires a current privacy officer; approval requires a different officer and revalidates
+        current source grants and consent proof. Current authority, project/environment and purpose/source
+        availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: authorization_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Approve a purpose authorization.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/PurposeAuthorization'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedEmptyAction'
+  /evidence/authorizations/{authorization_id}/revoke:
+    post:
+      summary: Revoke a purpose authorization.
+      description: 'Requires a current privacy officer; approval requires a different officer and revalidates
+        current source grants and consent proof. Current authority, project/environment and purpose/source
+        availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: authorization_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Revoke a purpose authorization.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/PurposeAuthorization'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedReason'
+  /evidence/holds/{hold_id}/release:
+    post:
+      summary: Release a preservation hold.
+      description: 'Requires manage_subject_privacy. Release does not restore restricted processing. Current
+        authority, project/environment and purpose/source availability are checked on access. Protected
+        responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: hold_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Release a preservation hold.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ResourceLegalHold'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedEmptyAction'
+  /evidence/:
+    get:
+      summary: List available evidence metadata or explicitly requested payloads.
+      description: 'Requires evidence:read and current purpose authorization for every source. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: purpose
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 255
+      - name: include_payload
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: List available evidence metadata or explicitly requested payloads.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedEvidencePage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      summary: Create immutable governed evidence and lineage.
+      description: 'Requires evidence:write. Payloads are encrypted and immutable; source-bound validity
+        and retention cannot be extended. Provider origin requires a completed matching persisted provider
+        check. Current authority, project/environment and purpose/source availability are checked on access.
+        Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          description: Create immutable governed evidence and lineage.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedReceipt'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceCreate'
+  /evidence/{evidence_id}:
+    get:
+      summary: Retrieve governed evidence.
+      description: 'Requires evidence:read. include_payload=true explicitly requests audited payload/provenance
+        access. Current authority, project/environment and purpose/source availability are checked on access.
+        Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: evidence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: purpose
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 255
+      - name: include_payload
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Retrieve governed evidence.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedEvidence'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /evidence/{evidence_id}/lineage:
+    get:
+      summary: Retrieve bounded evidence lineage metadata.
+      description: 'Requires evidence:read for the complete live lineage; values are excluded. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: evidence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: purpose
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 255
+      - name: include_payload
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Retrieve bounded evidence lineage metadata.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedLineage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /evidence/{evidence_id}/revoke:
+    post:
+      summary: Revoke evidence and descendant use.
+      description: 'Requires evidence:write. Revocation propagates to evidence and claims. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: evidence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: purpose
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 255
+      - name: include_payload
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Revoke evidence and descendant use.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedStateReceipt'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedReason'
+  /claims/:
+    get:
+      summary: List live claim metadata or explicitly requested values.
+      description: 'Requires claims:read; conflict state is evaluated against current sources and the complete
+        current member set. Current authority, project/environment and purpose/source availability are checked
+        on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: purpose
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 255
+      - name: include_value
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: List live claim metadata or explicitly requested values.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedClaimPage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      summary: Create a claim from purpose-authorized evidence or claims.
+      description: 'Requires claims:write plus read permissions on source resource kinds. Raw assertions
+        remain candidate claims; deterministic versioned rules and independent review govern stronger classes.
+        Current authority, project/environment and purpose/source availability are checked on access. Protected
+        responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          description: Create a claim from purpose-authorized evidence or claims.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedReceipt'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimCreate'
+  /claims/{claim_id}:
+    get:
+      summary: Retrieve a claim with current conflict state.
+      description: 'Requires claims:read. include_value=true requests audited value access. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: purpose
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 255
+      - name: include_value
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Retrieve a claim with current conflict state.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedClaim'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /claims/{claim_id}/lineage:
+    get:
+      summary: Retrieve bounded claim and evidence lineage metadata.
+      description: 'Requires claims:read; values are excluded. Current authority, project/environment and
+        purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: purpose
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 255
+      - name: include_value
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Retrieve bounded claim and evidence lineage metadata.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedLineage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /claims/{claim_id}/review:
+    post:
+      summary: Independently resolve a current claim conflict or review a candidate.
+      description: 'Requires manage_claims and review_verification, with a reviewer different from every
+        current member maker. New conflict members invalidate earlier resolutions; confidence never silently
+        chooses a winner. Current authority, project/environment and purpose/source availability are checked
+        on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Independently resolve a current claim conflict or review a candidate.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimReviewReceipt'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimConflictReview'
+  /claims/{claim_id}/revoke:
+    post:
+      summary: Revoke a claim and dependent claims.
+      description: 'Requires claims:write. Current authority, project/environment and purpose/source availability
+        are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Revoke a claim and dependent claims.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedStateReceipt'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimRevoke'
+  /claims/{claim_id}/evaluate:
+    post:
+      summary: Evaluate a claim against an approved reuse policy.
+      description: 'Requires claims:read. Evaluation does not disclose claim values or override current
+        purpose authorization. Current authority, project/environment and purpose/source availability are
+        checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      responses:
+        '200':
+          description: Evaluate a claim against an approved reuse policy.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimPolicyEvaluation'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimEvaluation'
+  /claims/policies:
+    get:
+      summary: List active claim reuse policies.
+      description: 'Requires claims:read for the exact project. Current authority, project/environment and
+        purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: List active claim reuse policies.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimReusePolicyPage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      summary: Propose a versioned claim reuse policy.
+      description: 'Requires claims:write; independent privacy approval is required before use. Current
+        authority, project/environment and purpose/source availability are checked on access. Protected
+        responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          description: Propose a versioned claim reuse policy.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimReusePolicy'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimReusePolicyCreate'
+  /claims/policies/{policy_id}/approve:
+    post:
+      summary: Approve a claim reuse policy.
+      description: 'Requires manage_subject_privacy; approval also requires claims:read and a different
+        privacy officer. Retirement invalidates redemption immediately. Current authority, project/environment
+        and purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: policy_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Approve a claim reuse policy.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimReusePolicy'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedProjectAction'
+  /claims/policies/{policy_id}/retire:
+    post:
+      summary: Retire a claim reuse policy.
+      description: 'Requires manage_subject_privacy; approval also requires claims:read and a different
+        privacy officer. Retirement invalidates redemption immediately. Current authority, project/environment
+        and purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: policy_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Retire a claim reuse policy.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimReusePolicy'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedProjectAction'
+  /claims/disclosures:
+    post:
+      summary: Issue a short-lived audience-bound selective disclosure.
+      description: 'Requires claims:disclose and an exact project/purpose disclosure grant. A raw token
+        is returned only on first issuance. Idempotent replay omits it. Audience must be a current API client
+        with claims:read in the same project. Current authority, project/environment and purpose/source
+        availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          description: Issue a short-lived audience-bound selective disclosure.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimDisclosureReceipt'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimDisclosureCreate'
+  /claims/disclosures/{disclosure_id}/redeem:
+    post:
+      summary: Redeem selected fields using the authenticated recipient API client.
+      description: 'Requires the exact audience API client with claims:read, the disclosure token and an
+        idempotency key. Every retry revalidates source grants, consent, policy, conflicts and expiry. Values
+        are never stored in replay receipts; JWT users cannot redeem. Current authority, project/environment
+        and purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      parameters:
+      - name: disclosure_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      - name: X-Disclosure-Token
+        in: header
+        required: true
+        schema:
+          type: string
+        description: The one-time issued capability; never put it in URLs or logs.
+      responses:
+        '200':
+          description: Redeem selected fields using the authenticated recipient API client.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimDisclosureRedemption'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedProjectAction'
+  /claims/disclosures/{disclosure_id}/revoke:
+    post:
+      summary: Revoke an issued disclosure.
+      description: 'Requires claims:disclose for the exact project. Current authority, project/environment
+        and purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: disclosure_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Revoke an issued disclosure.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ClaimDisclosureRevocation'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedProjectAction'
+  /providers/certifications/scope:
+    get:
+      summary: Retrieve the exact current report scope and required conformance cases.
+      description: 'Requires manage_provider_assurance; scope requires capability. Uploaded reports record
+        assertions, not automatic third-party certification. Current authority, project/environment and
+        purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: configuration_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: capability
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 32
+      responses:
+        '200':
+          description: Retrieve the exact current report scope and required conformance cases.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ProviderCertificationScope'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /providers/certifications:
+    get:
+      summary: List scoped provider certification receipts.
+      description: 'Requires manage_provider_assurance; scope requires capability. Uploaded reports record
+        assertions, not automatic third-party certification. Current authority, project/environment and
+        purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: configuration_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: capability
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 32
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: List scoped provider certification receipts.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ProviderCertificationPage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      summary: Propose a scoped provider conformance or assurance receipt.
+      description: 'Requires manage_provider_assurance. Every required case must pass and retained test-artifact
+        SHA-256 must be supplied. Assured level requires independent assurance references. Expiry is at
+        most 366 days and retention must cover it. Current authority, project/environment and purpose/source
+        availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          description: Propose a scoped provider conformance or assurance receipt.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ProviderCertification'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderCertificationCreate'
+  /providers/certifications/{certification_id}:
+    get:
+      summary: Review an encrypted provider assurance report.
+      description: 'Requires manage_provider_assurance; access is audited. Current authority, project/environment
+        and purpose/source availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: certification_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      responses:
+        '200':
+          description: Review an encrypted provider assurance report.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ProviderCertificationDetail'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /providers/certifications/{certification_id}/approve:
+    post:
+      summary: Approve a scoped provider certification receipt.
+      description: 'Requires manage_provider_assurance; approval also requires approve_provider_assurance
+        and a different officer. Current config, manifest and expiry are revalidated. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: certification_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Approve a scoped provider certification receipt.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ProviderCertification'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedEmptyAction'
+  /providers/certifications/{certification_id}/revoke:
+    post:
+      summary: Revoke a scoped provider certification receipt.
+      description: 'Requires manage_provider_assurance; approval also requires approve_provider_assurance
+        and a different officer. Current config, manifest and expiry are revalidated. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - platformUserBearer: []
+      parameters:
+      - name: certification_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Revoke a scoped provider certification receipt.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ProviderCertification'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderCertificationRevoke'
+  /providers/operations/{operation_id}:
+    get:
+      summary: Retrieve durable provider operation metadata.
+      description: 'Requires providers:operations or manage_providers for the exact project. Results, input
+        values and lease tokens are excluded. Current authority, project/environment and purpose/source
+        availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      responses:
+        '200':
+          description: Retrieve durable provider operation metadata.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ProviderOperation'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /providers/operations/{operation_id}/cancel:
+    post:
+      summary: Cancel a durable operation and queue remote cancellation.
+      description: 'Requires providers:operations or manage_providers. Local cancellation denies completion
+        immediately; remote status is acknowledged only after a matching signed receipt. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Cancel a durable operation and queue remote cancellation.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedStateReceipt'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderOperationCancel'
+  /providers/operations/{operation_id}/callback:
+    post:
+      summary: Submit a signed asynchronous provider completion.
+      description: 'Provider HMAC authentication over the exact wire body, method and path is required;
+        no dashboard or API-client session substitutes for it. A fresh nonce is required for retries. Current
+        consent, context, lease, deadline, configuration and assurance are rechecked. Current authority,
+        project/environment and purpose/source availability are checked on access. Protected responses use
+        Cache-Control: no-store.'
+      security:
+      - providerSignature: []
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: X-IC-Key-Id
+        in: header
+        required: true
+        schema:
+          type: string
+      - name: X-IC-Timestamp
+        in: header
+        required: true
+        schema:
+          type: string
+      - name: X-IC-Nonce
+        in: header
+        required: true
+        schema:
+          type: string
+      - name: X-IC-Signature-Version
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Signed exact-wire receipt using the request nonce; no result values. Signature headers
+            follow ic-provider-v1.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/GovernedStateReceipt'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderOperationCallback'
+  /providers/operations:
+    get:
+      summary: List durable provider operation and remote cleanup metadata.
+      description: 'Requires providers:operations or manage_providers for the exact project. Results, input
+        values and lease tokens are excluded. Current authority, project/environment and purpose/source
+        availability are checked on access. Protected responses use Cache-Control: no-store.'
+      security:
+      - apiClient: []
+        apiClientId: []
+      - platformUserBearer: []
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 64
+      - name: verification_id
+        in: query
+        schema:
+          type: string
+      - name: status
+        in: query
+        schema:
+          type: string
+      - name: capability
+        in: query
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Retrieve durable provider operation metadata.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    $ref: '#/components/schemas/ProviderOperationPage'
+                  request_id:
+                    type: string
+                required:
+                - success
+                - data
+                - request_id
+                additionalProperties: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Protected content, current consent proof or authentication replay store is temporarily
+            unavailable. Retry with current credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'

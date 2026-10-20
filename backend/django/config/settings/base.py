@@ -112,6 +112,7 @@ PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
 BILLING_RETURN_URL = os.getenv("BILLING_RETURN_URL", "")
 if BILLING_PAYMENTS_ENABLED:
     from urllib.parse import urlsplit
+
     if (
         not PAYSTACK_SECRET_KEY
         or not BILLING_RETURN_URL
@@ -121,7 +122,9 @@ if BILLING_PAYMENTS_ENABLED:
         or urlsplit(BILLING_RETURN_URL).password
         or urlsplit(BILLING_RETURN_URL).fragment
     ):
-        raise ValueError("Payment activation requires supported providers, merchant secrets and an HTTPS return URL")
+        raise ValueError(
+            "Payment activation requires supported providers, merchant secrets and an HTTPS return URL"
+        )
 
 
 INSTALLED_APPS = [
@@ -161,6 +164,8 @@ INSTALLED_APPS = [
     "apps.verification_policies.apps.VerificationPoliciesConfig",
     "apps.verification_sessions.apps.VerificationSessionsConfig",
     "apps.verification_subjects.apps.VerificationSubjectsConfig",
+    "apps.evidence.apps.EvidenceConfig",
+    "apps.claims.apps.ClaimsConfig",
     "apps.verifications.apps.VerificationsConfig",
     "apps.webhooks.apps.WebhooksConfig",
     "apps.workflows.apps.WorkflowsConfig",
@@ -287,7 +292,13 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 PROCESSING_JOB_LEASE_SECONDS = int(os.getenv("PROCESSING_JOB_LEASE_SECONDS", "300"))
 PROCESSING_JOB_MAX_ATTEMPTS = int(os.getenv("PROCESSING_JOB_MAX_ATTEMPTS", "3"))
 CELERY_TASK_ROUTES = {
-    "apps.billing.webhook_tasks.reconcile_billing_webhooks_task": {"queue": "retention"},
+    "apps.evidence.tasks.retire_governed_resources_task": {"queue": "retention"},
+    "apps.providers.maintenance.reconcile_provider_controls_task": {
+        "queue": "retention"
+    },
+    "apps.billing.webhook_tasks.reconcile_billing_webhooks_task": {
+        "queue": "retention"
+    },
     "apps.billing.tasks.reconcile_billing_usage_task": {"queue": "retention"},
     "apps.billing.tasks.generate_closed_month_invoices_task": {"queue": "retention"},
     "apps.api_clients.tasks.cleanup_expired_idempotency_records_task": {
@@ -318,6 +329,17 @@ CELERY_TASK_ROUTES = {
     "apps.notifications.tasks.deliver_notification_task": {"queue": "notifications"},
 }
 CELERY_BEAT_SCHEDULE = {
+    "reconcile-provider-controls": {
+        "task": "apps.providers.maintenance.reconcile_provider_controls_task",
+        "schedule": 300.0,
+        "kwargs": {"limit": 100},
+    },
+    "retire-governed-resources": {
+        "task": "apps.evidence.tasks.retire_governed_resources_task",
+        "schedule": 300.0,
+        "kwargs": {"limit": 100, "tenant_limit": 10},
+        "options": {"queue": "retention"},
+    },
     "reconcile-billing-webhooks": {
         "task": "apps.billing.webhook_tasks.reconcile_billing_webhooks_task",
         "schedule": 60.0,
@@ -543,4 +565,6 @@ TENANT_STORAGE_BUCKET_REMAP = json.loads(os.getenv("TENANT_STORAGE_BUCKET_REMAP"
 # Shared only between the hosted verification BFF and Django; never a browser variable.
 VERIFICATION_METADATA_SECRET = os.getenv("VERIFICATION_METADATA_SECRET", "")
 
-PLATFORM_INVITATION_BASE_URL = os.getenv("PLATFORM_INVITATION_BASE_URL", "http://localhost:3004/accept-invitation")
+PLATFORM_INVITATION_BASE_URL = os.getenv(
+    "PLATFORM_INVITATION_BASE_URL", "http://localhost:3004/accept-invitation"
+)

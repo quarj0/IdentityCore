@@ -44,6 +44,7 @@ def environment_for_instance(instance, depth=0):
     if instance._meta.label_lower in {
         "projects.project",
         "providers.providerenvironmentconfiguration",
+        "providers.providercertification",
     }:
         return instance.environment
     if getattr(instance, "project_id", None) is not None:

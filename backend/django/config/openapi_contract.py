@@ -24,6 +24,9 @@ DJANGO_PARAMETER = re.compile(r"<(?:(?:[^:>]+):)?([^>]+)>")
 OPENAPI_PARAMETER = re.compile(r"{([^}]+)}")
 CONTRACT_MANAGED_PREFIXES = (
     "api/v1/api-clients/",
+    "api/v1/evidence/",
+    "api/v1/claims/",
+    "api/v1/providers/",
     "api/v1/audit-events/",
     "api/v1/auth/",
     "api/v1/organization/",

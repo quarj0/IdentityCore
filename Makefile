@@ -84,9 +84,11 @@ test-all:
 
 generate-sdk-models:
 	uv run --frozen --project backend --group django python scripts/generate_sdk_models.py
+	uv run --frozen --project backend --group django python scripts/generate_governed_sdk.py
 
 check-sdk-models:
 	uv run --frozen --project backend --group django python scripts/generate_sdk_models.py --check
+	uv run --frozen --project backend --group django python scripts/generate_governed_sdk.py --check
 
 lint:
 	$(COMPOSE) run --rm django ruff check .

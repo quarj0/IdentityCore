@@ -1,6 +1,10 @@
 # IdentityCore Provider Conformance
 
-This directory publishes the executable Provider Contract v1 fixture suite. It lets a
+This directory publishes two executable suites. The original five-case `run.py`
+suite uses an isolated historical fixture envelope. The packaged SDKs implement
+the current normal `/invoke` contract, exercised by `assurance.py` below.
+
+The original Provider Contract v1 fixture suite It lets a
 provider author verify the minimum synchronous HTTP boundary locally before requesting
 integration or production review.
 
@@ -53,3 +57,45 @@ The suite proves protocol compatibility only. Passing it is not provider certifi
 a security assessment, a model evaluation, or approval for production data.
 
 The disposable conformance secret is a direct message-signing key for the isolated conformance endpoint. Normal configured `hmac_v1` integrations derive that key from the encrypted environment API credential as specified in [Provider message signing](../../docs/architecture/provider-signing.md). Verify exact wire bytes in both modes.
+
+
+## Packaged SDK HTTP and worker assurance suite
+
+`assurance.py` exercises the actual SDK runtime through real loopback HTTP and an
+isolated stdin driver. It checks all 17 `provider-assurance/v1` protocol/worker
+cases, including signed callbacks and cancellation/deletion fencing. The driver
+controls only a synthetic clock, worker and input fixture. Never expose these
+controls on a provider deployment. No production credential is accepted or needed.
+
+```sh
+python provider-sdk/conformance/assurance.py --sdk python \
+  --driver "python provider-sdk/conformance/harness/python.py" \
+  --artifact /tmp/provider-python-assurance.json
+python provider-sdk/conformance/assurance.py --sdk javascript \
+  --driver "node provider-sdk/conformance/harness/javascript.mjs" \
+  --artifact /tmp/provider-javascript-assurance.json
+mvn -f provider-sdk/java/pom.xml test package dependency:build-classpath \
+  -Dmdep.outputFile=target/provider-classpath.txt
+python provider-sdk/conformance/assurance.py --sdk java \
+  --driver "java -cp provider-sdk/java/target/test-classes:provider-sdk/java/target/classes:$(cat provider-sdk/java/target/provider-classpath.txt) io.identitycore.provider.ConformanceHarness" \
+  --artifact /tmp/provider-java-assurance.json
+dotnet build provider-sdk/dotnet/tests/IdentityCore.Provider.Tests/IdentityCore.Provider.Tests.csproj
+python provider-sdk/conformance/assurance.py --sdk dotnet \
+  --driver "dotnet provider-sdk/dotnet/tests/IdentityCore.Provider.Tests/bin/Debug/net8.0/IdentityCore.Provider.Tests.dll harness" \
+  --artifact /tmp/provider-dotnet-assurance.json
+```
+
+Install the Python Provider SDK dependencies before running the common runner.
+Each artifact identifies the SDK, SDK source digest, runner digest, suite, transport
+and case outcomes, and explicitly
+sets `deployment_assurance: false`. Stdout prints its SHA-256; no payloads, tokens,
+secrets or exception data are included. CI retains these synthetic artifacts.
+Django additionally tests its actual signed transport against the Python package
+over verified TLS. Package-native tests verify durable state and replay protection
+across separate processes, plus stale worker fencing and encryption.
+
+These artifacts cannot stand in for an actual configuration-scoped deployment
+report or independent assurance. Before proposing a certification, exercise the
+actual configured deployment, retain its evidence and independent assessment
+references, and obtain the separate maker/checker approval described in the
+[provider operation runbook](../../docs/operations/provider-operations.md).
