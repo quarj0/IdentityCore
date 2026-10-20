@@ -1,6 +1,6 @@
 # IdentityCore Platform Roadmap
 
-Last reviewed: 2026-10-19
+Last reviewed: 2026-10-20
 
 IdentityCore is vendor-neutral identity infrastructure. Identity verification is its
 first workload. This roadmap separates repository foundations, immediate engineering
@@ -29,19 +29,16 @@ that every historical finding is resolved or that any deployment/provider is cer
 
 ## Immediate engineering closure
 
-1. Complete the signed BYOP transport review and protected merge, including authenticated
-   error responses and cross-worker replay protection.
-2. Complete trusted hosted applicant metadata propagation and its review/rollout contract.
-3. Individually assess the remaining historical review inventory in
-   [audit #281](https://github.com/quarj0/IdentityCore/issues/281). Reproduce confirmed
-   defects, add meaningful regressions and preserve protected merge evidence.
-4. Keep architecture, public claims, SDK/API documentation and operating instructions
-   synchronized. The owner selected proprietary, all-rights-reserved licensing;
-   [LICENSE](../../LICENSE) records that decision.
+The four immediate items merged in [PR #433](https://github.com/quarj0/IdentityCore/pull/433):
+signed BYOP transport (including authenticated errors and shared replay protection),
+trusted hosted applicant metadata, historical review remediation, and synchronized
+documentation with proprietary/all-rights-reserved licensing.
 
-Use the [disposition register](../reviews/historical-review-dispositions.json) for audit
-counts and evidence. Pending review is not a confirmed defect, and a resolved thread
-is not implementation evidence. Do not close the audit based on a clean test suite alone.
+The [audit reconciliation](../reviews/README.md) inventories all closed/merged PR
+feedback against merged main. No actionable or pending finding remains in that
+snapshot. Issue #281 awaits publication of the reviewed reconciliation receipt.
+Future feedback still requires individual evidence and protected merge; neither
+thread resolution nor a clean test suite alone establishes closure.
 
 ## Next platform capabilities
 

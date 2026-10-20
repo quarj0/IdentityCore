@@ -1,6 +1,6 @@
 # Public website maturity and ownership
 
-Last reviewed: 2026-10-18
+Last reviewed: 2026-10-20
 
 `frontend/identitycore` owns the public marketing website. Organization registration,
 authentication, password/email recovery and onboarding are owned by `frontend/dashboard`.
@@ -19,7 +19,8 @@ Applicant consent/capture/liveness are owned by `frontend/verification-portal`.
 Legacy helper modules remaining in this directory do not establish a second active
 account/onboarding application. Evaluate historical findings at their current execution
 path, including dashboard components to which a feature moved. The
-[historical audit](../../docs/reviews/README.md) remains open.
+[historical audit](../../docs/reviews/README.md) is reconciled against merged main
+with no pending/actionable findings; #281 awaits publication of that receipt.
 
 ## Validation and remaining work
 
