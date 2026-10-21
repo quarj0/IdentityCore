@@ -63,7 +63,13 @@ def main() -> None:
     for directory in paddle_directories:
         directory.mkdir(parents=True, exist_ok=True)
 
-    get_insightface_analyzer()
+    face_engine = getattr(settings, "face_embedding_engine", "insightface")
+    if face_engine == "opencv_sface":
+        from app.face_engine import get_opencv_face_analyzer
+
+        get_opencv_face_analyzer()
+    else:
+        get_insightface_analyzer()
     get_paddle_ocr_engine()
 
     _persist_downloaded_paddle_models(settings)
@@ -95,7 +101,17 @@ def main() -> None:
     manifest_path.write_text(
         json.dumps(
             {
-                "insightface_model": settings.insightface_model_name,
+                **(
+                    {
+                        "face_engine": "opencv_sface",
+                        "face_models": {
+                            "detection": settings.opencv_face_required_assets[0],
+                            "recognition": settings.opencv_face_required_assets[1],
+                        },
+                    }
+                    if face_engine == "opencv_sface"
+                    else {"insightface_model": settings.insightface_model_name}
+                ),
                 "paddle_models": {
                     "detection": _model_name(settings.paddle_text_detection_model_dir),
                     "recognition": _model_name(

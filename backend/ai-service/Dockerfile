@@ -8,6 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Video decoding uses the OpenCV wheel's bundled codec backend. The external
+# ffmpeg CLI adds unused native libraries and is deliberately not installed.
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
@@ -18,7 +20,6 @@ RUN apt-get update \
         libsm6 \
         libxext6 \
         libxrender1 \
-        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/pyproject.toml backend/uv.lock /app/backend/
@@ -38,10 +39,13 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     --output-file /tmp/requirements-ai.txt \
     && pip install --timeout "$PIP_DEFAULT_TIMEOUT" --retries "$PIP_RETRIES" --no-deps -r /tmp/requirements-ai.txt \
     && pip uninstall -y opencv-python opencv-python-headless opencv-contrib-python opencv-contrib-python-headless \
-    && pip install --timeout "$PIP_DEFAULT_TIMEOUT" --retries "$PIP_RETRIES" --no-deps opencv-contrib-python-headless==5.0.0.93 \
-    && python /app/backend/shared/opencv_runtime.py
+    && pip install --timeout "$PIP_DEFAULT_TIMEOUT" --retries "$PIP_RETRIES" --no-deps opencv-contrib-python==5.0.0.93 \
+    && python /app/backend/shared/opencv_runtime.py \
+    && PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True python -c \
+        "from paddlex.utils.deps import require_extra; require_extra('ocr-core'); from paddlex.inference.common.reader.image_reader import ReadImage; ReadImage(format='RGB')"
 
 COPY backend/ai-service /app/backend/ai-service
+COPY scripts/fetch_face_models.py /app/scripts/fetch_face_models.py
 
 WORKDIR /app/backend/ai-service
 

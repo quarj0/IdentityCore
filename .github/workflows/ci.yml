@@ -167,8 +167,9 @@ jobs:
       - name: Normalize OpenCV runtime
         run: |
           uv pip uninstall --python backend/.venv/bin/python opencv-python opencv-python-headless opencv-contrib-python opencv-contrib-python-headless
-          uv pip install --python backend/.venv/bin/python --no-deps opencv-contrib-python-headless==5.0.0.93
+          uv pip install --python backend/.venv/bin/python --no-deps opencv-contrib-python==5.0.0.93
           backend/.venv/bin/python backend/shared/opencv_runtime.py
+          PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True backend/.venv/bin/python -c "from paddlex.utils.deps import require_extra; require_extra('ocr-core'); from paddlex.inference.common.reader.image_reader import ReadImage; ReadImage(format='RGB')"
       - run: uv run --no-sync --project .. pytest tests
         working-directory: backend/ai-service
 

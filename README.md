@@ -191,7 +191,8 @@ infrastructure/
 - FastAPI
 - OpenCV
 - ONNX Runtime
-- InsightFace
+- OpenCV Zoo YuNet/SFace (new example configuration)
+- InsightFace (legacy; trained weights require separate commercial permission)
 - PaddleOCR
 - MediaPipe where applicable
 

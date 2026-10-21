@@ -92,3 +92,28 @@ extracted identity attributes, embeddings, or the shared token.
 Active liveness requires the `ordered_motion_v1` challenge ID and eight ordered
 actions; legacy active requests are rejected. Results bind the ID/protocol and
 retain the full observed order. See [active-liveness operations](../../docs/operations/active-liveness.md).
+
+## Commercial face-model candidate
+
+Set `FACE_EMBEDDING_ENGINE=opencv_sface` and run the pinned
+`scripts/fetch_face_models.py --model-root ...` in the isolated bootstrap container
+before `python -m app.bootstrap_models`. YuNet handles detection/alignment landmarks;
+SFace supplies embeddings. Their MIT and Apache-2.0 notices are included in the model
+inventory. Runtime downloads remain disabled and the independently approved manifest
+binds the engine, both weight files and the notices. No fallback to InsightFace is
+performed when this engine fails. MediaPipe/PAD liveness remains unchanged.
+
+The default for an existing environment that omits the new setting remains
+`insightface`; `buffalo_l` requires separate permission for commercial use. New
+example environments select the OpenCV candidate. Review the
+[model licenses](../../docs/operations/model-licenses.md) and recalibrate thresholds
+on held-out data before production decisions; synthetic smoke tests do not establish
+an accuracy target.
+
+### Video decoder packaging
+
+Capture video is decoded by OpenCV's bundled codec backend. The external `ffmpeg`
+command-line package is not part of the AI runtime. Generated H.264/MP4 and VP8/WebM
+fixtures exercise frame sampling without people or applicant data. Removing the
+unused system package reduces native dependencies; it does not establish that the
+bundled decoder has no advisories or replace adversarial-media evaluation.

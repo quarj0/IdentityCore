@@ -53,7 +53,7 @@ ai-service = [
     "mediapipe>=0.10.35",
     "numpy>=2.5.1",
     "onnxruntime>=1.27.0",
-    "opencv-contrib-python-headless==5.0.0.93",
+    "opencv-contrib-python==5.0.0.93",
     "orjson>=3.11.9",
     "paddleocr>=3.4.1",
     "paddlepaddle>=3.3.1",
@@ -79,5 +79,10 @@ testpaths = ["ai-service/tests"]
 python_files = ["test_*.py"]
 
 [tool.uv]
-# GUI/basic variants share cv2 with contrib-headless. Resolve one implementation.
-exclude-dependencies = ["opencv-python", "opencv-python-headless", "opencv-contrib-python"]
+# PaddleX imports cv2 only when the contrib distribution is present.
+# Exclude the other cv2 wheels to retain one patched implementation.
+exclude-dependencies = ["opencv-python", "opencv-python-headless", "opencv-contrib-python-headless"]
+
+# PaddleX 3.4 pins the older GUI wheel. Use the patched contrib release and
+# verify its real reader/inference API in the built image instead of downgrading.
+override-dependencies = ["opencv-contrib-python==5.0.0.93"]

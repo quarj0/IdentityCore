@@ -9,7 +9,7 @@ def verify_opencv_runtime():
         for distribution in distributions()
         if distribution.metadata["Name"].lower().replace("_", "-").startswith("opencv-")
     }
-    if installed != {"opencv-contrib-python-headless"}:
+    if installed != {"opencv-contrib-python"}:
         raise RuntimeError(f"Conflicting OpenCV distributions: {sorted(installed)}")
     import cv2
 

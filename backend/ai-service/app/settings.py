@@ -1,6 +1,7 @@
 import hashlib
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -165,6 +166,27 @@ class Settings(BaseSettings):
         alias="DOCUMENT_CLASSIFICATION_ENABLED_COUNTRY_CODES",
     )
 
+    face_embedding_engine: Literal["insightface", "opencv_sface"] = Field(
+        default="insightface", alias="FACE_EMBEDDING_ENGINE"
+    )
+
+    @property
+    def opencv_face_required_assets(self) -> tuple[str, ...]:
+        return (
+            "face/opencv/yunet-2026may.onnx",
+            "face/opencv/sface-2021dec.onnx",
+            "face/opencv/YUNET-LICENSE.txt",
+            "face/opencv/SFACE-LICENSE.txt",
+        )
+
+    @property
+    def opencv_face_detection_path(self) -> Path:
+        return self.ai_model_root / self.opencv_face_required_assets[0]
+
+    @property
+    def opencv_face_recognition_path(self) -> Path:
+        return self.ai_model_root / self.opencv_face_required_assets[1]
+
     insightface_model_name: str = Field(
         default="buffalo_l", alias="INSIGHTFACE_MODEL_NAME"
     )
@@ -320,7 +342,20 @@ class Settings(BaseSettings):
                 except Exception:
                     missing.append(f"models.pad_contract_invalid:{pad_model_path}")
 
-        if (
+        if self.face_embedding_engine == "opencv_sface":
+            for asset in self.opencv_face_required_assets:
+                if not (self.ai_model_root / asset).is_file():
+                    missing.append(f"models.opencv_face:{asset}")
+            if not model_integrity_errors and not any(
+                item.startswith("models.opencv_face:") for item in missing
+            ):
+                try:
+                    from app.face_engine import get_opencv_face_analyzer
+
+                    get_opencv_face_analyzer()
+                except Exception:
+                    missing.append("models.opencv_face_contract_invalid")
+        elif (
             not self.insightface_allow_download
             and not self.insightface_model_dir.exists()
         ):

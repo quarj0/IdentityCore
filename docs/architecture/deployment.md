@@ -251,23 +251,35 @@ Real-mode prerequisites:
 - `OBJECT_STORAGE_ACCESS_KEY_ID`
 - `OBJECT_STORAGE_SECRET_ACCESS_KEY`
 - Approved `AI_MODEL_MANIFEST_SHA256` in trusted deployment configuration
-- Local InsightFace assets under `AI_MODEL_ROOT/insightface/models/<INSIGHTFACE_MODEL_NAME>`
+- For `FACE_EMBEDDING_ENGINE=opencv_sface`, local pinned YuNet/SFace weights and notices under `AI_MODEL_ROOT/face/opencv`
+- For the legacy `insightface` engine only, separately permitted weights under `AI_MODEL_ROOT/insightface/models/<INSIGHTFACE_MODEL_NAME>`
+- Local PAD asset under `AI_MODEL_ROOT/liveness/pad.onnx`
 - Local PaddleOCR detection/recognition assets under `AI_MODEL_ROOT/paddleocr/det` and `AI_MODEL_ROOT/paddleocr/rec`; all optional assets must also be listed
 
-Expected model root layout:
+Expected OpenCV candidate model root layout:
 
 ```text
 /opt/identitycore/models
-├── insightface/
-│   └── models/
-│       └── buffalo_l/
-├── paddleocr/
-│   ├── det/
-│   ├── rec/
-│   └── cls/
-├── mediapipe/
-└── onnx/
+├── manifest.json
+├── face/opencv/
+│   ├── yunet-2026may.onnx
+│   ├── sface-2021dec.onnx
+│   ├── YUNET-LICENSE.txt
+│   └── SFACE-LICENSE.txt
+├── liveness/
+│   ├── pad.onnx
+│   └── MiniFASNetV2-LICENSE.txt
+└── paddleocr/
+    ├── det/
+    └── rec/
 ```
+
+Use a separate clean model root when switching engines. An OpenCV release rejects
+legacy `insightface/` entries; preserve any prior release separately for authorized
+rollback rather than mixing its assets into the candidate. The manifest binds the
+selected engine and both model paths. See [model licenses](../operations/model-licenses.md)
+for immutable sources and commercial-use terms. Existing match thresholds are
+retained until independent calibration supports an operating point for the new engine.
 
 Bucket access expectations for the AI service:
 
