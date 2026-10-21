@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM python:3.12-slim
 
 COPY --from=ghcr.io/astral-sh/uv:0.8.0 /uv /uvx /bin/
@@ -23,16 +24,21 @@ RUN apt-get update \
 COPY backend/pyproject.toml backend/uv.lock /app/backend/
 COPY backend/shared /app/backend/shared
 
-RUN uv export \
+# Model-runtime wheels are large. Keep completed downloads across failed builds
+# and allow slow links more than pip's default 15-second socket timeout.
+ARG PIP_DEFAULT_TIMEOUT=120
+ARG PIP_RETRIES=5
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    uv export \
     --directory /app/backend \
     --format requirements-txt \
     --no-hashes \
     --group ai-service \
     --group dev \
     --output-file /tmp/requirements-ai.txt \
-    && pip install --no-cache-dir --no-deps -r /tmp/requirements-ai.txt \
+    && pip install --timeout "$PIP_DEFAULT_TIMEOUT" --retries "$PIP_RETRIES" --no-deps -r /tmp/requirements-ai.txt \
     && pip uninstall -y opencv-python opencv-python-headless opencv-contrib-python opencv-contrib-python-headless \
-    && pip install --no-cache-dir --no-deps opencv-contrib-python-headless==5.0.0.93 \
+    && pip install --timeout "$PIP_DEFAULT_TIMEOUT" --retries "$PIP_RETRIES" --no-deps opencv-contrib-python-headless==5.0.0.93 \
     && python /app/backend/shared/opencv_runtime.py
 
 COPY backend/ai-service /app/backend/ai-service
