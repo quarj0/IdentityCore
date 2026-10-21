@@ -43,3 +43,11 @@ No automatic in-process model replacement or approval is performed.
 Synthetic integrity tests do not establish model accuracy, real startup performance,
 malware safety or readiness for production. Physical/device/adversarial evaluation
 and release approval remain required. Never enable mock or hybrid in production.
+
+The AI image installs only `opencv-contrib-python==5.0.0.93`. PaddleX checks this
+distribution name both for OCR dependencies and for conditional `cv2` imports;
+the headless contrib distribution alone leaves its image reader unusable. The
+frozen dependency exclusions and runtime guard reject overlapping OpenCV wheels.
+The image build also checks the real PaddleX OCR-core dependencies and constructs
+its RGB image reader, without downloading models. Keep the existing OS libraries;
+no display server or GUI calls are used by IdentityCore's inference pipeline.

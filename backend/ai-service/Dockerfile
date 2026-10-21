@@ -38,8 +38,10 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     --output-file /tmp/requirements-ai.txt \
     && pip install --timeout "$PIP_DEFAULT_TIMEOUT" --retries "$PIP_RETRIES" --no-deps -r /tmp/requirements-ai.txt \
     && pip uninstall -y opencv-python opencv-python-headless opencv-contrib-python opencv-contrib-python-headless \
-    && pip install --timeout "$PIP_DEFAULT_TIMEOUT" --retries "$PIP_RETRIES" --no-deps opencv-contrib-python-headless==5.0.0.93 \
-    && python /app/backend/shared/opencv_runtime.py
+    && pip install --timeout "$PIP_DEFAULT_TIMEOUT" --retries "$PIP_RETRIES" --no-deps opencv-contrib-python==5.0.0.93 \
+    && python /app/backend/shared/opencv_runtime.py \
+    && PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True python -c \
+        "from paddlex.utils.deps import require_extra; require_extra('ocr-core'); from paddlex.inference.common.reader.image_reader import ReadImage; ReadImage(format='RGB')"
 
 COPY backend/ai-service /app/backend/ai-service
 

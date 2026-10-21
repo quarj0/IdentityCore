@@ -784,4 +784,5 @@ installation requirements. The script stops at the first failed suite.
 If the OpenCV verifier reports overlapping distributions, recreate a dedicated
 environment from the frozen lock and its declared exclusions rather than letting
 multiple packages overwrite the shared cv2 namespace. The supported current runtime
-is opencv-contrib-python-headless 5.0.0.93; no downgrade normalization is required.
+is opencv-contrib-python 5.0.0.93, which PaddleX recognizes during its conditional
+imports; no downgrade normalization is required.
