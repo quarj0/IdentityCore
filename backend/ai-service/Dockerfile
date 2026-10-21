@@ -8,6 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Video decoding uses the OpenCV wheel's bundled codec backend. The external
+# ffmpeg CLI adds unused native libraries and is deliberately not installed.
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
@@ -18,7 +20,6 @@ RUN apt-get update \
         libsm6 \
         libxext6 \
         libxrender1 \
-        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/pyproject.toml backend/uv.lock /app/backend/

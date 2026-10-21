@@ -109,3 +109,11 @@ example environments select the OpenCV candidate. Review the
 [model licenses](../../docs/operations/model-licenses.md) and recalibrate thresholds
 on held-out data before production decisions; synthetic smoke tests do not establish
 an accuracy target.
+
+### Video decoder packaging
+
+Capture video is decoded by OpenCV's bundled codec backend. The external `ffmpeg`
+command-line package is not part of the AI runtime. Generated H.264/MP4 and VP8/WebM
+fixtures exercise frame sampling without people or applicant data. Removing the
+unused system package reduces native dependencies; it does not establish that the
+bundled decoder has no advisories or replace adversarial-media evaluation.
