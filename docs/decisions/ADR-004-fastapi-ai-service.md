@@ -199,6 +199,12 @@ Those decisions belong exclusively to the Django Decision Engine.
 
 AI models should be replaceable without modifying business logic.
 
+Implementation note (2026-10-21): the local face provider can select the pinned
+OpenCV Zoo YuNet/SFace candidate or the legacy InsightFace engine. Model manifests
+bind that selection; changing engines does not alter Django decision thresholds
+automatically. See [model licenses](../operations/model-licenses.md) before a
+commercial deployment.
+
 Example:
 
 ```id="8mjlwm"

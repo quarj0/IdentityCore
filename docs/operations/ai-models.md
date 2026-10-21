@@ -24,8 +24,8 @@ and prints missing requirement codes. A failed `make up` attempts this diagnosti
 `make logs-ai` distinguishes a process crash from a running but unready service.
 
 Real processing rejects absent/untrusted manifests, altered/missing/unlisted files,
-a manifest selecting a different InsightFace model, omitted configured InsightFace
-or PaddleOCR artifacts, symlink assets and enabled runtime downloads. Bootstrap
+a manifest selecting a different face engine or legacy InsightFace model, omitted
+configured face-model/PaddleOCR artifacts or required OpenCV license notices, symlink assets and enabled runtime downloads. Bootstrap
 excludes the manifest by resolved identity, including an aliased model-root path.
 Artifacts are hashed in bounded chunks. Startup warms the integrity check; subsequent
 requests/readiness inspect filesystem metadata, reusing digests while the complete
@@ -36,7 +36,8 @@ Use immutable/read-only releases and restart all workers for a new approved mode
 No automatic in-process model replacement or approval is performed.
 
 - PaddleOCR supplies OCR; document classification uses the AI-service evidence classifier.
-- InsightFace `buffalo_l` supplies embeddings and face matching.
+- OpenCV Zoo YuNet/SFace supplies detection/alignment and embeddings in new example configurations.
+- Legacy InsightFace `buffalo_l` remains available only with appropriate model-use permission.
 - MediaPipe is installed with the service and supplies face-presence/passive signals.
 - Country coverage uses `DOCUMENT_CLASSIFICATION_ENABLED_COUNTRY_CODES`.
 

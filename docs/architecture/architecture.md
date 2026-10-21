@@ -888,7 +888,8 @@ Likely first services to extract:
 - Python
 - FastAPI
 - OpenCV
-- InsightFace
+- OpenCV Zoo YuNet/SFace (new example configuration)
+- InsightFace (legacy; trained weights require separate commercial permission)
 - MediaPipe
 - ONNX Runtime
 - Tesseract or PaddleOCR
