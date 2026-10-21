@@ -68,6 +68,23 @@ def test_face_engine_selection_and_required_inventory_are_bound_to_approved_mani
         manifest.read_bytes()
     ).hexdigest()
     assert "models.face_engine_mismatch" in settings.model_asset_integrity_errors()
+    payload["face_engine"] = "opencv_sface"
+    legacy = tmp_path / "insightface/model.onnx"
+    legacy.parent.mkdir()
+    legacy.write_bytes(b"excluded legacy weight")
+    payload["files"].append(
+        {
+            "path": "insightface/model.onnx",
+            "sha256": hashlib.sha256(legacy.read_bytes()).hexdigest(),
+        }
+    )
+    manifest.write_text(json.dumps(payload))
+    settings.ai_model_manifest_sha256 = hashlib.sha256(
+        manifest.read_bytes()
+    ).hexdigest()
+    assert (
+        "models.legacy_face_assets_forbidden" in settings.model_asset_integrity_errors()
+    )
     with pytest.raises(ValidationError):
         Settings(FACE_EMBEDDING_ENGINE="unapproved")
 

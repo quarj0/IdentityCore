@@ -555,7 +555,8 @@ def run_face_compare_pipeline(
         }
 
     for face in (selfie_face, document_face):
-        if not np.isfinite(face.embedding).all() or np.linalg.norm(face.embedding) <= 0:
+        norm = np.linalg.norm(face.embedding)
+        if not np.isfinite(face.embedding).all() or not np.isfinite(norm) or norm <= 0:
             raise ProcessingError("Face model produced an invalid embedding.")
     similarity = float(
         np.dot(selfie_face.embedding, document_face.embedding)

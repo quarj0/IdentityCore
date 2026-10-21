@@ -32,7 +32,13 @@ class OpenCVFaceAnalyzer:
         )
 
     def get(self, image):
-        if image.dtype != np.uint8 or image.ndim != 3 or image.shape[2] != 3:
+        if (
+            image.dtype != np.uint8
+            or image.ndim != 3
+            or image.shape[2] != 3
+            or not image.shape[0]
+            or not image.shape[1]
+        ):
             raise ValueError(
                 "Face inference requires a decoded three-channel uint8 image."
             )
@@ -64,7 +70,12 @@ class OpenCVFaceAnalyzer:
                 detection[:14] /= scale
                 aligned = self.recognizer.alignCrop(image, detection)
                 embedding = self.recognizer.feature(aligned).reshape(-1).copy()
-                if not np.isfinite(embedding).all() or np.linalg.norm(embedding) <= 0:
+                norm = np.linalg.norm(embedding)
+                if (
+                    not np.isfinite(embedding).all()
+                    or not np.isfinite(norm)
+                    or norm <= 0
+                ):
                     raise ValueError("Face model produced an invalid embedding.")
                 x, y, width, height = map(float, detection[:4])
                 faces.append(

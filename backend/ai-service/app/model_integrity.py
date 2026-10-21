@@ -139,6 +139,8 @@ def _validate(
     if pad_path not in listed:
         errors.append(f"models.manifest_required_asset_missing:{pad_path}")
     if face_engine == "opencv_sface":
+        if any(name.startswith("insightface/") for name in listed):
+            errors.append("models.legacy_face_assets_forbidden")
         if payload.get("face_models") != {
             "detection": face_assets[0],
             "recognition": face_assets[1],
