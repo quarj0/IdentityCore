@@ -171,7 +171,12 @@ for (const { mode, clockOffset, pendingPermission } of [
         ),
       ).toHaveCount(0);
       if (pendingPermission) {
-        await page.getByRole("button", { name: "Enable camera" }).click();
+        const enableCamera = page.getByRole("button", {
+          name: "Enable camera",
+        });
+        // Exercise touch on Safari mobile while capture controls change geometry.
+        if (isMobile) await enableCamera.tap();
+        else await enableCamera.click();
         await expect(
           page.getByRole("button", { name: "Starting camera…" }),
         ).toBeVisible();

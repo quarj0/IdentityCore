@@ -62,6 +62,9 @@ for (const locale of ["en", "ar"] as const) {
     await expect(
       page.getByRole("heading", { name: t("Review and give consent") }),
     ).toBeVisible();
+    // Observe the step's deferred heading focus before tab navigation.
+    if (!isMobile)
+      await expect(page.locator("[data-step-heading]")).toBeFocused();
     await expect(page.locator("html")).toHaveAttribute("lang", locale);
     await expect(page.locator("html")).toHaveAttribute(
       "dir",
@@ -84,6 +87,9 @@ for (const locale of ["en", "ar"] as const) {
         name: `${t("Capture your")} ${t("National ID")}`,
       }),
     ).toBeVisible();
+    // Observe the step's deferred heading focus before tab navigation.
+    if (!isMobile)
+      await expect(page.locator("[data-step-heading]")).toBeFocused();
     await expectNoCriticalA11yViolations(page);
     const upload = page.getByLabel(t("Upload image"));
     async function capture(name: string) {
@@ -91,7 +97,8 @@ for (const locale of ["en", "ar"] as const) {
       if (isMobile) {
         await page.getByText(t("Upload image"), { exact: true }).tap();
       } else {
-        await activateWithKeyboard(upload, "Enter");
+        // Use the native file input's Space activation in desktop browsers.
+        await activateWithKeyboard(upload, "Space");
       }
       await (
         await chooser
@@ -115,6 +122,9 @@ for (const locale of ["en", "ar"] as const) {
     await expect(
       page.getByRole("heading", { name: t("Take a live selfie") }),
     ).toBeVisible();
+    // Observe the step's deferred heading focus before tab navigation.
+    if (!isMobile)
+      await expect(page.locator("[data-step-heading]")).toBeFocused();
     await expectNoCriticalA11yViolations(page);
     await capture("selfie.png");
     await activateForBrowser(
@@ -125,6 +135,9 @@ for (const locale of ["en", "ar"] as const) {
     await expect(
       page.getByRole("heading", { name: t("Complete a live camera check") }),
     ).toBeVisible();
+    // Observe the step's deferred heading focus before tab navigation.
+    if (!isMobile)
+      await expect(page.locator("[data-step-heading]")).toBeFocused();
     await expectNoCriticalA11yViolations(page);
     for (const buttonName of [
       "Begin live camera check",
