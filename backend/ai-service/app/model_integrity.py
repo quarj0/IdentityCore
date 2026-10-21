@@ -56,6 +56,8 @@ def integrity_errors(settings):
             expected,
             settings.insightface_model_name,
             settings.pad_model_relative_path,
+            settings.face_embedding_engine,
+            settings.opencv_face_required_assets,
             snapshot,
         )
         with _LOCK:
@@ -67,7 +69,15 @@ def integrity_errors(settings):
 
 @lru_cache(maxsize=8)
 def _validate(
-    root_name, manifest_name, manifest_stat, expected, model_name, pad_path, snapshot
+    root_name,
+    manifest_name,
+    manifest_stat,
+    expected,
+    model_name,
+    pad_path,
+    face_engine,
+    face_assets,
+    snapshot,
 ):
     root, manifest = Path(root_name), Path(manifest_name)
     if manifest_stat[3] > 2 * 1024 * 1024:
@@ -82,7 +92,9 @@ def _validate(
     if not isinstance(files, list) or not files:
         return ("models.manifest_invalid",)
     errors = []
-    if payload.get("insightface_model") != model_name:
+    if payload.get("face_engine", "insightface") != face_engine:
+        errors.append("models.face_engine_mismatch")
+    if face_engine == "insightface" and payload.get("insightface_model") != model_name:
         errors.append("models.insightface_model_mismatch")
     listed = set()
     for entry in files:
@@ -126,9 +138,21 @@ def _validate(
         errors.append(f"models.asset_unlisted:{name}")
     if pad_path not in listed:
         errors.append(f"models.manifest_required_asset_missing:{pad_path}")
-    prefix = f"insightface/models/{model_name}/"
-    if not any(name.startswith(prefix) and name.endswith(".onnx") for name in listed):
-        errors.append("models.manifest_insightface_assets_missing")
+    if face_engine == "opencv_sface":
+        if payload.get("face_models") != {
+            "detection": face_assets[0],
+            "recognition": face_assets[1],
+        }:
+            errors.append("models.face_model_selection_mismatch")
+        for asset in face_assets:
+            if asset not in listed:
+                errors.append(f"models.manifest_required_asset_missing:{asset}")
+    else:
+        prefix = f"insightface/models/{model_name}/"
+        if not any(
+            name.startswith(prefix) and name.endswith(".onnx") for name in listed
+        ):
+            errors.append("models.manifest_insightface_assets_missing")
     for kind in ("det", "rec"):
         prefix = f"paddleocr/{kind}/"
         if prefix + "inference.yml" not in listed or not any(

@@ -44,6 +44,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
         "from paddlex.utils.deps import require_extra; require_extra('ocr-core'); from paddlex.inference.common.reader.image_reader import ReadImage; ReadImage(format='RGB')"
 
 COPY backend/ai-service /app/backend/ai-service
+COPY scripts/fetch_face_models.py /app/scripts/fetch_face_models.py
 
 WORKDIR /app/backend/ai-service
 

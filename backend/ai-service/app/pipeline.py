@@ -528,9 +528,19 @@ def run_face_compare_pipeline(
     if len(document_detections) < 1:
         issues.append("document_face_not_detected")
 
-    analyzer = get_insightface_analyzer()
+    if settings.face_embedding_engine == "opencv_sface":
+        from app.face_engine import get_opencv_face_analyzer
+
+        analyzer = get_opencv_face_analyzer()
+        model_name, model_version = "opencv-sface", "sface-2021dec-yunet-2026may"
+    else:
+        analyzer = get_insightface_analyzer()
+        model_name, model_version = "insightface", settings.insightface_model_name
     selfie_faces = analyzer.get(selfie_asset.primary_frame)
     document_faces = analyzer.get(document_asset.primary_frame)
+    if settings.face_embedding_engine == "opencv_sface" and len(selfie_faces) != 1:
+        if "invalid_selfie_face_count" not in issues:
+            issues.append("invalid_selfie_face_count")
     selfie_face = _pick_largest_face(selfie_faces)
     document_face = _pick_largest_face(document_faces)
     if selfie_face is None or document_face is None:
@@ -540,10 +550,13 @@ def run_face_compare_pipeline(
             "threshold_used": threshold,
             "confidence_level": "low",
             "issues": issues or ["embedding_not_generated"],
-            "model_name": "insightface",
-            "model_version": settings.insightface_model_name,
+            "model_name": model_name,
+            "model_version": model_version,
         }
 
+    for face in (selfie_face, document_face):
+        if not np.isfinite(face.embedding).all() or np.linalg.norm(face.embedding) <= 0:
+            raise ProcessingError("Face model produced an invalid embedding.")
     similarity = float(
         np.dot(selfie_face.embedding, document_face.embedding)
         / (
@@ -559,8 +572,8 @@ def run_face_compare_pipeline(
         "threshold_used": threshold,
         "confidence_level": _confidence_label(normalized_score),
         "issues": issues,
-        "model_name": "insightface",
-        "model_version": settings.insightface_model_name,
+        "model_name": model_name,
+        "model_version": model_version,
     }
 
 

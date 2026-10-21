@@ -51,3 +51,12 @@ frozen dependency exclusions and runtime guard reject overlapping OpenCV wheels.
 The image build also checks the real PaddleX OCR-core dependencies and constructs
 its RGB image reader, without downloading models. Keep the existing OS libraries;
 no display server or GUI calls are used by IdentityCore's inference pipeline.
+
+For the commercially permitted OpenCV candidate, choose
+`FACE_EMBEDDING_ENGINE=opencv_sface`, fetch with the pinned
+`scripts/fetch_face_models.py` before bootstrapping, and review the generated
+`face_engine`/`face_models` manifest fields. Both ONNX files and their license notices
+must be present in the approved inventory. Inference does not fall back to legacy
+weights. Provision a separate clean model root containing only the selected face
+engine, PAD and Paddle assets; stop inference before changing the mounted release.
+See [model-licenses.md](model-licenses.md) for immutable provenance and licensing.

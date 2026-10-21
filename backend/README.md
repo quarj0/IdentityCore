@@ -19,6 +19,9 @@ establish biometric accuracy or production approval:
 docker compose --profile model-bootstrap run --rm --build --entrypoint python \
   ai-model-bootstrap /app/scripts/fetch_pad_model.py \
   --model-root /opt/identitycore/models
+docker compose --profile model-bootstrap run --rm --entrypoint python \
+  ai-model-bootstrap /app/scripts/fetch_face_models.py \
+  --model-root /opt/identitycore/models
 docker compose --profile model-bootstrap run --rm ai-model-bootstrap
 # Review the candidate manifest and configure AI_MODEL_MANIFEST_SHA256 in .env.
 # Follow docs/operations/ai-models.md; do not trust a digest from a mutable volume automatically.
@@ -78,3 +81,20 @@ Rebuild after pulling dependency updates; an existing container retains its old
 installed packages until replaced. The documented
 [frontend dependency backports](../docs/operations/frontend-dependency-security.md)
 remain separate, version-visible mitigations.
+
+### Face model selection
+
+New `.env.example` configurations select `FACE_EMBEDDING_ENGINE=opencv_sface`.
+The pinned fetch script provisions OpenCV Zoo YuNet (MIT) and SFace (Apache 2.0),
+including their license notices. Bootstrap writes the selected engine and weight
+paths into the candidate manifest. Inference still requires independent manifest
+approval. Existing installations without the setting retain the legacy InsightFace
+engine for compatibility; its downloaded `buffalo_l` weights are restricted to
+non-commercial research unless separately licensed. Do not approve them for a
+commercial pilot by treating the Python package's MIT license as a weight license.
+
+Switching engines requires a new reviewed immutable model release and restart.
+Existing matching thresholds are retained; SFace scores require separate calibration
+and held-out evaluation. The license permits a use; it does not establish biometric
+accuracy, fairness, liveness performance or customer-launch approval. See the
+[model license record](../docs/operations/model-licenses.md).
